@@ -26,9 +26,16 @@ export interface DataSource {
 }
 
 export interface AgentConfig {
-  provider: 'openai' | 'anthropic' | 'custom';
-  model?: string;
+  id?: string;
+  name: string;
+  icon: string; // Lucide icon name or emoji
+  iconType: 'lucide' | 'emoji';
+  apiUrl: string;
   apiKey?: string;
+  headers?: Record<string, string>;
+  queryParams?: Record<string, string>;
+  extraBody?: Record<string, any>;
+  preset?: 'openai' | 'openrouter' | 'anthropic' | 'custom';
   temperature?: number;
   maxTokens?: number;
   tools?: AgentTool[];
@@ -36,10 +43,30 @@ export interface AgentConfig {
 }
 
 export interface AgentTool {
+  id: string;
   name: string;
   description: string;
-  type: 'read_canvas' | 'write_canvas' | 'query_rdf' | 'extract_data' | 'custom';
-  config?: Record<string, any>;
+  type: 'mcp' | 'openapi';
+  enabled: boolean;
+  config?: MCPConfig | OpenAPIConfig;
+}
+
+export interface MCPConfig {
+  // MCP (Model Context Protocol) configuration
+  serverUrl?: string;
+  methods?: string[];
+  [key: string]: any;
+}
+
+export interface OpenAPIConfig {
+  // OpenAPI configuration compatible with https://github.com/open-webui/openapi-servers
+  specUrl: string;
+  operations?: string[]; // Selected operations to enable
+  authentication?: {
+    type: 'none' | 'bearer' | 'apiKey' | 'basic';
+    credentials?: Record<string, string>;
+  };
+  [key: string]: any;
 }
 
 export interface RDFEntity {

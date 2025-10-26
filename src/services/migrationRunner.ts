@@ -1,6 +1,7 @@
 import { Client } from '@libsql/client';
 import migration000 from './migrations/000_init.sql?raw';
 import migration001 from './migrations/001_initial_schema.sql?raw';
+import migration002 from './migrations/002_update_agent_configs.sql?raw';
 
 interface Migration {
   version: number;
@@ -19,6 +20,11 @@ const migrations: Migration[] = [
     version: 1,
     description: 'Initial schema with all tables',
     sql: migration001,
+  },
+  {
+    version: 2,
+    description: 'Update agent_configs table for enhanced configuration',
+    sql: migration002,
   },
 ];
 

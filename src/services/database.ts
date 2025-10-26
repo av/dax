@@ -254,14 +254,20 @@ export class DatabaseService {
   async saveAgentConfig(config: AgentConfig & { id: string }, userId: string): Promise<void> {
     await this.client.execute({
       sql: `INSERT OR REPLACE INTO agent_configs 
-            (id, user_id, provider, model, api_key, temperature, max_tokens, tools, system_prompt, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+            (id, user_id, name, icon, icon_type, api_url, api_key, headers, query_params, extra_body, preset, temperature, max_tokens, tools, system_prompt, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       args: [
         config.id,
         userId,
-        config.provider,
-        config.model || null,
+        config.name,
+        config.icon,
+        config.iconType,
+        config.apiUrl,
         config.apiKey || null,
+        JSON.stringify(config.headers || {}),
+        JSON.stringify(config.queryParams || {}),
+        JSON.stringify(config.extraBody || {}),
+        config.preset || null,
         config.temperature || null,
         config.maxTokens || null,
         JSON.stringify(config.tools || []),
@@ -280,14 +286,29 @@ export class DatabaseService {
 
     return result.rows.map(row => ({
       id: row.id as string,
-      provider: row.provider as 'openai' | 'anthropic' | 'custom',
-      model: row.model as string | undefined,
+      name: row.name as string,
+      icon: row.icon as string,
+      iconType: row.icon_type as 'lucide' | 'emoji',
+      apiUrl: row.api_url as string,
       apiKey: row.api_key as string | undefined,
+      headers: JSON.parse(row.headers as string || '{}'),
+      queryParams: JSON.parse(row.query_params as string || '{}'),
+      extraBody: JSON.parse(row.extra_body as string || '{}'),
+      preset: row.preset as 'openai' | 'openrouter' | 'anthropic' | 'custom' | undefined,
       temperature: row.temperature as number | undefined,
       maxTokens: row.max_tokens as number | undefined,
       tools: JSON.parse(row.tools as string || '[]'),
       systemPrompt: row.system_prompt as string | undefined,
     }));
+  }
+
+  async deleteAgentConfig(id: string, userId: string): Promise<void> {
+    await this.client.execute({
+      sql: 'DELETE FROM agent_configs WHERE id = ? AND user_id = ?',
+      args: [id, userId],
+    });
+
+    await this.logActivity(userId, 'agent_config_deleted', 'agent_config', id, {});
   }
 
   // Document Storage (generic)
