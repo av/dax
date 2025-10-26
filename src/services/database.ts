@@ -7,6 +7,59 @@ export interface DatabaseConfig {
   authToken?: string;
 }
 
+function isElectron(): boolean {
+  return typeof window !== 'undefined' && window.electron !== undefined;
+}
+
+class ElectronDatabaseClient implements Client {
+  async execute(query: any): Promise<any> {
+    if (!window.electron?.db) {
+      throw new Error('Electron database API not available');
+    }
+    return await window.electron.db.execute(query);
+  }
+
+  async batch(statements: any[]): Promise<any[]> {
+    const results: any[] = [];
+    for (const stmt of statements) {
+      results.push(await this.execute(stmt));
+    }
+    return results;
+  }
+
+  async close(): Promise<void> {
+    if (window.electron?.db) {
+      await window.electron.db.close();
+    }
+  }
+
+  get closed(): boolean {
+    return !window.electron?.db;
+  }
+
+  async migrate(_statements: any[]): Promise<any[]> {
+    throw new Error('Migration handled in main process');
+  }
+
+  async transaction(_mode?: 'write' | 'read' | 'deferred'): Promise<any> {
+    throw new Error('Transactions not yet implemented');
+  }
+
+  async executeMultiple(_sql: string): Promise<void> {
+    throw new Error('ExecuteMultiple not yet implemented');
+  }
+
+  sync(): Promise<any> {
+    throw new Error('Sync not supported');
+  }
+
+  protocol: 'file' = 'file';
+
+  async reconnect(): Promise<void> {
+    // No-op
+  }
+}
+
 export class DatabaseService {
   private client: Client;
   private initialized: boolean = false;
@@ -27,7 +80,7 @@ export class DatabaseService {
 
     // Create default admin user if not exists
     await this.createDefaultAdmin();
-    
+
     this.initialized = true;
   }
 
@@ -51,7 +104,7 @@ export class DatabaseService {
   // User Management
   async addUser(user: User): Promise<void> {
     await this.client.execute({
-      sql: `INSERT INTO users (id, username, email, role, permissions) 
+      sql: `INSERT INTO users (id, username, email, role, permissions)
             VALUES (?, ?, ?, ?, ?)`,
       args: [user.id, user.username, user.email, user.role, JSON.stringify(user.permissions)],
     });
@@ -80,7 +133,7 @@ export class DatabaseService {
   // Canvas Nodes Management
   async saveCanvasNode(node: CanvasNode, userId: string): Promise<void> {
     await this.client.execute({
-      sql: `INSERT OR REPLACE INTO canvas_nodes 
+      sql: `INSERT OR REPLACE INTO canvas_nodes
             (id, user_id, type, title, x, y, width, height, data, config, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       args: [
@@ -135,7 +188,7 @@ export class DatabaseService {
   // RDF Entity Management
   async saveRDFEntity(entity: RDFEntity, userId: string): Promise<void> {
     await this.client.execute({
-      sql: `INSERT OR REPLACE INTO rdf_entities 
+      sql: `INSERT OR REPLACE INTO rdf_entities
             (id, user_id, type, attributes, updated_at)
             VALUES (?, ?, ?, ?, datetime('now'))`,
       args: [entity.id, userId, entity.type, JSON.stringify(entity.attributes)],
@@ -145,10 +198,10 @@ export class DatabaseService {
   }
 
   async getRDFEntities(userId: string, type?: string): Promise<RDFEntity[]> {
-    const sql = type 
+    const sql = type
       ? 'SELECT * FROM rdf_entities WHERE user_id = ? AND type = ?'
       : 'SELECT * FROM rdf_entities WHERE user_id = ?';
-    
+
     const args = type ? [userId, type] : [userId];
 
     const result = await this.client.execute({ sql, args });
@@ -183,7 +236,7 @@ export class DatabaseService {
     const sql = entityId
       ? 'SELECT * FROM rdf_links WHERE user_id = ? AND (from_entity = ? OR to_entity = ?)'
       : 'SELECT * FROM rdf_links WHERE user_id = ?';
-    
+
     const args = entityId ? [userId, entityId, entityId] : [userId];
 
     const result = await this.client.execute({ sql, args });
@@ -232,7 +285,7 @@ export class DatabaseService {
     });
 
     const lowerSearchTerm = searchTerm.toLowerCase();
-    
+
     const entities = result.rows
       .map(row => ({
         id: row.id as string,
@@ -245,7 +298,7 @@ export class DatabaseService {
         if (entity.type.toLowerCase().includes(lowerSearchTerm)) {
           return true;
         }
-        
+
         // Search in attribute values
         const attributeValues = Object.values(entity.attributes);
         return attributeValues.some(val => {
@@ -310,8 +363,8 @@ export class DatabaseService {
   // Preferences Management
   async savePreferences(userId: string, prefs: Preferences): Promise<void> {
     await this.client.execute({
-      sql: `INSERT OR REPLACE INTO preferences 
-            (user_id, theme, autostart, data_dir, backup_enabled, backup_interval, 
+      sql: `INSERT OR REPLACE INTO preferences
+            (user_id, theme, autostart, data_dir, backup_enabled, backup_interval,
              backup_location, sync_enabled, sync_provider, sync_config, language, hotkeys, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       args: [
@@ -364,7 +417,7 @@ export class DatabaseService {
   // Agent Configuration Management
   async saveAgentConfig(config: AgentConfig & { id: string }, userId: string): Promise<void> {
     await this.client.execute({
-      sql: `INSERT OR REPLACE INTO agent_configs 
+      sql: `INSERT OR REPLACE INTO agent_configs
             (id, user_id, name, icon, icon_type, api_url, api_key, headers, query_params, extra_body, preset, temperature, max_tokens, tools, system_prompt, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       args: [
@@ -532,7 +585,7 @@ export class DatabaseService {
     permission: 'read' | 'write' | 'delete' | 'share'
   ): Promise<boolean> {
     const user = await this.getUser(userId);
-    
+
     // Admin has all permissions
     if (user?.role === 'admin') {
       return true;
@@ -587,7 +640,7 @@ export class DatabaseService {
 
   async getActivityLog(userId: string, limit: number = 100): Promise<any[]> {
     const result = await this.client.execute({
-      sql: `SELECT * FROM activity_log WHERE user_id = ? 
+      sql: `SELECT * FROM activity_log WHERE user_id = ?
             ORDER BY created_at DESC LIMIT ?`,
       args: [userId, limit],
     });
@@ -624,7 +677,26 @@ export class DatabaseService {
 }
 
 // Factory function to create database instance
-export async function createDatabase(config: DatabaseConfig): Promise<DatabaseService> {
+export async function createDatabase(config?: DatabaseConfig): Promise<DatabaseService> {
+  if (isElectron()) {
+    console.log('Running in Electron - using IPC database client');
+    if (!window.electron?.db) {
+      throw new Error('Electron database API not available');
+    }
+    await window.electron.db.initialize({});
+
+    const electronClient = new ElectronDatabaseClient();
+    const db = Object.create(DatabaseService.prototype);
+    db.client = electronClient;
+    db.initialized = true;
+    await db.createDefaultAdmin();
+    return db;
+  }
+
+  if (!config?.url) {
+    throw new Error('Database URL is required for non-Electron environments');
+  }
+
   const db = new DatabaseService(config);
   await db.initialize();
   return db;
@@ -634,7 +706,7 @@ export async function createDatabase(config: DatabaseConfig): Promise<DatabaseSe
 // This should be initialized by the application
 let databaseInstance: DatabaseService | null = null;
 
-export async function initializeDatabase(config: DatabaseConfig): Promise<DatabaseService> {
+export async function initializeDatabase(config?: DatabaseConfig): Promise<DatabaseService> {
   if (!databaseInstance) {
     databaseInstance = await createDatabase(config);
   }

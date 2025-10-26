@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { CanvasNode } from '@/types';
+import { CanvasNode, DataSource } from '@/types';
 import { CanvasNodeComponent } from './CanvasNode';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Plus, X, Folder } from 'lucide-react';
 import { getDatabaseInstance } from '@/services/database';
+import { DataSourceService } from '@/services/dataSource';
 
 // Single-user desktop app - always use admin user with full access
 const USER_ID = 'admin';
@@ -12,6 +15,11 @@ export const Canvas: React.FC = () => {
   const [nodes, setNodes] = useState<CanvasNode[]>([]);
   const [selectedNodeType, setSelectedNodeType] = useState<'data' | 'agent' | 'transform' | 'output'>('data');
   const [isLoading, setIsLoading] = useState(true);
+  const [configuringNode, setConfiguringNode] = useState<CanvasNode | null>(null);
+  const [configDataSource, setConfigDataSource] = useState<DataSource>({
+    type: 'fs',
+    path: '',
+  });
 
   // Load nodes from database on mount
   useEffect(() => {
@@ -104,7 +112,7 @@ export const Canvas: React.FC = () => {
     if (nodes.length === 0) {
       return;
     }
-    
+
     const duplicatedNodes = nodes.map(n => ({
       ...n,
       id: `node-${Date.now()}-${Math.random()}`,
@@ -114,7 +122,6 @@ export const Canvas: React.FC = () => {
 
     try {
       const db = getDatabaseInstance();
-      // Save all duplicated nodes to database
       await Promise.all(duplicatedNodes.map(node => db.saveCanvasNode(node, USER_ID)));
       setNodes([...nodes, ...duplicatedNodes]);
     } catch (error) {
@@ -122,9 +129,43 @@ export const Canvas: React.FC = () => {
     }
   };
 
+  const configureNode = (node: CanvasNode) => {
+    setConfiguringNode(node);
+    setConfigDataSource(node.config?.source || {
+      type: 'fs',
+      path: '',
+    });
+  };
+
+  const saveNodeConfiguration = async () => {
+    if (!configuringNode) return;
+
+    const updatedNode: CanvasNode = {
+      ...configuringNode,
+      config: {
+        ...configuringNode.config,
+        source: configDataSource,
+      },
+    };
+
+    await updateNode(updatedNode);
+    setConfiguringNode(null);
+  };
+
+  const selectFolder = async () => {
+    try {
+      const folderPath = await DataSourceService.selectFolder();
+      if (folderPath) {
+        setConfigDataSource({ ...configDataSource, path: folderPath });
+      }
+    } catch (error) {
+      console.error('Failed to select folder:', error);
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="flex-1 flex items-center justify-center bg-slate-100 dark:bg-slate-950">
         <div className="text-center">
           <div className="text-sm text-muted-foreground">Loading canvas...</div>
         </div>
@@ -133,13 +174,13 @@ export const Canvas: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="flex-1 flex flex-col bg-slate-100 dark:bg-slate-950">
       {/* Canvas Toolbar */}
-      <div className="bg-white dark:bg-gray-800 border-b p-2 flex gap-2 items-center">
+      <div className="bg-white dark:bg-slate-900 border-b border-border p-2 flex gap-2 items-center">
         <select
           value={selectedNodeType}
           onChange={(e) => setSelectedNodeType(e.target.value as any)}
-          className="px-3 py-1 border rounded text-sm"
+          className="px-3 py-1 border border-input bg-background text-foreground rounded text-sm"
         >
           <option value="data">Data Source</option>
           <option value="agent">Agent</option>
@@ -164,11 +205,11 @@ export const Canvas: React.FC = () => {
       {/* Canvas Area */}
       <div className="flex-1 relative overflow-hidden">
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 bg-slate-100 dark:bg-slate-950"
           style={{
             backgroundImage: `
-              linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px)
+              linear-gradient(to right, rgba(100,116,139,0.15) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(100,116,139,0.15) 1px, transparent 1px)
             `,
             backgroundSize: '20px 20px',
           }}
@@ -180,10 +221,165 @@ export const Canvas: React.FC = () => {
               onUpdate={updateNode}
               onDelete={deleteNode}
               onDuplicate={duplicateNode}
+              onConfigure={configureNode}
             />
           ))}
         </div>
       </div>
+
+      {/* Configuration Modal */}
+      {configuringNode && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-[500px] max-h-[80vh] overflow-auto">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Configure {configuringNode.title}</CardTitle>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setConfiguringNode(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Node Title</label>
+                <Input
+                  value={configuringNode.title}
+                  onChange={(e) =>
+                    setConfiguringNode({ ...configuringNode, title: e.target.value })
+                  }
+                  placeholder="Node title"
+                />
+              </div>
+
+              {configuringNode.type === 'data' && (
+                <>
+                  <div>
+                    <label className="text-sm font-medium">Data Source Type</label>
+                    <select
+                      value={configDataSource.type}
+                      onChange={(e) =>
+                        setConfigDataSource({
+                          ...configDataSource,
+                          type: e.target.value as DataSource['type'],
+                        })
+                      }
+                      className="w-full mt-1 px-3 py-2 border border-input bg-background text-foreground rounded text-sm"
+                    >
+                      <option value="fs">Filesystem</option>
+                      <option value="http">HTTP/HTTPS</option>
+                      <option value="s3">Amazon S3</option>
+                      <option value="ftp">FTP</option>
+                      <option value="gdrive">Google Drive</option>
+                      <option value="smb">SMB/CIFS</option>
+                      <option value="webdav">WebDAV</option>
+                      <option value="zip">ZIP Archive</option>
+                    </select>
+                  </div>
+
+                  {configDataSource.type === 'fs' && (
+                    <div>
+                      <label className="text-sm font-medium">Folder Path</label>
+                      <div className="flex gap-2 mt-1">
+                        <Input
+                          value={configDataSource.path || ''}
+                          onChange={(e) =>
+                            setConfigDataSource({ ...configDataSource, path: e.target.value })
+                          }
+                          placeholder="/path/to/folder"
+                        />
+                        <Button size="sm" onClick={selectFolder}>
+                          <Folder className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {(configDataSource.type === 'http' || configDataSource.type === 's3') && (
+                    <div>
+                      <label className="text-sm font-medium">URL</label>
+                      <Input
+                        value={configDataSource.url || ''}
+                        onChange={(e) =>
+                          setConfigDataSource({ ...configDataSource, url: e.target.value })
+                        }
+                        placeholder={
+                          configDataSource.type === 'http'
+                            ? 'https://api.example.com/data'
+                            : 's3://bucket-name/key'
+                        }
+                      />
+                    </div>
+                  )}
+
+                  {configDataSource.type === 'ftp' && (
+                    <>
+                      <div>
+                        <label className="text-sm font-medium">FTP URL</label>
+                        <Input
+                          value={configDataSource.url || ''}
+                          onChange={(e) =>
+                            setConfigDataSource({ ...configDataSource, url: e.target.value })
+                          }
+                          placeholder="ftp://ftp.example.com"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-sm font-medium">Username</label>
+                          <Input
+                            value={configDataSource.credentials?.username || ''}
+                            onChange={(e) =>
+                              setConfigDataSource({
+                                ...configDataSource,
+                                credentials: {
+                                  ...configDataSource.credentials,
+                                  username: e.target.value,
+                                },
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Password</label>
+                          <Input
+                            type="password"
+                            value={configDataSource.credentials?.password || ''}
+                            onChange={(e) =>
+                              setConfigDataSource({
+                                ...configDataSource,
+                                credentials: {
+                                  ...configDataSource.credentials,
+                                  password: e.target.value,
+                                },
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              <div className="flex gap-2 pt-4 border-t">
+                <Button onClick={saveNodeConfiguration} className="flex-1">
+                  Save Configuration
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setConfiguringNode(null)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

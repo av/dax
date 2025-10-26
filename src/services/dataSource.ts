@@ -14,15 +14,15 @@ export interface FileSystemEntry {
 export interface FileSystemInterface {
   // Directory operations
   readDir(path: string): Promise<FileSystemEntry[]>;
-  
+
   // File operations
   readFile(path: string, encoding?: string): Promise<string>;
   readFileBuffer(path: string): Promise<ArrayBuffer>;
-  
+
   // Metadata operations
   stat(path: string): Promise<FileSystemEntry>;
   exists(path: string): Promise<boolean>;
-  
+
   // Connection info
   getBasePath(): string;
   getType(): string;
@@ -40,7 +40,7 @@ class LocalFilesystem implements FileSystemInterface {
     if (!window.electron?.fs) {
       throw new Error('Filesystem API not available');
     }
-    
+
     const fullPath = dirPath || this.basePath;
     const entries = await window.electron.fs.readDir(fullPath);
     return entries.map((entry: any) => ({
@@ -55,7 +55,7 @@ class LocalFilesystem implements FileSystemInterface {
     if (!window.electron?.fs) {
       throw new Error('Filesystem API not available');
     }
-    
+
     return await window.electron.fs.readFile(filePath, encoding);
   }
 
@@ -63,7 +63,7 @@ class LocalFilesystem implements FileSystemInterface {
     if (!window.electron?.fs) {
       throw new Error('Filesystem API not available');
     }
-    
+
     const arrayData = await window.electron.fs.readFileBuffer(filePath);
     return new Uint8Array(arrayData).buffer;
   }
@@ -72,7 +72,7 @@ class LocalFilesystem implements FileSystemInterface {
     if (!window.electron?.fs) {
       throw new Error('Filesystem API not available');
     }
-    
+
     const stats = await window.electron.fs.stat(filePath);
     return {
       name: filePath.split('/').pop() || '',
@@ -89,7 +89,7 @@ class LocalFilesystem implements FileSystemInterface {
     if (!window.electron?.fs) {
       throw new Error('Filesystem API not available');
     }
-    
+
     return await window.electron.fs.exists(filePath);
   }
 
@@ -113,7 +113,7 @@ export class DataSourceService {
     if (!window.electron?.fs) {
       throw new Error('Filesystem API not available');
     }
-    
+
     return await window.electron.fs.selectFolder();
   }
 
@@ -149,23 +149,23 @@ export class DataSourceService {
     }
 
     console.log('Connecting to filesystem:', source.path);
-    
+
     // Verify path exists
     if (!window.electron?.fs) {
       throw new Error('Filesystem API not available');
     }
-    
+
     const exists = await window.electron.fs.exists(source.path);
     if (!exists) {
       throw new Error(`Path does not exist: ${source.path}`);
     }
 
     const fs = new LocalFilesystem(source.path);
-    
+
     // Store connection for reuse
     const connectionId = `fs:${source.path}`;
     this.connections.set(connectionId, fs);
-    
+
     return fs;
   }
 
@@ -196,7 +196,7 @@ export class DataSourceService {
   static async readData(source: DataSource): Promise<any> {
     const fs = await this.connect(source);
     const entries = await fs.readDir(fs.getBasePath());
-    
+
     return {
       type: source.type,
       basePath: fs.getBasePath(),
@@ -221,6 +221,11 @@ declare global {
         readFileBuffer(path: string): Promise<number[]>;
         stat(path: string): Promise<any>;
         exists(path: string): Promise<boolean>;
+      };
+      db?: {
+        initialize(config: any): Promise<{ success: boolean; dbPath: string }>;
+        execute(query: any): Promise<any>;
+        close(): Promise<void>;
       };
     };
   }

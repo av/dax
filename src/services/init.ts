@@ -1,26 +1,44 @@
 import { initializeDatabase } from './database';
 
+function isElectron(): boolean {
+  return typeof window !== 'undefined' && window.electron !== undefined;
+}
+
 export interface AppConfig {
-  tursoUrl: string;
+  tursoUrl?: string;
   tursoAuthToken?: string;
 }
 
-// Default configuration for local development
-const DEFAULT_CONFIG: AppConfig = {
-  tursoUrl: process.env.TURSO_URL || 'file:dax.db',
-  tursoAuthToken: process.env.TURSO_AUTH_TOKEN,
-};
-
-export async function initializeApp(config: AppConfig = DEFAULT_CONFIG): Promise<void> {
+export async function initializeApp(config: AppConfig = {}): Promise<void> {
   try {
     console.log('Initializing DAX application...');
-    
+
+    // Check if running in Electron
+    if (isElectron()) {
+      console.log('Running in Electron mode - database handled by main process');
+      await initializeDatabase(); // No config needed for Electron
+      console.log('Electron database initialized successfully');
+      return;
+    }
+
+    // Web mode - requires Turso URL
+    const tursoUrl = config.tursoUrl || import.meta.env.VITE_TURSO_URL;
+    const tursoAuthToken = config.tursoAuthToken || import.meta.env.VITE_TURSO_AUTH_TOKEN;
+
+    if (!tursoUrl) {
+      console.warn('No database URL configured. Running in UI-only mode.');
+      console.warn('Set VITE_TURSO_URL to a libsql://, http://, or https:// URL');
+      return;
+    }
+
+    console.log('Database URL:', tursoUrl);
+
     // Initialize Turso database
     await initializeDatabase({
-      url: config.tursoUrl,
-      authToken: config.tursoAuthToken,
+      url: tursoUrl,
+      authToken: tursoAuthToken,
     });
-    
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Failed to initialize application:', error);
@@ -30,7 +48,7 @@ export async function initializeApp(config: AppConfig = DEFAULT_CONFIG): Promise
 
 export function getConfig(): AppConfig {
   return {
-    tursoUrl: process.env.TURSO_URL || 'file:dax.db',
-    tursoAuthToken: process.env.TURSO_AUTH_TOKEN,
+    tursoUrl: import.meta.env.VITE_TURSO_URL || '',
+    tursoAuthToken: import.meta.env.VITE_TURSO_AUTH_TOKEN,
   };
 }

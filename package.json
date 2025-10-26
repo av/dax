@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Data Agent eXplorer - Canvas-based data exploration with AI agents",
-  "main": "dist/main/main.js",
+  "main": "src/main/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:electron\"",
     "dev:renderer": "vite",

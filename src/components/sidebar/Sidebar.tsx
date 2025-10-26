@@ -3,8 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AgentConfig, AgentTool, MCPConfig, OpenAPIConfig } from '@/types';
-import { 
-  Settings, Plus, Trash2, History, FileText, Bot, Save, 
+import {
+  Settings, Plus, Trash2, History, FileText, Bot, Save,
   X, Edit, ChevronDown, ChevronRight, ToggleLeft, ToggleRight,
   Sparkles, Zap, Globe
 } from 'lucide-react';
@@ -125,7 +125,7 @@ export const Sidebar: React.FC = () => {
 
   const applyPreset = (preset: keyof typeof API_PRESETS) => {
     if (!editingAgent) return;
-    
+
     const presetConfig = API_PRESETS[preset];
     setEditingAgent({
       ...editingAgent,
@@ -207,7 +207,7 @@ export const Sidebar: React.FC = () => {
 
   const addKeyValuePair = (field: 'headers' | 'queryParams', key: string = '', value: string = '') => {
     if (!editingAgent) return;
-    
+
     setEditingAgent({
       ...editingAgent,
       [field]: {
@@ -219,13 +219,13 @@ export const Sidebar: React.FC = () => {
 
   const updateKeyValuePair = (field: 'headers' | 'queryParams', oldKey: string, newKey: string, value: string) => {
     if (!editingAgent) return;
-    
+
     const updated = { ...editingAgent[field] };
     if (oldKey !== newKey) {
       delete updated[oldKey];
     }
     updated[newKey] = value;
-    
+
     setEditingAgent({
       ...editingAgent,
       [field]: updated,
@@ -234,10 +234,10 @@ export const Sidebar: React.FC = () => {
 
   const deleteKeyValuePair = (field: 'headers' | 'queryParams', key: string) => {
     if (!editingAgent) return;
-    
+
     const updated = { ...editingAgent[field] };
     delete updated[key];
-    
+
     setEditingAgent({
       ...editingAgent,
       [field]: updated,
@@ -245,12 +245,14 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <div className="w-96 bg-white dark:bg-gray-800 border-l flex flex-col">
+    <div className="w-96 bg-white dark:bg-slate-900 border-l border-border flex flex-col">
       {/* Sidebar Tabs */}
-      <div className="border-b flex">
+      <div className="border-b border-border flex">
         <button
-          className={`flex-1 py-2 px-4 text-sm ${
-            activeTab === 'agents' ? 'bg-primary text-primary-foreground' : ''
+          className={`flex-1 py-2 px-4 text-sm transition-colors ${
+            activeTab === 'agents'
+              ? 'bg-primary text-primary-foreground'
+              : 'hover:bg-accent hover:text-accent-foreground'
           }`}
           onClick={() => setActiveTab('agents')}
         >
@@ -258,8 +260,10 @@ export const Sidebar: React.FC = () => {
           Agents
         </button>
         <button
-          className={`flex-1 py-2 px-4 text-sm ${
-            activeTab === 'tools' ? 'bg-primary text-primary-foreground' : ''
+          className={`flex-1 py-2 px-4 text-sm transition-colors ${
+            activeTab === 'tools'
+              ? 'bg-primary text-primary-foreground'
+              : 'hover:bg-accent hover:text-accent-foreground'
           }`}
           onClick={() => setActiveTab('tools')}
         >
@@ -267,16 +271,20 @@ export const Sidebar: React.FC = () => {
           Tools
         </button>
         <button
-          className={`flex-1 py-2 px-4 text-sm ${
-            activeTab === 'history' ? 'bg-primary text-primary-foreground' : ''
+          className={`flex-1 py-2 px-4 text-sm transition-colors ${
+            activeTab === 'history'
+              ? 'bg-primary text-primary-foreground'
+              : 'hover:bg-accent hover:text-accent-foreground'
           }`}
           onClick={() => setActiveTab('history')}
         >
           <History className="h-4 w-4 inline mr-1" />
         </button>
         <button
-          className={`flex-1 py-2 px-4 text-sm ${
-            activeTab === 'log' ? 'bg-primary text-primary-foreground' : ''
+          className={`flex-1 py-2 px-4 text-sm transition-colors ${
+            activeTab === 'log'
+              ? 'bg-primary text-primary-foreground'
+              : 'hover:bg-accent hover:text-accent-foreground'
           }`}
           onClick={() => setActiveTab('log')}
         >
@@ -438,7 +446,7 @@ export const Sidebar: React.FC = () => {
                             : null
                         )
                       }
-                      className="w-full mt-1 px-3 py-2 border rounded text-sm"
+                      className="w-full mt-1 px-3 py-2 border border-input bg-background text-foreground rounded text-sm"
                     >
                       <option value="lucide">Lucide</option>
                       <option value="emoji">Emoji</option>
@@ -590,7 +598,7 @@ export const Sidebar: React.FC = () => {
                         // Invalid JSON, ignore
                       }
                     }}
-                    className="w-full mt-1 px-3 py-2 border rounded min-h-[80px] text-xs font-mono"
+                    className="w-full mt-1 px-3 py-2 border border-input bg-background text-foreground rounded min-h-[80px] text-xs font-mono"
                     placeholder='{"model": "gpt-4"}'
                   />
                 </div>
@@ -638,7 +646,7 @@ export const Sidebar: React.FC = () => {
                         editingAgent ? { ...editingAgent, systemPrompt: e.target.value } : null
                       )
                     }
-                    className="w-full mt-1 px-3 py-2 border rounded min-h-[80px] text-sm"
+                    className="w-full mt-1 px-3 py-2 border border-input bg-background text-foreground rounded min-h-[80px] text-sm"
                     placeholder="You are a helpful assistant..."
                   />
                 </div>
@@ -692,7 +700,7 @@ export const Sidebar: React.FC = () => {
                             onChange={(e) =>
                               updateTool(index, { type: e.target.value as 'mcp' | 'openapi' })
                             }
-                            className="w-full px-2 py-1 border rounded text-xs"
+                            className="w-full px-2 py-1 border border-input bg-background text-foreground rounded text-xs"
                           >
                             <option value="mcp">MCP</option>
                             <option value="openapi">OpenAPI</option>
