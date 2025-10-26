@@ -16,4 +16,14 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.on(channel, (event, ...args) => func(...args));
     }
   },
+  
+  // Filesystem API
+  fs: {
+    selectFolder: () => ipcRenderer.invoke('fs:selectFolder'),
+    readDir: (path) => ipcRenderer.invoke('fs:readDir', path),
+    readFile: (path, encoding) => ipcRenderer.invoke('fs:readFile', path, encoding),
+    readFileBuffer: (path) => ipcRenderer.invoke('fs:readFileBuffer', path),
+    stat: (path) => ipcRenderer.invoke('fs:stat', path),
+    exists: (path) => ipcRenderer.invoke('fs:exists', path),
+  },
 });
