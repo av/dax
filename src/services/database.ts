@@ -196,6 +196,117 @@ export class DatabaseService {
     }));
   }
 
+  // Query RDF entities by attribute key/value
+  async queryRDFEntitiesByAttribute(userId: string, key: string, value: any): Promise<RDFEntity[]> {
+    const result = await this.client.execute({
+      sql: 'SELECT * FROM rdf_entities WHERE user_id = ?',
+      args: [userId],
+    });
+
+    const entities = result.rows
+      .map(row => ({
+        id: row.id as string,
+        type: row.type as string,
+        attributes: JSON.parse(row.attributes as string),
+        links: [] as RDFLink[],
+      }))
+      .filter(entity => {
+        // Filter by attribute key/value
+        return entity.attributes[key] === value;
+      });
+
+    // Load links for each matching entity
+    for (const entity of entities) {
+      const links = await this.getRDFLinks(userId, entity.id);
+      entity.links = links;
+    }
+
+    return entities;
+  }
+
+  // Search RDF entities by term (searches in type and attributes)
+  async searchRDFEntities(userId: string, searchTerm: string): Promise<RDFEntity[]> {
+    const result = await this.client.execute({
+      sql: 'SELECT * FROM rdf_entities WHERE user_id = ?',
+      args: [userId],
+    });
+
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    
+    const entities = result.rows
+      .map(row => ({
+        id: row.id as string,
+        type: row.type as string,
+        attributes: JSON.parse(row.attributes as string),
+        links: [] as RDFLink[],
+      }))
+      .filter(entity => {
+        // Search in type
+        if (entity.type.toLowerCase().includes(lowerSearchTerm)) {
+          return true;
+        }
+        
+        // Search in attribute values
+        const attributeValues = Object.values(entity.attributes);
+        return attributeValues.some(val => {
+          if (typeof val === 'string') {
+            return val.toLowerCase().includes(lowerSearchTerm);
+          }
+          return String(val).toLowerCase().includes(lowerSearchTerm);
+        });
+      });
+
+    // Load links for each matching entity
+    for (const entity of entities) {
+      const links = await this.getRDFLinks(userId, entity.id);
+      entity.links = links;
+    }
+
+    return entities;
+  }
+
+  // Delete RDF entity
+  async deleteRDFEntity(entityId: string, userId: string): Promise<void> {
+    // First delete all links associated with this entity
+    await this.client.execute({
+      sql: 'DELETE FROM rdf_links WHERE user_id = ? AND (from_entity = ? OR to_entity = ?)',
+      args: [userId, entityId, entityId],
+    });
+
+    // Then delete the entity
+    await this.client.execute({
+      sql: 'DELETE FROM rdf_entities WHERE id = ? AND user_id = ?',
+      args: [entityId, userId],
+    });
+
+    await this.logActivity(userId, 'rdf_entity_deleted', 'rdf_entity', entityId, {});
+  }
+
+  // Delete RDF link
+  async deleteRDFLink(fromEntity: string, toEntity: string, userId: string): Promise<void> {
+    await this.client.execute({
+      sql: 'DELETE FROM rdf_links WHERE user_id = ? AND from_entity = ? AND to_entity = ?',
+      args: [userId, fromEntity, toEntity],
+    });
+
+    await this.logActivity(userId, 'rdf_link_deleted', 'rdf_link', `${fromEntity}-${toEntity}`, {});
+  }
+
+  // Clear all RDF data for user
+  async clearRDFData(userId: string): Promise<void> {
+    await this.client.execute({
+      sql: 'DELETE FROM rdf_links WHERE user_id = ?',
+      args: [userId],
+    });
+
+    await this.client.execute({
+      sql: 'DELETE FROM rdf_entities WHERE user_id = ?',
+      args: [userId],
+    });
+
+    await this.logActivity(userId, 'rdf_data_cleared', 'rdf', userId, {});
+  }
+
   // Preferences Management
   async savePreferences(userId: string, prefs: Preferences): Promise<void> {
     await this.client.execute({

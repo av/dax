@@ -33,8 +33,7 @@ export class RDFService {
   // Query entities by attribute
   async queryByAttribute(key: string, value: any): Promise<RDFEntity[]> {
     const db = getDatabaseInstance();
-    const entities = await db.getRDFEntities(USER_ID);
-    return entities.filter(e => e.attributes[key] === value);
+    return await db.queryRDFEntitiesByAttribute(USER_ID, key, value);
   }
 
   // Extract entities from data
@@ -78,13 +77,11 @@ export class RDFService {
     return schema;
   }
 
-  // SPARQL-like query
-  async query(query: string): Promise<RDFEntity[]> {
-    // Simplified query implementation
-    // In production, this would parse SPARQL or similar query language
-    console.log('Executing query:', query);
+  // Simple key/value search
+  async search(searchTerm: string): Promise<RDFEntity[]> {
+    // Search across entity types and attributes
     const db = getDatabaseInstance();
-    return await db.getRDFEntities(USER_ID);
+    return await db.searchRDFEntities(USER_ID, searchTerm);
   }
 
   // Get all entities
@@ -99,10 +96,22 @@ export class RDFService {
     return await db.getRDFLinks(USER_ID);
   }
 
-  // Clear all data (admin only)
+  // Delete entity by id
+  async deleteEntity(id: string): Promise<void> {
+    const db = getDatabaseInstance();
+    await db.deleteRDFEntity(id, USER_ID);
+  }
+
+  // Delete link
+  async deleteLink(from: string, to: string): Promise<void> {
+    const db = getDatabaseInstance();
+    await db.deleteRDFLink(from, to, USER_ID);
+  }
+
+  // Clear all RDF data
   async clear(): Promise<void> {
-    // This would require special permission
-    console.warn('Clear operation not implemented for database-backed RDF service');
+    const db = getDatabaseInstance();
+    await db.clearRDFData(USER_ID);
   }
 }
 
