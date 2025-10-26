@@ -52,11 +52,22 @@ A powerful canvas-based data exploration application with AI agent integration, 
 - Custom hotkeys
 
 ### Database
-- Modern semantic search
-- Fast indexing
-- Multi-user support
-- Access Control Lists (ACL)
-- Per-resource permissions
+- **Turso DB**: Modern SQLite-compatible edge database
+- Persistent storage for all application state
+- Semantic search capabilities
+- Fast SQL-based indexing
+- Multi-user support with user roles
+- Access Control Lists (ACL) for resource permissions
+- Full-text search support
+- Activity logging and audit trail
+
+**Stored Data Models:**
+- Canvas nodes and their configurations
+- RDF entities and links
+- User preferences and settings
+- Agent configurations
+- ACL permissions
+- Activity logs
 
 ## Tech Stack
 
@@ -67,12 +78,39 @@ A powerful canvas-based data exploration application with AI agent integration, 
 - **shadcn/ui**: Beautiful component library
 - **Vite**: Fast build tool
 - **react-rnd**: Drag and resize functionality
+- **Turso DB**: SQLite-compatible edge database with libSQL
 
 ## Installation
 
 ```bash
 npm install
 ```
+
+## Configuration
+
+Create a `.env` file based on `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+For **local development** (default):
+```env
+TURSO_URL=file:dax.db
+```
+
+For **production** with Turso Cloud:
+```env
+TURSO_URL=libsql://your-database.turso.io
+TURSO_AUTH_TOKEN=your-auth-token
+```
+
+To get a Turso database:
+1. Sign up at [turso.tech](https://turso.tech)
+2. Install Turso CLI: `curl -sSfL https://get.tur.so/install.sh | bash`
+3. Create a database: `turso db create dax`
+4. Get the URL: `turso db show dax --url`
+5. Create a token: `turso db tokens create dax`
 
 ## Development
 

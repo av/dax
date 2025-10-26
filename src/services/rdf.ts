@@ -1,60 +1,62 @@
 import { RDFEntity, RDFLink } from '@/types';
+import { getDatabaseInstance } from './database';
 
 export class RDFService {
-  private entities: Map<string, RDFEntity> = new Map();
-  private links: RDFLink[] = [];
+  private userId: string = 'admin'; // Default user, should be set by application
+
+  setUserId(userId: string): void {
+    this.userId = userId;
+  }
 
   // Add entity
-  addEntity(entity: RDFEntity): void {
-    this.entities.set(entity.id, entity);
+  async addEntity(entity: RDFEntity): Promise<void> {
+    const db = getDatabaseInstance();
+    await db.saveRDFEntity(entity, this.userId);
   }
 
   // Get entity
-  getEntity(id: string): RDFEntity | undefined {
-    return this.entities.get(id);
+  async getEntity(id: string): Promise<RDFEntity | undefined> {
+    const db = getDatabaseInstance();
+    const entities = await db.getRDFEntities(this.userId);
+    return entities.find(e => e.id === id);
   }
 
   // Add link between entities
-  addLink(link: RDFLink): void {
-    this.links.push(link);
-    
-    // Add link to entities
-    const fromEntity = this.entities.get(link.from);
-    const toEntity = this.entities.get(link.to);
-    
-    if (fromEntity) {
-      fromEntity.links.push(link);
-    }
+  async addLink(link: RDFLink): Promise<void> {
+    const db = getDatabaseInstance();
+    await db.saveRDFLink(link, this.userId);
   }
 
   // Query entities by type
-  queryByType(type: string): RDFEntity[] {
-    return Array.from(this.entities.values()).filter(e => e.type === type);
+  async queryByType(type: string): Promise<RDFEntity[]> {
+    const db = getDatabaseInstance();
+    return await db.getRDFEntities(this.userId, type);
   }
 
   // Query entities by attribute
-  queryByAttribute(key: string, value: any): RDFEntity[] {
-    return Array.from(this.entities.values()).filter(
-      e => e.attributes[key] === value
-    );
+  async queryByAttribute(key: string, value: any): Promise<RDFEntity[]> {
+    const db = getDatabaseInstance();
+    const entities = await db.getRDFEntities(this.userId);
+    return entities.filter(e => e.attributes[key] === value);
   }
 
   // Extract entities from data
-  extractEntities(data: any, schema?: any): RDFEntity[] {
+  async extractEntities(data: any, schema?: any): Promise<RDFEntity[]> {
     const extracted: RDFEntity[] = [];
     
     // Simple extraction logic
     if (Array.isArray(data)) {
-      data.forEach((item, index) => {
+      for (let index = 0; index < data.length; index++) {
+        const item = data[index];
         const entity: RDFEntity = {
-          id: `entity-${index}`,
+          id: `entity-${Date.now()}-${index}`,
           type: schema?.type || 'generic',
           attributes: item,
           links: [],
         };
         extracted.push(entity);
-        this.addEntity(entity);
-      });
+        await this.addEntity(entity);
+      }
     }
     
     return extracted;
@@ -80,28 +82,32 @@ export class RDFService {
   }
 
   // SPARQL-like query
-  query(query: string): RDFEntity[] {
+  async query(query: string): Promise<RDFEntity[]> {
     // Simplified query implementation
     // In production, this would parse SPARQL or similar query language
     console.log('Executing query:', query);
-    return Array.from(this.entities.values());
+    const db = getDatabaseInstance();
+    return await db.getRDFEntities(this.userId);
   }
 
   // Get all entities
-  getAllEntities(): RDFEntity[] {
-    return Array.from(this.entities.values());
+  async getAllEntities(): Promise<RDFEntity[]> {
+    const db = getDatabaseInstance();
+    return await db.getRDFEntities(this.userId);
   }
 
   // Get all links
-  getAllLinks(): RDFLink[] {
-    return this.links;
+  async getAllLinks(): Promise<RDFLink[]> {
+    const db = getDatabaseInstance();
+    return await db.getRDFLinks(this.userId);
   }
 
-  // Clear all data
-  clear(): void {
-    this.entities.clear();
-    this.links = [];
+  // Clear all data (admin only)
+  async clear(): Promise<void> {
+    // This would require special permission
+    console.warn('Clear operation not implemented for database-backed RDF service');
   }
 }
 
 export const rdfService = new RDFService();
+

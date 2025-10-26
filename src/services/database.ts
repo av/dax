@@ -1,208 +1,675 @@
-import { ACLEntry, User } from '@/types';
+import { createClient, Client } from '@libsql/client';
+import { ACLEntry, User, CanvasNode, RDFEntity, RDFLink, Preferences, AgentConfig } from '@/types';
 
-// Simulated vector database for semantic search
+export interface DatabaseConfig {
+  url: string;
+  authToken?: string;
+}
+
 export class DatabaseService {
-  private data: Map<string, any> = new Map();
-  private indexes: Map<string, Map<string, Set<string>>> = new Map();
-  private users: Map<string, User> = new Map();
-  private acl: Map<string, ACLEntry[]> = new Map();
+  private client: Client;
+  private initialized: boolean = false;
 
-  constructor() {
-    // Initialize with a demo admin user
-    this.users.set('admin', {
-      id: 'admin',
-      username: 'admin',
-      email: 'admin@dax.local',
-      role: 'admin',
-      permissions: ['*'],
+  constructor(config: DatabaseConfig) {
+    this.client = createClient({
+      url: config.url,
+      authToken: config.authToken,
     });
   }
 
-  // Store data
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    // Read and execute schema
+    const schema = await this.getSchema();
+    const statements = schema.split(';').filter(s => s.trim());
+    
+    for (const statement of statements) {
+      if (statement.trim()) {
+        await this.client.execute(statement);
+      }
+    }
+
+    // Create default admin user if not exists
+    await this.createDefaultAdmin();
+    
+    this.initialized = true;
+  }
+
+  private async getSchema(): Promise<string> {
+    // In production, this would read from schema.sql file
+    // For now, we'll include it inline
+    return `
+-- Users table
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  username TEXT NOT NULL UNIQUE,
+  email TEXT NOT NULL UNIQUE,
+  role TEXT NOT NULL CHECK(role IN ('admin', 'user', 'viewer')),
+  permissions TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Canvas nodes table
+CREATE TABLE IF NOT EXISTS canvas_nodes (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL CHECK(type IN ('data', 'agent', 'transform', 'output')),
+  title TEXT NOT NULL,
+  x REAL NOT NULL,
+  y REAL NOT NULL,
+  width REAL NOT NULL,
+  height REAL NOT NULL,
+  data TEXT,
+  config TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- RDF Entities table
+CREATE TABLE IF NOT EXISTS rdf_entities (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  attributes TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- RDF Links table
+CREATE TABLE IF NOT EXISTS rdf_links (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  from_entity TEXT NOT NULL,
+  to_entity TEXT NOT NULL,
+  type TEXT NOT NULL,
+  properties TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (from_entity) REFERENCES rdf_entities(id) ON DELETE CASCADE,
+  FOREIGN KEY (to_entity) REFERENCES rdf_entities(id) ON DELETE CASCADE
+);
+
+-- Preferences table
+CREATE TABLE IF NOT EXISTS preferences (
+  user_id TEXT PRIMARY KEY,
+  theme TEXT NOT NULL CHECK(theme IN ('light', 'dark', 'system')),
+  autostart INTEGER NOT NULL DEFAULT 0,
+  data_dir TEXT NOT NULL,
+  backup_enabled INTEGER NOT NULL DEFAULT 0,
+  backup_interval INTEGER NOT NULL,
+  backup_location TEXT NOT NULL,
+  sync_enabled INTEGER NOT NULL DEFAULT 0,
+  sync_provider TEXT,
+  sync_config TEXT,
+  language TEXT NOT NULL,
+  hotkeys TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- ACL table
+CREATE TABLE IF NOT EXISTS acl (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  resource_id TEXT NOT NULL,
+  resource_type TEXT NOT NULL CHECK(resource_type IN ('canvas_node', 'rdf_entity', 'document')),
+  user_id TEXT NOT NULL,
+  permissions TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE(resource_id, resource_type, user_id)
+);
+
+-- Documents table
+CREATE TABLE IF NOT EXISTS documents (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  owner_id TEXT NOT NULL,
+  data TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Agent configurations table
+CREATE TABLE IF NOT EXISTS agent_configs (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  provider TEXT NOT NULL CHECK(provider IN ('openai', 'anthropic', 'custom')),
+  model TEXT,
+  api_key TEXT,
+  temperature REAL,
+  max_tokens INTEGER,
+  tools TEXT,
+  system_prompt TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Activity log table
+CREATE TABLE IF NOT EXISTS activity_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  action TEXT NOT NULL,
+  resource_type TEXT,
+  resource_id TEXT,
+  details TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_canvas_nodes_user ON canvas_nodes(user_id);
+CREATE INDEX IF NOT EXISTS idx_canvas_nodes_type ON canvas_nodes(type);
+CREATE INDEX IF NOT EXISTS idx_rdf_entities_user ON rdf_entities(user_id);
+CREATE INDEX IF NOT EXISTS idx_rdf_entities_type ON rdf_entities(type);
+CREATE INDEX IF NOT EXISTS idx_rdf_links_user ON rdf_links(user_id);
+CREATE INDEX IF NOT EXISTS idx_rdf_links_from ON rdf_links(from_entity);
+CREATE INDEX IF NOT EXISTS idx_rdf_links_to ON rdf_links(to_entity);
+CREATE INDEX IF NOT EXISTS idx_acl_resource ON acl(resource_id, resource_type);
+CREATE INDEX IF NOT EXISTS idx_acl_user ON acl(user_id);
+CREATE INDEX IF NOT EXISTS idx_documents_user ON documents(user_id);
+CREATE INDEX IF NOT EXISTS idx_documents_owner ON documents(owner_id);
+CREATE INDEX IF NOT EXISTS idx_agent_configs_user ON agent_configs(user_id);
+CREATE INDEX IF NOT EXISTS idx_activity_log_user ON activity_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_activity_log_resource ON activity_log(resource_type, resource_id);
+    `;
+  }
+
+  private async createDefaultAdmin(): Promise<void> {
+    const result = await this.client.execute({
+      sql: 'SELECT COUNT(*) as count FROM users WHERE id = ?',
+      args: ['admin'],
+    });
+
+    if (result.rows[0].count === 0) {
+      await this.addUser({
+        id: 'admin',
+        username: 'admin',
+        email: 'admin@dax.local',
+        role: 'admin',
+        permissions: ['*'],
+      });
+    }
+  }
+
+  // User Management
+  async addUser(user: User): Promise<void> {
+    await this.client.execute({
+      sql: `INSERT INTO users (id, username, email, role, permissions) 
+            VALUES (?, ?, ?, ?, ?)`,
+      args: [user.id, user.username, user.email, user.role, JSON.stringify(user.permissions)],
+    });
+
+    await this.logActivity(user.id, 'user_created', 'user', user.id, { username: user.username });
+  }
+
+  async getUser(userId: string): Promise<User | null> {
+    const result = await this.client.execute({
+      sql: 'SELECT * FROM users WHERE id = ?',
+      args: [userId],
+    });
+
+    if (result.rows.length === 0) return null;
+
+    const row = result.rows[0];
+    return {
+      id: row.id as string,
+      username: row.username as string,
+      email: row.email as string,
+      role: row.role as 'admin' | 'user' | 'viewer',
+      permissions: JSON.parse(row.permissions as string),
+    };
+  }
+
+  // Canvas Nodes Management
+  async saveCanvasNode(node: CanvasNode, userId: string): Promise<void> {
+    await this.client.execute({
+      sql: `INSERT OR REPLACE INTO canvas_nodes 
+            (id, user_id, type, title, x, y, width, height, data, config, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+      args: [
+        node.id,
+        userId,
+        node.type,
+        node.title,
+        node.x,
+        node.y,
+        node.width,
+        node.height,
+        JSON.stringify(node.data),
+        JSON.stringify(node.config || {}),
+      ],
+    });
+
+    await this.logActivity(userId, 'canvas_node_saved', 'canvas_node', node.id, { title: node.title });
+  }
+
+  async getCanvasNodes(userId: string): Promise<CanvasNode[]> {
+    const result = await this.client.execute({
+      sql: 'SELECT * FROM canvas_nodes WHERE user_id = ?',
+      args: [userId],
+    });
+
+    return result.rows.map(row => ({
+      id: row.id as string,
+      type: row.type as 'data' | 'agent' | 'transform' | 'output',
+      title: row.title as string,
+      x: row.x as number,
+      y: row.y as number,
+      width: row.width as number,
+      height: row.height as number,
+      data: JSON.parse(row.data as string || '{}'),
+      config: JSON.parse(row.config as string || '{}'),
+    }));
+  }
+
+  async deleteCanvasNode(nodeId: string, userId: string): Promise<void> {
+    if (!await this.checkPermission(userId, nodeId, 'canvas_node', 'delete')) {
+      throw new Error('Permission denied');
+    }
+
+    await this.client.execute({
+      sql: 'DELETE FROM canvas_nodes WHERE id = ? AND user_id = ?',
+      args: [nodeId, userId],
+    });
+
+    await this.logActivity(userId, 'canvas_node_deleted', 'canvas_node', nodeId, {});
+  }
+
+  // RDF Entity Management
+  async saveRDFEntity(entity: RDFEntity, userId: string): Promise<void> {
+    await this.client.execute({
+      sql: `INSERT OR REPLACE INTO rdf_entities 
+            (id, user_id, type, attributes, updated_at)
+            VALUES (?, ?, ?, ?, datetime('now'))`,
+      args: [entity.id, userId, entity.type, JSON.stringify(entity.attributes)],
+    });
+
+    await this.logActivity(userId, 'rdf_entity_saved', 'rdf_entity', entity.id, { type: entity.type });
+  }
+
+  async getRDFEntities(userId: string, type?: string): Promise<RDFEntity[]> {
+    const sql = type 
+      ? 'SELECT * FROM rdf_entities WHERE user_id = ? AND type = ?'
+      : 'SELECT * FROM rdf_entities WHERE user_id = ?';
+    
+    const args = type ? [userId, type] : [userId];
+
+    const result = await this.client.execute({ sql, args });
+
+    const entities = result.rows.map(row => ({
+      id: row.id as string,
+      type: row.type as string,
+      attributes: JSON.parse(row.attributes as string),
+      links: [] as RDFLink[],
+    }));
+
+    // Load links for each entity
+    for (const entity of entities) {
+      const links = await this.getRDFLinks(userId, entity.id);
+      entity.links = links;
+    }
+
+    return entities;
+  }
+
+  async saveRDFLink(link: RDFLink, userId: string): Promise<void> {
+    await this.client.execute({
+      sql: `INSERT INTO rdf_links (user_id, from_entity, to_entity, type, properties)
+            VALUES (?, ?, ?, ?, ?)`,
+      args: [userId, link.from, link.to, link.type, JSON.stringify(link.properties || {})],
+    });
+
+    await this.logActivity(userId, 'rdf_link_created', 'rdf_link', `${link.from}-${link.to}`, {});
+  }
+
+  async getRDFLinks(userId: string, entityId?: string): Promise<RDFLink[]> {
+    const sql = entityId
+      ? 'SELECT * FROM rdf_links WHERE user_id = ? AND (from_entity = ? OR to_entity = ?)'
+      : 'SELECT * FROM rdf_links WHERE user_id = ?';
+    
+    const args = entityId ? [userId, entityId, entityId] : [userId];
+
+    const result = await this.client.execute({ sql, args });
+
+    return result.rows.map(row => ({
+      from: row.from_entity as string,
+      to: row.to_entity as string,
+      type: row.type as string,
+      properties: JSON.parse(row.properties as string || '{}'),
+    }));
+  }
+
+  // Preferences Management
+  async savePreferences(userId: string, prefs: Preferences): Promise<void> {
+    await this.client.execute({
+      sql: `INSERT OR REPLACE INTO preferences 
+            (user_id, theme, autostart, data_dir, backup_enabled, backup_interval, 
+             backup_location, sync_enabled, sync_provider, sync_config, language, hotkeys, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+      args: [
+        userId,
+        prefs.theme,
+        prefs.autostart ? 1 : 0,
+        prefs.dataDir,
+        prefs.backup.enabled ? 1 : 0,
+        prefs.backup.interval,
+        prefs.backup.location,
+        prefs.sync.enabled ? 1 : 0,
+        prefs.sync.provider || null,
+        JSON.stringify(prefs.sync.config || {}),
+        prefs.language,
+        JSON.stringify(prefs.hotkeys),
+      ],
+    });
+
+    await this.logActivity(userId, 'preferences_updated', 'preferences', userId, {});
+  }
+
+  async getPreferences(userId: string): Promise<Preferences | null> {
+    const result = await this.client.execute({
+      sql: 'SELECT * FROM preferences WHERE user_id = ?',
+      args: [userId],
+    });
+
+    if (result.rows.length === 0) return null;
+
+    const row = result.rows[0];
+    return {
+      theme: row.theme as 'light' | 'dark' | 'system',
+      autostart: Boolean(row.autostart),
+      dataDir: row.data_dir as string,
+      backup: {
+        enabled: Boolean(row.backup_enabled),
+        interval: row.backup_interval as number,
+        location: row.backup_location as string,
+      },
+      sync: {
+        enabled: Boolean(row.sync_enabled),
+        provider: row.sync_provider as string | undefined,
+        config: JSON.parse(row.sync_config as string || '{}'),
+      },
+      language: row.language as string,
+      hotkeys: JSON.parse(row.hotkeys as string),
+    };
+  }
+
+  // Agent Configuration Management
+  async saveAgentConfig(config: AgentConfig & { id: string }, userId: string): Promise<void> {
+    await this.client.execute({
+      sql: `INSERT OR REPLACE INTO agent_configs 
+            (id, user_id, provider, model, api_key, temperature, max_tokens, tools, system_prompt, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+      args: [
+        config.id,
+        userId,
+        config.provider,
+        config.model || null,
+        config.apiKey || null,
+        config.temperature || null,
+        config.maxTokens || null,
+        JSON.stringify(config.tools || []),
+        config.systemPrompt || null,
+      ],
+    });
+
+    await this.logActivity(userId, 'agent_config_saved', 'agent_config', config.id, {});
+  }
+
+  async getAgentConfigs(userId: string): Promise<(AgentConfig & { id: string })[]> {
+    const result = await this.client.execute({
+      sql: 'SELECT * FROM agent_configs WHERE user_id = ?',
+      args: [userId],
+    });
+
+    return result.rows.map(row => ({
+      id: row.id as string,
+      provider: row.provider as 'openai' | 'anthropic' | 'custom',
+      model: row.model as string | undefined,
+      apiKey: row.api_key as string | undefined,
+      temperature: row.temperature as number | undefined,
+      maxTokens: row.max_tokens as number | undefined,
+      tools: JSON.parse(row.tools as string || '[]'),
+      systemPrompt: row.system_prompt as string | undefined,
+    }));
+  }
+
+  // Document Storage (generic)
   async store(id: string, data: any, userId: string): Promise<void> {
-    if (!this.checkPermission(userId, id, 'write')) {
+    if (!await this.checkPermission(userId, id, 'document', 'write')) {
       throw new Error('Permission denied');
     }
 
-    this.data.set(id, {
-      ...data,
-      _id: id,
-      _created: new Date().toISOString(),
-      _updated: new Date().toISOString(),
-      _owner: userId,
+    await this.client.execute({
+      sql: `INSERT OR REPLACE INTO documents (id, user_id, owner_id, data, updated_at)
+            VALUES (?, ?, ?, ?, datetime('now'))`,
+      args: [id, userId, userId, JSON.stringify(data)],
     });
 
-    // Update indexes
-    this.updateIndexes(id, data);
+    await this.logActivity(userId, 'document_stored', 'document', id, {});
   }
 
-  // Retrieve data
   async get(id: string, userId: string): Promise<any | null> {
-    if (!this.checkPermission(userId, id, 'read')) {
+    if (!await this.checkPermission(userId, id, 'document', 'read')) {
       throw new Error('Permission denied');
     }
 
-    return this.data.get(id) || null;
+    const result = await this.client.execute({
+      sql: 'SELECT data FROM documents WHERE id = ?',
+      args: [id],
+    });
+
+    if (result.rows.length === 0) return null;
+    return JSON.parse(result.rows[0].data as string);
   }
 
-  // Delete data
   async delete(id: string, userId: string): Promise<void> {
-    if (!this.checkPermission(userId, id, 'delete')) {
+    if (!await this.checkPermission(userId, id, 'document', 'delete')) {
       throw new Error('Permission denied');
     }
 
-    this.data.delete(id);
-    this.removeFromIndexes(id);
+    await this.client.execute({
+      sql: 'DELETE FROM documents WHERE id = ?',
+      args: [id],
+    });
+
+    await this.logActivity(userId, 'document_deleted', 'document', id, {});
   }
 
-  // Semantic search (simplified)
+  // Semantic Search
   async semanticSearch(query: string, userId: string): Promise<any[]> {
+    // Simple search across documents and canvas nodes
+    const docResults = await this.client.execute({
+      sql: `SELECT d.* FROM documents d
+            WHERE d.user_id = ? AND d.data LIKE ?`,
+      args: [userId, `%${query}%`],
+    });
+
+    const nodeResults = await this.client.execute({
+      sql: `SELECT * FROM canvas_nodes
+            WHERE user_id = ? AND (title LIKE ? OR data LIKE ?)`,
+      args: [userId, `%${query}%`, `%${query}%`],
+    });
+
     const results: any[] = [];
-    const queryLower = query.toLowerCase();
 
-    for (const [id, data] of this.data.entries()) {
-      if (!this.checkPermission(userId, id, 'read')) {
-        continue;
+    for (const row of docResults.rows) {
+      if (await this.checkPermission(userId, row.id as string, 'document', 'read')) {
+        results.push(JSON.parse(row.data as string));
       }
+    }
 
-      // Simple text matching (in production, use embeddings)
-      const dataStr = JSON.stringify(data).toLowerCase();
-      if (dataStr.includes(queryLower)) {
-        results.push(data);
+    for (const row of nodeResults.rows) {
+      if (await this.checkPermission(userId, row.id as string, 'canvas_node', 'read')) {
+        results.push({
+          id: row.id,
+          type: 'canvas_node',
+          title: row.title,
+          data: JSON.parse(row.data as string || '{}'),
+        });
       }
     }
 
     return results;
-  }
-
-  // Fast index-based search
-  async indexSearch(field: string, value: any, userId: string): Promise<any[]> {
-    const fieldIndex = this.indexes.get(field);
-    if (!fieldIndex) {
-      return [];
-    }
-
-    const ids = fieldIndex.get(String(value)) || new Set();
-    const results: any[] = [];
-
-    for (const id of ids) {
-      if (this.checkPermission(userId, id, 'read')) {
-        const data = this.data.get(id);
-        if (data) {
-          results.push(data);
-        }
-      }
-    }
-
-    return results;
-  }
-
-  // Update indexes
-  private updateIndexes(id: string, data: any): void {
-    for (const [key, value] of Object.entries(data)) {
-      if (typeof value === 'string' || typeof value === 'number') {
-        let fieldIndex = this.indexes.get(key);
-        if (!fieldIndex) {
-          fieldIndex = new Map();
-          this.indexes.set(key, fieldIndex);
-        }
-
-        let valueSet = fieldIndex.get(String(value));
-        if (!valueSet) {
-          valueSet = new Set();
-          fieldIndex.set(String(value), valueSet);
-        }
-
-        valueSet.add(id);
-      }
-    }
-  }
-
-  // Remove from indexes
-  private removeFromIndexes(id: string): void {
-    for (const [_, fieldIndex] of this.indexes.entries()) {
-      for (const [_, valueSet] of fieldIndex.entries()) {
-        valueSet.delete(id);
-      }
-    }
   }
 
   // ACL Management
-  setACL(resourceId: string, userId: string, permissions: ACLEntry['permissions']): void {
-    let entries = this.acl.get(resourceId);
-    if (!entries) {
-      entries = [];
-      this.acl.set(resourceId, entries);
-    }
+  async setACL(resourceId: string, resourceType: 'canvas_node' | 'rdf_entity' | 'document', userId: string, permissions: ACLEntry['permissions']): Promise<void> {
+    await this.client.execute({
+      sql: `INSERT OR REPLACE INTO acl (resource_id, resource_type, user_id, permissions, updated_at)
+            VALUES (?, ?, ?, ?, datetime('now'))`,
+      args: [resourceId, resourceType, userId, JSON.stringify(permissions)],
+    });
 
-    const existing = entries.find(e => e.userId === userId);
-    if (existing) {
-      existing.permissions = permissions;
-    } else {
-      entries.push({ resourceId, userId, permissions });
-    }
+    await this.logActivity(userId, 'acl_updated', resourceType, resourceId, { permissions });
   }
 
-  getACL(resourceId: string): ACLEntry[] {
-    return this.acl.get(resourceId) || [];
+  async getACL(resourceId: string, resourceType: string): Promise<ACLEntry[]> {
+    const result = await this.client.execute({
+      sql: 'SELECT * FROM acl WHERE resource_id = ? AND resource_type = ?',
+      args: [resourceId, resourceType],
+    });
+
+    return result.rows.map(row => ({
+      resourceId: row.resource_id as string,
+      userId: row.user_id as string,
+      permissions: JSON.parse(row.permissions as string),
+    }));
   }
 
-  checkPermission(
+  async checkPermission(
     userId: string,
     resourceId: string,
+    resourceType: string,
     permission: 'read' | 'write' | 'delete' | 'share'
-  ): boolean {
-    const user = this.users.get(userId);
+  ): Promise<boolean> {
+    const user = await this.getUser(userId);
     
     // Admin has all permissions
     if (user?.role === 'admin') {
       return true;
     }
 
-    // Check resource ownership
-    const data = this.data.get(resourceId);
-    if (data?._owner === userId) {
-      return true;
+    // Check if user owns the resource
+    let ownerCheck: any;
+    if (resourceType === 'document') {
+      ownerCheck = await this.client.execute({
+        sql: 'SELECT owner_id FROM documents WHERE id = ?',
+        args: [resourceId],
+      });
+    } else if (resourceType === 'canvas_node') {
+      ownerCheck = await this.client.execute({
+        sql: 'SELECT user_id FROM canvas_nodes WHERE id = ?',
+        args: [resourceId],
+      });
+    } else if (resourceType === 'rdf_entity') {
+      ownerCheck = await this.client.execute({
+        sql: 'SELECT user_id FROM rdf_entities WHERE id = ?',
+        args: [resourceId],
+      });
     }
 
-    // Check ACL
-    const entries = this.acl.get(resourceId) || [];
-    const entry = entries.find(e => e.userId === userId);
-    
-    return entry?.permissions.includes(permission) || false;
-  }
-
-  // User management
-  addUser(user: User): void {
-    this.users.set(user.id, user);
-  }
-
-  getUser(userId: string): User | undefined {
-    return this.users.get(userId);
-  }
-
-  // Multi-user support
-  async listUserResources(userId: string): Promise<any[]> {
-    const results: any[] = [];
-
-    for (const [id, data] of this.data.entries()) {
-      if (this.checkPermission(userId, id, 'read')) {
-        results.push(data);
+    if (ownerCheck && ownerCheck.rows.length > 0) {
+      const ownerId = ownerCheck.rows[0].owner_id || ownerCheck.rows[0].user_id;
+      if (ownerId === userId) {
+        return true;
       }
     }
 
-    return results;
+    // Check ACL
+    const result = await this.client.execute({
+      sql: 'SELECT permissions FROM acl WHERE resource_id = ? AND resource_type = ? AND user_id = ?',
+      args: [resourceId, resourceType, userId],
+    });
+
+    if (result.rows.length === 0) return false;
+
+    const permissions = JSON.parse(result.rows[0].permissions as string);
+    return permissions.includes(permission);
   }
 
-  // Get statistics
-  getStats(): any {
+  // Activity Logging
+  async logActivity(userId: string, action: string, resourceType: string | null, resourceId: string | null, details: any): Promise<void> {
+    await this.client.execute({
+      sql: `INSERT INTO activity_log (user_id, action, resource_type, resource_id, details)
+            VALUES (?, ?, ?, ?, ?)`,
+      args: [userId, action, resourceType, resourceId, JSON.stringify(details)],
+    });
+  }
+
+  async getActivityLog(userId: string, limit: number = 100): Promise<any[]> {
+    const result = await this.client.execute({
+      sql: `SELECT * FROM activity_log WHERE user_id = ? 
+            ORDER BY created_at DESC LIMIT ?`,
+      args: [userId, limit],
+    });
+
+    return result.rows.map(row => ({
+      id: row.id,
+      action: row.action,
+      resourceType: row.resource_type,
+      resourceId: row.resource_id,
+      details: JSON.parse(row.details as string || '{}'),
+      createdAt: row.created_at,
+    }));
+  }
+
+  // Statistics
+  async getStats(): Promise<any> {
+    const users = await this.client.execute('SELECT COUNT(*) as count FROM users');
+    const nodes = await this.client.execute('SELECT COUNT(*) as count FROM canvas_nodes');
+    const entities = await this.client.execute('SELECT COUNT(*) as count FROM rdf_entities');
+    const documents = await this.client.execute('SELECT COUNT(*) as count FROM documents');
+
     return {
-      totalRecords: this.data.size,
-      totalIndexes: this.indexes.size,
-      totalUsers: this.users.size,
-      totalACLEntries: Array.from(this.acl.values()).reduce((sum, arr) => sum + arr.length, 0),
+      totalUsers: users.rows[0].count,
+      totalCanvasNodes: nodes.rows[0].count,
+      totalRDFEntities: entities.rows[0].count,
+      totalDocuments: documents.rows[0].count,
     };
+  }
+
+  // Cleanup
+  async close(): Promise<void> {
+    await this.client.close();
   }
 }
 
-export const databaseService = new DatabaseService();
+// Factory function to create database instance
+export async function createDatabase(config: DatabaseConfig): Promise<DatabaseService> {
+  const db = new DatabaseService(config);
+  await db.initialize();
+  return db;
+}
+
+// For backward compatibility, export a singleton instance
+// This should be initialized by the application
+let databaseInstance: DatabaseService | null = null;
+
+export async function initializeDatabase(config: DatabaseConfig): Promise<DatabaseService> {
+  if (!databaseInstance) {
+    databaseInstance = await createDatabase(config);
+  }
+  return databaseInstance;
+}
+
+export function getDatabaseInstance(): DatabaseService {
+  if (!databaseInstance) {
+    throw new Error('Database not initialized. Call initializeDatabase first.');
+  }
+  return databaseInstance;
+}
+
+export const databaseService = {
+  get instance() {
+    return getDatabaseInstance();
+  },
+};
+

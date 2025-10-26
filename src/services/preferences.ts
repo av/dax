@@ -1,4 +1,5 @@
 import { Preferences } from '@/types';
+import { getDatabaseInstance } from './database';
 
 const DEFAULT_PREFERENCES: Preferences = {
   theme: 'system',
@@ -23,27 +24,54 @@ const DEFAULT_PREFERENCES: Preferences = {
 
 export class PreferencesService {
   private preferences: Preferences;
+  private userId: string = 'admin'; // Default user, should be set by application
 
   constructor() {
-    this.preferences = this.loadPreferences();
+    this.preferences = DEFAULT_PREFERENCES;
   }
 
-  private loadPreferences(): Preferences {
-    // In Electron, this would load from storage
-    const stored = localStorage.getItem('preferences');
-    if (stored) {
-      try {
-        return { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) };
-      } catch (error) {
-        console.error('Error loading preferences:', error);
+  setUserId(userId: string): void {
+    this.userId = userId;
+  }
+
+  async loadPreferences(): Promise<Preferences> {
+    try {
+      const db = getDatabaseInstance();
+      const prefs = await db.getPreferences(this.userId);
+      
+      if (prefs) {
+        this.preferences = prefs;
+        return prefs;
+      }
+    } catch (error) {
+      console.error('Error loading preferences from database:', error);
+      // Fall back to localStorage
+      const stored = localStorage.getItem('preferences');
+      if (stored) {
+        try {
+          this.preferences = { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) };
+          return this.preferences;
+        } catch (e) {
+          console.error('Error parsing localStorage preferences:', e);
+        }
       }
     }
-    return DEFAULT_PREFERENCES;
+    
+    this.preferences = DEFAULT_PREFERENCES;
+    return this.preferences;
   }
 
-  savePreferences(preferences: Partial<Preferences>): void {
+  async savePreferences(preferences: Partial<Preferences>): Promise<void> {
     this.preferences = { ...this.preferences, ...preferences };
-    localStorage.setItem('preferences', JSON.stringify(this.preferences));
+    
+    try {
+      const db = getDatabaseInstance();
+      await db.savePreferences(this.userId, this.preferences);
+    } catch (error) {
+      console.error('Error saving preferences to database:', error);
+      // Fall back to localStorage
+      localStorage.setItem('preferences', JSON.stringify(this.preferences));
+    }
   }
 
   getPreferences(): Preferences {
@@ -54,23 +82,31 @@ export class PreferencesService {
     return this.preferences.theme;
   }
 
-  setTheme(theme: 'light' | 'dark' | 'system'): void {
-    this.savePreferences({ theme });
+  async setTheme(theme: 'light' | 'dark' | 'system'): Promise<void> {
+    await this.savePreferences({ theme });
   }
 
   getHotkey(action: string): string | undefined {
     return this.preferences.hotkeys[action];
   }
 
-  setHotkey(action: string, key: string): void {
+  async setHotkey(action: string, key: string): Promise<void> {
     const hotkeys = { ...this.preferences.hotkeys, [action]: key };
-    this.savePreferences({ hotkeys });
+    await this.savePreferences({ hotkeys });
   }
 
-  resetToDefaults(): void {
+  async resetToDefaults(): Promise<void> {
     this.preferences = DEFAULT_PREFERENCES;
-    localStorage.setItem('preferences', JSON.stringify(this.preferences));
+    
+    try {
+      const db = getDatabaseInstance();
+      await db.savePreferences(this.userId, this.preferences);
+    } catch (error) {
+      console.error('Error resetting preferences:', error);
+      localStorage.setItem('preferences', JSON.stringify(this.preferences));
+    }
   }
 }
 
 export const preferencesService = new PreferencesService();
+

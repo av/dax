@@ -16,6 +16,13 @@ DAX (Data Agent eXplorer) is a modern Electron-based canvas application for expl
 ### Backend/Desktop
 - **Electron 38**: Cross-platform desktop application framework
 - **Node.js**: Runtime for Electron main process
+- **Turso DB (libSQL)**: SQLite-compatible edge database for persistent storage
+
+### Database
+- **libSQL Client (@libsql/client)**: Official Turso/libSQL client
+- **Schema**: Comprehensive SQL schema with tables for all application state
+- **Indexing**: SQL indexes for fast queries and full-text search support
+- **Persistence**: All application state persisted to Turso database
 
 ### Build Tools
 - **Vite 7**: Fast build tool and dev server
@@ -46,9 +53,11 @@ dax/
 │   │
 │   ├── services/              # Business logic
 │   │   ├── dataSource.ts     # Data source connectors
-│   │   ├── rdf.ts            # RDF/knowledge graph
-│   │   ├── preferences.ts    # User preferences
-│   │   └── database.ts       # Database with ACL
+│   │   ├── rdf.ts            # RDF/knowledge graph (Turso-backed)
+│   │   ├── preferences.ts    # User preferences (Turso-backed)
+│   │   ├── database.ts       # Turso database service with ACL
+│   │   ├── init.ts           # Application initialization
+│   │   └── schema.sql        # Database schema definition
 │   │
 │   ├── types/                 # TypeScript type definitions
 │   │   └── index.ts
@@ -129,13 +138,45 @@ Supports multiple data source types:
 - **Language**: Localization support
 - **Hotkeys**: Custom keyboard shortcuts
 
-### 6. Database
-- **Storage**: In-memory data store
-- **Indexing**: Fast field-based indexes
-- **Semantic Search**: Text-based search
-- **Multi-user**: Support for multiple users
-- **ACL**: Access Control Lists for resources
-- **Permissions**: Read, Write, Delete, Share
+### 6. Database (Turso DB)
+
+DAX uses **Turso DB** (libSQL), a modern SQLite-compatible edge database for persistent storage of all application state.
+
+**Key Features:**
+- **Persistent Storage**: All data survives application restarts
+- **SQL-based**: Standard SQL queries with SQLite compatibility
+- **Fast Indexing**: SQL indexes for optimal query performance
+- **Full-text Search**: Built-in FTS5 support for semantic search
+- **Multi-user**: User roles (admin, user, viewer)
+- **ACL**: Fine-grained access control per resource
+- **Activity Logging**: Complete audit trail of all actions
+
+**Database Tables:**
+- `users`: User accounts and roles
+- `canvas_nodes`: Canvas node state and configuration
+- `rdf_entities`: RDF entities with attributes
+- `rdf_links`: Relationships between entities
+- `preferences`: User preferences and settings
+- `acl`: Access control entries per resource
+- `documents`: Generic document storage
+- `agent_configs`: AI agent configurations
+- `activity_log`: Audit trail of all actions
+
+**Configuration:**
+
+Local development (file-based):
+```env
+TURSO_URL=file:dax.db
+```
+
+Production (Turso Cloud):
+```env
+TURSO_URL=libsql://your-database.turso.io
+TURSO_AUTH_TOKEN=your-auth-token
+```
+
+**Initialization:**
+The database is automatically initialized on application startup with the complete schema from `src/services/schema.sql`. A default admin user is created if not exists.
 
 ## Development
 
@@ -193,29 +234,180 @@ const people = rdfService.queryByType('Person');
 const entities = rdfService.extractEntities(data);
 ```
 
-### DatabaseService
+### DatabaseService (Turso DB)
+
+The database service provides persistent storage for all application state with ACL support.
+
+**Initialization:**
 ```typescript
-// Store data
-await databaseService.store('doc-1', data, 'user-1');
+import { initializeDatabase } from '@/services/database';
 
-// Search
-const results = await databaseService.semanticSearch('query', 'user-1');
-
-// Set permissions
-databaseService.setACL('doc-1', 'user-2', ['read']);
+// Initialize with configuration
+await initializeDatabase({
+  url: 'file:dax.db', // or libsql://your-db.turso.io
+  authToken: 'optional-token'
+});
 ```
 
-### PreferencesService
+**Canvas Nodes:**
 ```typescript
+import { getDatabaseInstance } from '@/services/database';
+const db = getDatabaseInstance();
+
+// Save canvas node
+await db.saveCanvasNode(node, 'user-id');
+
+// Get all nodes for user
+const nodes = await db.getCanvasNodes('user-id');
+
+// Delete node
+await db.deleteCanvasNode('node-id', 'user-id');
+```
+
+**RDF Entities:**
+```typescript
+// Save entity
+await db.saveRDFEntity({
+  id: 'entity-1',
+  type: 'Person',
+  attributes: { name: 'John' },
+  links: []
+}, 'user-id');
+
+// Get entities by type
+const people = await db.getRDFEntities('user-id', 'Person');
+
+// Save link
+await db.saveRDFLink({
+  from: 'entity-1',
+  to: 'entity-2',
+  type: 'knows'
+}, 'user-id');
+```
+
+**Preferences:**
+```typescript
+// Save preferences
+await db.savePreferences('user-id', {
+  theme: 'dark',
+  language: 'en',
+  // ... other preferences
+});
+
+// Get preferences
+const prefs = await db.getPreferences('user-id');
+```
+
+**Agent Configurations:**
+```typescript
+// Save agent config
+await db.saveAgentConfig({
+  id: 'agent-1',
+  provider: 'openai',
+  model: 'gpt-4',
+  temperature: 0.7
+}, 'user-id');
+
+// Get all agent configs
+const configs = await db.getAgentConfigs('user-id');
+```
+
+**Generic Documents:**
+```typescript
+// Store document
+await db.store('doc-1', { content: 'data' }, 'user-id');
+
+// Retrieve document
+const doc = await db.get('doc-1', 'user-id');
+
+// Delete document
+await db.delete('doc-1', 'user-id');
+```
+
+**Semantic Search:**
+```typescript
+// Search across documents and canvas nodes
+const results = await db.semanticSearch('search query', 'user-id');
+```
+
+**Access Control:**
+```typescript
+// Set ACL for a resource
+await db.setACL('doc-1', 'document', 'user-2', ['read', 'write']);
+
+// Get ACL entries
+const acl = await db.getACL('doc-1', 'document');
+
+// Check permission
+const canRead = await db.checkPermission('user-id', 'doc-1', 'document', 'read');
+```
+
+**Activity Logging:**
+```typescript
+// Log activity (done automatically by most operations)
+await db.logActivity('user-id', 'document_created', 'document', 'doc-1', {
+  title: 'My Document'
+});
+
+// Get activity log
+const activities = await db.getActivityLog('user-id', 50);
+```
+
+### RDFService (Database-backed)
+
+Now uses Turso DB for persistent storage:
+
+```typescript
+import { rdfService } from '@/services/rdf';
+
+// Set current user
+rdfService.setUserId('user-id');
+
+// Add entity (persisted to DB)
+await rdfService.addEntity({
+  id: 'entity-1',
+  type: 'Person',
+  attributes: { name: 'John', age: 30 },
+  links: []
+});
+
+// Query entities (from DB)
+const people = await rdfService.queryByType('Person');
+
+// Extract entities from data (saved to DB)
+const entities = await rdfService.extractEntities(data);
+
+// Add links (persisted to DB)
+await rdfService.addLink({
+  from: 'entity-1',
+  to: 'entity-2',
+  type: 'knows'
+});
+```
+
+### PreferencesService (Database-backed)
+
+Now uses Turso DB for persistent storage with localStorage fallback:
+
+```typescript
+import { preferencesService } from '@/services/preferences';
+
+// Set current user
+preferencesService.setUserId('user-id');
+
+// Load preferences from DB
+await preferencesService.loadPreferences();
+
 // Get preferences
 const prefs = preferencesService.getPreferences();
 
-// Set theme
-preferencesService.setTheme('dark');
+// Set theme (saved to DB)
+await preferencesService.setTheme('dark');
 
-// Set hotkey
-preferencesService.setHotkey('newNode', 'Ctrl+N');
+// Set hotkey (saved to DB)
+await preferencesService.setHotkey('newNode', 'Ctrl+N');
 ```
+
 
 ## Security
 
