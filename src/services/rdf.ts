@@ -1,42 +1,39 @@
 import { RDFEntity, RDFLink } from '@/types';
 import { getDatabaseInstance } from './database';
 
+// Single-user desktop app - always use admin user
+const USER_ID = 'admin';
+
 export class RDFService {
-  private userId: string = 'admin'; // Default user, should be set by application
-
-  setUserId(userId: string): void {
-    this.userId = userId;
-  }
-
   // Add entity
   async addEntity(entity: RDFEntity): Promise<void> {
     const db = getDatabaseInstance();
-    await db.saveRDFEntity(entity, this.userId);
+    await db.saveRDFEntity(entity, USER_ID);
   }
 
   // Get entity
   async getEntity(id: string): Promise<RDFEntity | undefined> {
     const db = getDatabaseInstance();
-    const entities = await db.getRDFEntities(this.userId);
+    const entities = await db.getRDFEntities(USER_ID);
     return entities.find(e => e.id === id);
   }
 
   // Add link between entities
   async addLink(link: RDFLink): Promise<void> {
     const db = getDatabaseInstance();
-    await db.saveRDFLink(link, this.userId);
+    await db.saveRDFLink(link, USER_ID);
   }
 
   // Query entities by type
   async queryByType(type: string): Promise<RDFEntity[]> {
     const db = getDatabaseInstance();
-    return await db.getRDFEntities(this.userId, type);
+    return await db.getRDFEntities(USER_ID, type);
   }
 
   // Query entities by attribute
   async queryByAttribute(key: string, value: any): Promise<RDFEntity[]> {
     const db = getDatabaseInstance();
-    const entities = await db.getRDFEntities(this.userId);
+    const entities = await db.getRDFEntities(USER_ID);
     return entities.filter(e => e.attributes[key] === value);
   }
 
@@ -87,19 +84,19 @@ export class RDFService {
     // In production, this would parse SPARQL or similar query language
     console.log('Executing query:', query);
     const db = getDatabaseInstance();
-    return await db.getRDFEntities(this.userId);
+    return await db.getRDFEntities(USER_ID);
   }
 
   // Get all entities
   async getAllEntities(): Promise<RDFEntity[]> {
     const db = getDatabaseInstance();
-    return await db.getRDFEntities(this.userId);
+    return await db.getRDFEntities(USER_ID);
   }
 
   // Get all links
   async getAllLinks(): Promise<RDFLink[]> {
     const db = getDatabaseInstance();
-    return await db.getRDFLinks(this.userId);
+    return await db.getRDFLinks(USER_ID);
   }
 
   // Clear all data (admin only)

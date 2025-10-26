@@ -1,6 +1,9 @@
 import { Preferences } from '@/types';
 import { getDatabaseInstance } from './database';
 
+// Single-user desktop app - always use admin user
+const USER_ID = 'admin';
+
 const DEFAULT_PREFERENCES: Preferences = {
   theme: 'system',
   autostart: false,
@@ -24,20 +27,15 @@ const DEFAULT_PREFERENCES: Preferences = {
 
 export class PreferencesService {
   private preferences: Preferences;
-  private userId: string = 'admin'; // Default user, should be set by application
 
   constructor() {
     this.preferences = DEFAULT_PREFERENCES;
   }
 
-  setUserId(userId: string): void {
-    this.userId = userId;
-  }
-
   async loadPreferences(): Promise<Preferences> {
     try {
       const db = getDatabaseInstance();
-      const prefs = await db.getPreferences(this.userId);
+      const prefs = await db.getPreferences(USER_ID);
       
       if (prefs) {
         this.preferences = prefs;
@@ -66,7 +64,7 @@ export class PreferencesService {
     
     try {
       const db = getDatabaseInstance();
-      await db.savePreferences(this.userId, this.preferences);
+      await db.savePreferences(USER_ID, this.preferences);
     } catch (error) {
       console.error('Error saving preferences to database:', error);
       // Fall back to localStorage
@@ -100,7 +98,7 @@ export class PreferencesService {
     
     try {
       const db = getDatabaseInstance();
-      await db.savePreferences(this.userId, this.preferences);
+      await db.savePreferences(USER_ID, this.preferences);
     } catch (error) {
       console.error('Error resetting preferences:', error);
       localStorage.setItem('preferences', JSON.stringify(this.preferences));
