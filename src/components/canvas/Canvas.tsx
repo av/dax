@@ -42,9 +42,20 @@ export const Canvas: React.FC = () => {
   };
 
   const batchDelete = () => {
-    if (confirm('Delete all nodes?')) {
-      setNodes([]);
+    setNodes([]);
+  };
+
+  const multiAddNodes = () => {
+    if (nodes.length === 0) {
+      return;
     }
+    const duplicatedNodes = nodes.map(n => ({
+      ...n,
+      id: `node-${Date.now()}-${Math.random()}`,
+      x: n.x + 30,
+      y: n.y + 30,
+    }));
+    setNodes([...nodes, ...duplicatedNodes]);
   };
 
   return (
@@ -65,7 +76,7 @@ export const Canvas: React.FC = () => {
           <Plus className="h-4 w-4 mr-1" />
           Add Node
         </Button>
-        <Button size="sm" variant="outline" onClick={() => setNodes([...nodes, ...nodes.map(n => ({ ...n, id: `node-${Date.now()}-${Math.random()}`, x: n.x + 30, y: n.y + 30 }))])}>
+        <Button size="sm" variant="outline" onClick={multiAddNodes}>
           Multi-Add
         </Button>
         <Button size="sm" variant="destructive" onClick={batchDelete}>
