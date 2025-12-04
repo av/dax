@@ -1,50 +1,74 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Dax Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Smart Concise Code
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Every line must earn its place. Favor clarity over cleverness, but never verbosity over precision.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+- Delete before you add—remove dead code, unused imports, redundant abstractions
+- One concept per function, one purpose per module
+- Self-documenting names; comments explain *why*, never *what*
+- No defensive coding theater—validate at boundaries, trust within
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### II. Maintainability Above All
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+Code is read 10x more than written. Optimize for the next developer (often future you).
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+- Flat over nested; explicit over implicit
+- Consistent patterns across the codebase—surprise is a bug
+- Dependencies are liabilities: minimize, isolate, abstract
+- Every abstraction must reduce total complexity, not redistribute it
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### III. Exceptional User Experience
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Users don't care about our architecture. They care about speed, clarity, and not being frustrated.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+- Error messages must be actionable: what happened, why, and what to do
+- Sensible defaults; progressive disclosure of complexity
+- Responsive feedback—never leave users guessing if something is happening
+- Accessibility is not optional; it's baseline functionality
+
+### IV. Performance as First-Class
+
+Fast is a feature. Slow is a bug. Performance is designed in, not bolted on.
+
+- Measure before optimizing, but architect for speed from day one
+- Budget time and memory like money—know what you're spending and why
+- Lazy load, cache intelligently, minimize network round-trips
+- Profile in production conditions; synthetic benchmarks lie
+
+### V. Test-First Development (NON-NEGOTIABLE)
+
+No code ships without proof it works. Tests are specifications, not afterthoughts.
+
+- Write the test, watch it fail, make it pass, refactor
+- Tests document intent; if you can't test it, you can't explain it
+- Integration tests for contracts, unit tests for logic
+- Flaky tests are broken tests—fix or delete
+
+## Quality Standards
+
+### Code Review Gates
+
+- Every PR must demonstrate adherence to Core Principles
+- Performance-sensitive paths require benchmark comparisons
+- UX changes require before/after demonstration
+- No "I'll clean this up later" merges
+
+### Complexity Budget
+
+- Cyclomatic complexity hard limit: 10 per function
+- File size soft limit: 300 lines (hard limit: 500)
+- Dependency additions require justification
+- Magic numbers and strings are forbidden
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes tribal knowledge and "how we've always done it."
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+- Amendments require: documented rationale, team review, migration plan
+- Principle violations require explicit justification in PR description
+- When principles conflict, prioritize: UX → Maintainability → Performance → Conciseness
+
+**Version**: 1.0.0 | **Ratified**: 2025-12-04
