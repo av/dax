@@ -1,5 +1,23 @@
 use serde::{Deserialize, Serialize};
 use tauri::Emitter;
+use tauri_plugin_store::StoreExt;
+
+use super::settings::get_api_key_internal;
+
+const STORE_FILE: &str = "app-settings.json";
+const DEFAULT_OPENAI_URL: &str = "https://api.openai.com/v1";
+
+/// Get the configured API URL from the store, or use default
+fn get_api_url(app: &tauri::AppHandle) -> String {
+    app.store(STORE_FILE)
+        .ok()
+        .and_then(|store| {
+            store.get("apiUrl")
+                .and_then(|v| v.as_str().map(|s| s.to_string()))
+        })
+        .filter(|url| !url.is_empty())
+        .unwrap_or_else(|| DEFAULT_OPENAI_URL.to_string())
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ChatMessage {
@@ -57,28 +75,37 @@ pub struct LLMError {
 /// This proxies the request through the backend for API key security
 #[tauri::command]
 pub async fn call_llm(
+    app: tauri::AppHandle,
     provider: String,
     model: String,
     messages: Vec<ChatMessage>,
     options: LLMOptions,
 ) -> Result<LLMResponse, String> {
-    // Get API key from environment
+    // Get API key from keyring (stored via Settings), falling back to environment variable
     let api_key = match provider.as_str() {
-        "openai" => std::env::var("OPENAI_API_KEY").ok(),
+        "openai" => {
+            get_api_key_internal()
+                .ok()
+                .flatten()
+                .or_else(|| std::env::var("OPENAI_API_KEY").ok())
+        }
         "anthropic" => std::env::var("ANTHROPIC_API_KEY").ok(),
         "local" => Some("local".to_string()),
         _ => None,
     };
 
     let api_key = api_key.ok_or_else(|| {
-        format!("LLM: No API key configured for provider '{}'", provider)
+        format!("LLM: No API key configured for provider '{}'. Please set your API key in Settings.", provider)
     })?;
+
+    // Get API URL from settings (for OpenAI-compatible endpoints)
+    let api_url = get_api_url(&app);
 
     // Build the request based on provider
     let client = reqwest::Client::new();
     
     let response = match provider.as_str() {
-        "openai" => call_openai(&client, &api_key, &model, &messages, &options).await,
+        "openai" => call_openai(&client, &api_url, &api_key, &model, &messages, &options).await,
         "anthropic" => call_anthropic(&client, &api_key, &model, &messages, &options).await,
         "local" => call_local(&client, &model, &messages, &options).await,
         _ => Err(format!("LLM: Unknown provider '{}'", provider)),
@@ -99,17 +126,25 @@ pub async fn stream_llm(
     options: LLMOptions,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
-    // Get API key from environment
+    // Get API key from keyring (stored via Settings), falling back to environment variable
     let api_key = match provider.as_str() {
-        "openai" => std::env::var("OPENAI_API_KEY").ok(),
+        "openai" => {
+            get_api_key_internal()
+                .ok()
+                .flatten()
+                .or_else(|| std::env::var("OPENAI_API_KEY").ok())
+        }
         "anthropic" => std::env::var("ANTHROPIC_API_KEY").ok(),
         "local" => Some("local".to_string()),
         _ => None,
     };
 
     let api_key = api_key.ok_or_else(|| {
-        format!("LLM: No API key configured for provider '{}'", provider)
+        format!("LLM: No API key configured for provider '{}'. Please set your API key in Settings.", provider)
     })?;
+
+    // Get API URL from settings (for OpenAI-compatible endpoints)
+    let api_url = get_api_url(&app);
 
     // Spawn async task for streaming
     let request_id_clone = request_id.clone();
@@ -118,7 +153,7 @@ pub async fn stream_llm(
     tokio::spawn(async move {
         let result = match provider.as_str() {
             "openai" => {
-                stream_openai(&app_clone, &request_id_clone, &api_key, &model, &messages, &options).await
+                stream_openai(&app_clone, &request_id_clone, &api_url, &api_key, &model, &messages, &options).await
             }
             "anthropic" => {
                 stream_anthropic(&app_clone, &request_id_clone, &api_key, &model, &messages, &options).await
@@ -152,6 +187,7 @@ pub async fn cancel_llm_stream(request_id: String) -> Result<(), String> {
 // OpenAI API implementation
 async fn call_openai(
     client: &reqwest::Client,
+    api_url: &str,
     api_key: &str,
     model: &str,
     messages: &[ChatMessage],
@@ -175,8 +211,9 @@ async fn call_openai(
         "stream": false
     });
 
+    let url = format!("{}/chat/completions", api_url);
     let response = client
-        .post("https://api.openai.com/v1/chat/completions")
+        .post(&url)
         .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
         .json(&body)
@@ -219,6 +256,7 @@ async fn call_openai(
 async fn stream_openai(
     app: &tauri::AppHandle,
     request_id: &str,
+    api_url: &str,
     api_key: &str,
     model: &str,
     messages: &[ChatMessage],
@@ -244,8 +282,9 @@ async fn stream_openai(
         "stream": true
     });
 
+    let url = format!("{}/chat/completions", api_url);
     let response = client
-        .post("https://api.openai.com/v1/chat/completions")
+        .post(&url)
         .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
         .json(&body)

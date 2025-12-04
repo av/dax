@@ -65,3 +65,15 @@ export {
   createGoal,
   createDefaultAgentConfig,
 } from './agent';
+
+// Settings types
+export type {
+  AppSettings,
+  AppSettingsResponse,
+  SaveAppSettingsRequest,
+  TestConnectionResult,
+  ValidationResult,
+  SettingsState,
+} from './settings';
+
+export { DEFAULT_SETTINGS } from './settings';

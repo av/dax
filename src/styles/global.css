@@ -623,6 +623,34 @@ html, body, #root {
   background: #3a3a5a;
 }
 
+/* Settings toggle button */
+.settings-toggle-button {
+  position: fixed;
+  left: 20px;
+  bottom: 88px;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: #2a2a4a;
+  color: #888;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 999;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.settings-toggle-button:hover {
+  transform: scale(1.05);
+  background: #3a3a5a;
+  color: #fff;
+}
+
 /* Notification Toast Styles */
 .notification-container {
   position: fixed;

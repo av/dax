@@ -70,6 +70,7 @@ export interface SceneEvents {
   'command:agent:resume': Record<string, never>;
   'command:agent:chat': { message: string; messageId: string };
   'command:toggle-chat': { open: boolean };
+  'command:toggle-settings': { open: boolean };
 
   'file:saved': { path: string };
   'file:opened': { path: string; objectId: string };

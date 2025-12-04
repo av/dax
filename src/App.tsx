@@ -1,12 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Viewport from './ui/components/Viewport';
 import { ObjectTooltip } from './ui/components/ObjectTooltip';
 import { ChatPanel } from './ui/components/ChatPanel';
 import { GoalsPanel } from './ui/components/GoalsPanel';
 import { NotificationToast } from './ui/components/NotificationToast';
 import { EditorPanel } from './ui/components/EditorPanel';
+import { SettingsPanel } from './ui/components/SettingsPanel';
 import { sceneEvents } from './engine/events';
 import { useSceneStore } from './ui/stores/sceneStore';
+import { useWorkspaceStore } from './ui/stores/workspaceStore';
+import { useSettingsStore } from './ui/stores/settingsStore';
+import { createWorkspace, initPersistence } from './services/persistence';
 import type { FileObject } from './types';
 
 interface EditorState {
@@ -20,6 +24,7 @@ function App() {
   const [isReady, setIsReady] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isGoalsOpen, setIsGoalsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editor, setEditor] = useState<EditorState>({
     isOpen: false,
     filePath: null,
@@ -30,16 +35,16 @@ function App() {
   const getObject = useSceneStore((state) => state.getObject);
   const updateObject = useSceneStore((state) => state.updateObject);
 
-  const handleToggleChat = useCallback((data: { open: boolean }) => {
-    setIsChatOpen(data.open);
-  }, []);
-
   const handleCloseChat = useCallback(() => {
     setIsChatOpen(false);
   }, []);
 
   const handleCloseGoals = useCallback(() => {
     setIsGoalsOpen(false);
+  }, []);
+
+  const handleCloseSettings = useCallback(() => {
+    setIsSettingsOpen(false);
   }, []);
 
   const handleDoubleClick = useCallback((data: { objectId: string }) => {
@@ -61,6 +66,10 @@ function App() {
       }
     }
   }, [getObject, updateObject]);
+
+  // Use ref for double click handler to avoid useEffect dependency issues
+  const handleDoubleClickRef = useRef(handleDoubleClick);
+  handleDoubleClickRef.current = handleDoubleClick;
 
   const handleCloseEditor = useCallback(() => {
     if (editor.objectId) {
@@ -86,19 +95,53 @@ function App() {
   }, []);
 
   useEffect(() => {
-    setIsReady(true);
-
-    // Listen for chat toggle events
-    sceneEvents.on('command:toggle-chat', handleToggleChat);
+    // Initialize app on startup
+    let cleanup: (() => void) | undefined;
+    let mounted = true;
     
-    // Listen for double-click events to open editor
-    sceneEvents.on('input:doubleclick', handleDoubleClick);
+    const initializeApp = async () => {
+      // Load settings from store
+      useSettingsStore.getState().loadSettings();
+      
+      // Create default workspace if none exists
+      const workspace = useWorkspaceStore.getState().currentWorkspace;
+      if (!workspace) {
+        try {
+          await createWorkspace({ name: 'Default Workspace' });
+          console.log('[App] Created default workspace');
+        } catch (error) {
+          console.error('[App] Failed to create default workspace:', error);
+        }
+      }
+      
+      // Initialize persistence (auto-save, store subscriptions)
+      cleanup = initPersistence();
+      
+      if (mounted) {
+        setIsReady(true);
+      }
+    };
+    
+    initializeApp();
+
+    // Event handlers that use refs to avoid stale closures
+    const onToggleChat = (data: { open: boolean }) => setIsChatOpen(data.open);
+    const onToggleSettings = (data: { open: boolean }) => setIsSettingsOpen(data.open);
+    const onDoubleClick = (data: { objectId: string }) => handleDoubleClickRef.current(data);
+
+    // Listen for events
+    sceneEvents.on('command:toggle-chat', onToggleChat);
+    sceneEvents.on('command:toggle-settings', onToggleSettings);
+    sceneEvents.on('input:doubleclick', onDoubleClick);
 
     return () => {
-      sceneEvents.off('command:toggle-chat', handleToggleChat);
-      sceneEvents.off('input:doubleclick', handleDoubleClick);
+      mounted = false;
+      sceneEvents.off('command:toggle-chat', onToggleChat);
+      sceneEvents.off('command:toggle-settings', onToggleSettings);
+      sceneEvents.off('input:doubleclick', onDoubleClick);
+      cleanup?.();
     };
-  }, [handleToggleChat, handleDoubleClick]);
+  }, []); // Empty dependency array - runs once on mount
 
   if (!isReady) {
     return (
@@ -122,6 +165,7 @@ function App() {
         onClose={handleCloseEditor}
         onSave={handleEditorSave}
       />
+      <SettingsPanel isOpen={isSettingsOpen} onClose={handleCloseSettings} />
       <NotificationToast />
       
       {/* Goals toggle button */}
@@ -133,6 +177,18 @@ function App() {
           title="View agent goals"
         >
           🎯
+        </button>
+      )}
+      
+      {/* Settings toggle button */}
+      {!isSettingsOpen && (
+        <button
+          className="settings-toggle-button"
+          onClick={() => setIsSettingsOpen(true)}
+          aria-label="Open settings"
+          title="Settings (Ctrl+,)"
+        >
+          ⚙️
         </button>
       )}
       

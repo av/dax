@@ -137,10 +137,10 @@ function toAppCamera(camera: BackendCameraState): AppCameraState {
  */
 export async function createWorkspace(options: CreateWorkspaceOptions): Promise<WorkspaceMetadata> {
   const result = await invoke<WorkspaceMetadata>('create_workspace', {
-    name: options.name,
-    description: options.description || '',
-    path: options.path || null,
-    settings: { ...DEFAULT_BACKEND_SETTINGS, ...options.settings },
+    request: {
+      name: options.name,
+      path: options.path || null,
+    },
   });
   
   // Reset stores

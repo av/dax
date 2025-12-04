@@ -742,6 +742,12 @@ export class InputController {
       }
     }
 
+    // Settings shortcut (Ctrl+,)
+    if (e.key === ',' && this.state.modifiers.ctrl) {
+      e.preventDefault();
+      sceneEvents.emit('command:toggle-settings', { open: true });
+    }
+
     // Escape to cancel selection/drag/boundary/beacon
     if (e.key === 'Escape') {
       if (this.boundaryDrawState.isActive && this.boundaryDrawState.vertices.length > 0) {

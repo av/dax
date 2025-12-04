@@ -30,10 +30,15 @@ export class FileDropHandler {
     this.getDropPosition = getDropPosition;
 
     // Listen for file drop
-    this.unlistenDrop = await listen<{ paths: string[]; position: { x: number; y: number } }>(
+    this.unlistenDrop = await listen<{ paths?: string[]; position: { x: number; y: number } }>(
       'tauri://drag-drop',
       (event) => {
         const { paths, position } = event.payload;
+        
+        // Guard against undefined paths
+        if (!paths || paths.length === 0) {
+          return;
+        }
         
         // Convert screen position to world position
         const worldPos = this.getDropPosition?.(position.x, position.y);
@@ -54,7 +59,7 @@ export class FileDropHandler {
     );
 
     // Listen for drag hover (files being dragged over window)
-    this.unlistenHover = await listen<{ paths: string[]; position: { x: number; y: number } }>(
+    this.unlistenHover = await listen<{ paths?: string[]; position: { x: number; y: number } }>(
       'tauri://drag-over',
       (event) => {
         const { paths, position } = event.payload;
@@ -67,7 +72,7 @@ export class FileDropHandler {
 
         sceneEvents.emit('drop:hover', {
           position: this.lastHoverPosition,
-          fileCount: paths.length,
+          fileCount: paths?.length ?? 0,
         });
       }
     );

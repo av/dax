@@ -10,6 +10,7 @@ use commands::{
     create_workspace, save_workspace, load_workspace, export_workspace,
     get_current_workspace, close_workspace, WorkspaceManager,
     get_system_info, check_capability, get_data_directory,
+    get_app_settings, save_app_settings, set_api_key, has_api_key, delete_api_key, test_api_connection,
 };
 use tokio::sync::Mutex;
 
@@ -19,6 +20,11 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
+        .plugin(tauri_plugin_store::Builder::default().build())
         .manage(SandboxState::default())
         .manage(Mutex::new(WorkspaceManager::default()))
         .setup(|app| {
@@ -55,6 +61,12 @@ pub fn run() {
             get_system_info,
             check_capability,
             get_data_directory,
+            get_app_settings,
+            save_app_settings,
+            set_api_key,
+            has_api_key,
+            delete_api_key,
+            test_api_connection,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
