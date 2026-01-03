@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AgentConfig, AgentTool, MCPConfig, OpenAPIConfig } from '@/types';
 import {
   Settings, Plus, Trash2, History, FileText, Bot, Save,
-  X, Edit, ChevronDown, ChevronRight, ToggleLeft, ToggleRight,
-  Sparkles, Zap, Globe
+  X, Edit, ChevronDown, ChevronRight, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import { getDatabaseInstance } from '@/services/database';
 
@@ -761,7 +760,7 @@ export const Sidebar: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-2">
-                {selectedAgentData.tools?.map((tool, index) => (
+                {selectedAgentData.tools?.map((tool) => (
                   <Card key={tool.id}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
