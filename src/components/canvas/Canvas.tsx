@@ -169,7 +169,10 @@ export const Canvas: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to preview node:', error);
-      setPreviewData({ error: error instanceof Error ? error.message : 'Failed to load preview' });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setPreviewData({ 
+        error: `Failed to load ${node.type} node preview: ${errorMessage}` 
+      });
     }
   };
 
