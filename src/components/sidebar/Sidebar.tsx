@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { AgentConfig, AgentTool, MCPConfig, OpenAPIConfig } from '@/types';
 import {
   Settings, Plus, Trash2, History, FileText, Bot, Save,
-  X, Edit, ChevronDown, ChevronRight, ToggleLeft, ToggleRight
+  X, Edit, ChevronDown, ChevronRight, ToggleLeft, ToggleRight,
+  Sparkles, Zap, Globe, LucideIcon
 } from 'lucide-react';
 import { getDatabaseInstance } from '@/services/database';
 
@@ -41,6 +42,17 @@ const API_PRESETS = {
     queryParams: {},
     extraBody: { model: 'claude-3-opus-20240229' },
   },
+};
+
+// Icon mapping for Lucide icons
+const LUCIDE_ICON_MAP: Record<string, LucideIcon> = {
+  Bot,
+  Sparkles,
+  Zap,
+  Globe,
+  Settings,
+  History,
+  FileText,
 };
 
 export const Sidebar: React.FC = () => {
@@ -200,8 +212,9 @@ export const Sidebar: React.FC = () => {
     if (iconType === 'emoji') {
       return <span className="text-xl">{icon}</span>;
     }
-    // For lucide icons, we'll use Bot as default
-    return <Bot className="h-5 w-5" />;
+    // For lucide icons, look up the icon component by name
+    const IconComponent = LUCIDE_ICON_MAP[icon] || Bot;
+    return <IconComponent className="h-5 w-5" />;
   };
 
   const addKeyValuePair = (field: 'headers' | 'queryParams', key: string = '', value: string = '') => {
