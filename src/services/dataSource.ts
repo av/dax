@@ -1,5 +1,8 @@
 import { DataSource } from '@/types';
 
+// Constants
+const HTTP_CONTENT_PREVIEW_LENGTH = 500;
+
 // Unified file system interface for all data sources
 export interface FileSystemEntry {
   name: string;
@@ -319,6 +322,37 @@ export class DataSourceService {
    */
   static async readData(source: DataSource): Promise<any> {
     const fs = await this.connect(source);
+    
+    // HTTP sources don't support directory listing
+    if (source.type === 'http') {
+      try {
+        // Try to fetch the URL directly and return metadata
+        const content = await fs.readFile(fs.getBasePath());
+        return {
+          type: source.type,
+          basePath: fs.getBasePath(),
+          url: source.url,
+          contentPreview: content.substring(0, HTTP_CONTENT_PREVIEW_LENGTH),
+          contentLength: content.length,
+          metadata: {
+            note: 'HTTP sources do not support directory listing. Showing content preview.',
+          },
+        };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          type: source.type,
+          basePath: fs.getBasePath(),
+          url: source.url,
+          error: `Failed to fetch HTTP resource: ${errorMessage}`,
+          metadata: {
+            note: 'HTTP sources do not support directory listing.',
+          },
+        };
+      }
+    }
+    
+    // For filesystem and other sources that support directory listing
     const entries = await fs.readDir(fs.getBasePath());
 
     return {

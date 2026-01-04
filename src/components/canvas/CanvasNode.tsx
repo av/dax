@@ -46,10 +46,12 @@ export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
         onUpdate({ ...node, x: d.x, y: d.y });
       }}
       onResizeStop={(_e, _direction, ref, _delta, position) => {
+        const width = Number.parseInt(ref.style.width, 10) || node.width;
+        const height = Number.parseInt(ref.style.height, 10) || node.height;
         onUpdate({
           ...node,
-          width: parseInt(ref.style.width),
-          height: parseInt(ref.style.height),
+          width,
+          height,
           ...position,
         });
       }}

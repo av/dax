@@ -150,6 +150,12 @@ export const Canvas: React.FC = () => {
       type: 'fs',
       path: '',
     });
+    setValidationErrors({}); // Clear any previous validation errors
+  };
+
+  const closeConfigModal = () => {
+    setConfiguringNode(null);
+    setValidationErrors({}); // Clear validation errors when closing
   };
 
   const saveNodeConfiguration = async () => {
@@ -201,7 +207,7 @@ export const Canvas: React.FC = () => {
     };
 
     await updateNode(updatedNode);
-    setConfiguringNode(null);
+    closeConfigModal();
   };
 
   const previewNode = async (node: CanvasNode) => {
@@ -312,7 +318,7 @@ export const Canvas: React.FC = () => {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => setConfiguringNode(null)}
+                  onClick={closeConfigModal}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -476,7 +482,7 @@ export const Canvas: React.FC = () => {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => setConfiguringNode(null)}
+                  onClick={closeConfigModal}
                 >
                   Cancel
                 </Button>

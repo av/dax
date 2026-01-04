@@ -4,6 +4,9 @@ import { rdfService } from './rdf';
 import { DEFAULT_USER_ID, DEFAULT_AGENT_TEMPERATURE, DEFAULT_AGENT_MAX_TOKENS } from '@/lib/constants';
 import { generateUUID } from '@/lib/utils';
 
+// Canvas node types - must match the CanvasNode type definition
+const VALID_NODE_TYPES = ['data', 'agent', 'transform', 'output'] as const;
+
 export interface AgentMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -145,17 +148,104 @@ export class AgentExecutor {
    * Format tools for the API
    */
   private formatTools(tools: AgentTool[]): any[] {
-    return tools.map(tool => ({
-      type: 'function',
-      function: {
-        name: tool.name,
-        description: tool.description,
-        parameters: {
-          type: 'object',
-          properties: {},
+    return tools.map(tool => {
+      const schema = this.getToolSchema(tool.name);
+      return {
+        type: 'function',
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: schema,
+        },
+      };
+    });
+  }
+
+  /**
+   * Get parameter schema for a specific tool
+   */
+  private getToolSchema(toolName: string): any {
+    const schemas: Record<string, any> = {
+      read_canvas: {
+        type: 'object',
+        properties: {
+          type: {
+            type: 'string',
+            enum: VALID_NODE_TYPES,
+            description: 'Filter nodes by type (optional)',
+          },
         },
       },
-    }));
+      write_canvas: {
+        type: 'object',
+        required: ['action'],
+        properties: {
+          action: {
+            type: 'string',
+            enum: ['add', 'update', 'delete'],
+            description: 'The action to perform on canvas nodes',
+          },
+          nodeId: {
+            type: 'string',
+            description: 'Node ID for update or delete actions',
+          },
+          nodeType: {
+            type: 'string',
+            enum: VALID_NODE_TYPES,
+            description: 'Type of node for add action',
+          },
+          title: {
+            type: 'string',
+            description: 'Title of the node',
+          },
+          x: {
+            type: 'number',
+            description: 'X coordinate for node position',
+          },
+          y: {
+            type: 'number',
+            description: 'Y coordinate for node position',
+          },
+          data: {
+            type: 'object',
+            description: 'Node data object',
+          },
+          config: {
+            type: 'object',
+            description: 'Node configuration object',
+          },
+          updates: {
+            type: 'object',
+            description: 'Updates to apply for update action',
+          },
+        },
+      },
+      query_rdf: {
+        type: 'object',
+        properties: {
+          type: {
+            type: 'string',
+            description: 'Query entities by type',
+          },
+          attribute: {
+            type: 'string',
+            description: 'Query entities by attribute key',
+          },
+          value: {
+            description: 'Query entities by attribute value',
+          },
+          search: {
+            type: 'string',
+            description: 'Search entities by term',
+          },
+        },
+      },
+    };
+    
+    return schemas[toolName] || {
+      type: 'object',
+      properties: {},
+    };
   }
 
   /**
@@ -258,9 +348,15 @@ export class AgentExecutor {
     const db = getDatabaseInstance();
     
     if (args.action === 'add') {
+      // Validate node type
+      const nodeType = args.nodeType || 'data';
+      if (!VALID_NODE_TYPES.includes(nodeType)) {
+        throw new Error(`Invalid node type: ${nodeType}. Must be one of: ${VALID_NODE_TYPES.join(', ')}`);
+      }
+      
       const node = {
         id: `node-${generateUUID()}`,
-        type: args.nodeType || 'data',
+        type: nodeType,
         title: args.title || 'New Node',
         x: args.x || Math.random() * 400 + 50,
         y: args.y || Math.random() * 300 + 50,
@@ -280,6 +376,13 @@ export class AgentExecutor {
       
       if (!node) {
         throw new Error(`Node ${args.nodeId} not found`);
+      }
+      
+      // Validate updates if node type is being changed
+      if (args.updates?.type) {
+        if (!VALID_NODE_TYPES.includes(args.updates.type)) {
+          throw new Error(`Invalid node type: ${args.updates.type}. Must be one of: ${VALID_NODE_TYPES.join(', ')}`);
+        }
       }
       
       const updatedNode = {
