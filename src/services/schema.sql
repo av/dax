@@ -98,9 +98,15 @@ CREATE TABLE IF NOT EXISTS documents (
 CREATE TABLE IF NOT EXISTS agent_configs (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
-  provider TEXT NOT NULL CHECK(provider IN ('openai', 'anthropic', 'custom')),
-  model TEXT,
+  name TEXT NOT NULL,
+  icon TEXT NOT NULL,
+  icon_type TEXT NOT NULL CHECK(icon_type IN ('lucide', 'emoji')),
+  api_url TEXT NOT NULL,
   api_key TEXT,
+  headers TEXT, -- JSON
+  query_params TEXT, -- JSON
+  extra_body TEXT, -- JSON
+  preset TEXT CHECK(preset IN ('openai', 'openrouter', 'anthropic', 'custom')),
   temperature REAL,
   max_tokens INTEGER,
   tools TEXT, -- JSON array

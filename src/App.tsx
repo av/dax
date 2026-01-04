@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Canvas } from './components/canvas/Canvas';
 import { Sidebar } from './components/sidebar/Sidebar';
+import { PreferencesModal } from './components/PreferencesModal';
+import { RDFViewer } from './components/RDFViewer';
 import { Button } from './components/ui/button';
 import { preferencesService } from './services/preferences';
 import { initializeApp } from './services/init';
@@ -9,6 +11,8 @@ import { Menu, Moon, Sun } from 'lucide-react';
 function App() {
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
   const [showMenu, setShowMenu] = useState(false);
+  const [showPreferences, setShowPreferences] = useState(false);
+  const [showRDFViewer, setShowRDFViewer] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
 
@@ -113,13 +117,43 @@ function App() {
             <div className="font-semibold mb-3">Menu</div>
             <Button variant="ghost" className="w-full justify-start">File</Button>
             <Button variant="ghost" className="w-full justify-start">Edit</Button>
-            <Button variant="ghost" className="w-full justify-start">View</Button>
-            <Button variant="ghost" className="w-full justify-start">Preferences</Button>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start"
+              onClick={() => {
+                setShowMenu(false);
+                setShowRDFViewer(true);
+              }}
+            >
+              RDF Knowledge Graph
+            </Button>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start"
+              onClick={() => {
+                setShowMenu(false);
+                setShowPreferences(true);
+              }}
+            >
+              Preferences
+            </Button>
             <hr className="my-2 border-border" />
             <Button variant="ghost" className="w-full justify-start">About</Button>
           </div>
         </div>
       )}
+
+      {/* Preferences Modal */}
+      <PreferencesModal 
+        isOpen={showPreferences} 
+        onClose={() => setShowPreferences(false)} 
+      />
+
+      {/* RDF Viewer */}
+      <RDFViewer 
+        isOpen={showRDFViewer} 
+        onClose={() => setShowRDFViewer(false)} 
+      />
     </div>
   );
 }
