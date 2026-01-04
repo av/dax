@@ -1,8 +1,6 @@
 import { RDFEntity, RDFLink } from '@/types';
 import { getDatabaseInstance } from './database';
-
-// Single-user desktop app - always use admin user
-const USER_ID = 'admin';
+import { DEFAULT_USER_ID } from '@/lib/constants';
 
 export class RDFService {
   // Add entity

@@ -157,16 +157,29 @@ export const sanitizers = {
   // Trim whitespace
   trim: (value: string): string => value.trim(),
 
-  // Remove HTML tags
+  // Remove HTML tags (recursive to handle nested tags properly)
   stripHtml: (value: string): string => {
-    return value.replace(/<[^>]*>/g, '');
+    let result = value;
+    let previous = '';
+    // Keep removing tags until no more tags are found
+    while (result !== previous) {
+      previous = result;
+      result = result.replace(/<[^>]*>/g, '');
+    }
+    return result;
   },
 
   // Escape HTML for display
   escapeHtml: (value: string): string => {
-    const div = document.createElement('div');
-    div.textContent = value;
-    return div.innerHTML;
+    const htmlEscapeMap: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+      '/': '&#x2F;',
+    };
+    return value.replace(/[&<>"'/]/g, (char) => htmlEscapeMap[char]);
   },
 
   // Remove non-alphanumeric characters

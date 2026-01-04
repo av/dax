@@ -1,9 +1,16 @@
 import { AgentConfig, AgentTool } from '@/types';
 import { getDatabaseInstance } from './database';
 import { rdfService } from './rdf';
+import { DEFAULT_USER_ID, DEFAULT_AGENT_TEMPERATURE, DEFAULT_AGENT_MAX_TOKENS } from '@/lib/constants';
 
-// Single-user desktop app - always use admin user
-const USER_ID = 'admin';
+// Generate a UUID v4
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 export interface AgentMessage {
   role: 'system' | 'user' | 'assistant';
@@ -49,13 +56,19 @@ export class AgentExecutor {
     // Build request body based on preset
     const requestBody: any = {
       messages: messages,
-      temperature: temperature ?? this.config.temperature ?? 0.7,
-      max_tokens: maxTokens ?? this.config.maxTokens ?? 2000,
+      temperature: temperature ?? this.config.temperature ?? DEFAULT_AGENT_TEMPERATURE,
+      max_tokens: maxTokens ?? this.config.maxTokens ?? DEFAULT_AGENT_MAX_TOKENS,
     };
 
-    // Add extra body fields from config
+    // Add extra body fields from config (filtered for safety)
     if (this.config.extraBody) {
-      Object.assign(requestBody, this.config.extraBody);
+      // Only allow specific safe fields to be overridden
+      const allowedFields = ['model', 'top_p', 'frequency_penalty', 'presence_penalty', 'stop'];
+      for (const [key, value] of Object.entries(this.config.extraBody)) {
+        if (allowedFields.includes(key)) {
+          requestBody[key] = value;
+        }
+      }
     }
 
     // Add tools if enabled
@@ -162,13 +175,29 @@ export class AgentExecutor {
       const choice = data.choices[0];
       const message = choice.message;
 
+      let toolCalls: ToolCall[] | undefined;
+      if (message.tool_calls) {
+        toolCalls = message.tool_calls.map((tc: any) => {
+          try {
+            return {
+              id: tc.id,
+              name: tc.function.name,
+              arguments: JSON.parse(tc.function.arguments || '{}'),
+            };
+          } catch (error) {
+            console.error('Failed to parse tool call arguments:', error);
+            return {
+              id: tc.id,
+              name: tc.function.name,
+              arguments: {},
+            };
+          }
+        });
+      }
+
       return {
         content: message.content || '',
-        toolCalls: message.tool_calls?.map((tc: any) => ({
-          id: tc.id,
-          name: tc.function.name,
-          arguments: JSON.parse(tc.function.arguments || '{}'),
-        })),
+        toolCalls,
         usage: data.usage ? {
           promptTokens: data.usage.prompt_tokens,
           completionTokens: data.usage.completion_tokens,
@@ -220,7 +249,7 @@ export class AgentExecutor {
    */
   private async toolReadCanvas(args: any): Promise<any> {
     const db = getDatabaseInstance();
-    const nodes = await db.getCanvasNodes(USER_ID);
+    const nodes = await db.getCanvasNodes(DEFAULT_USER_ID);
     
     // Filter by type if specified
     if (args.type) {
@@ -238,7 +267,7 @@ export class AgentExecutor {
     
     if (args.action === 'add') {
       const node = {
-        id: `node-${Date.now()}`,
+        id: `node-${generateUUID()}`,
         type: args.nodeType || 'data',
         title: args.title || 'New Node',
         x: args.x || Math.random() * 400 + 50,
@@ -249,12 +278,12 @@ export class AgentExecutor {
         config: args.config || {},
       };
       
-      await db.saveCanvasNode(node, USER_ID);
+      await db.saveCanvasNode(node, DEFAULT_USER_ID);
       return { success: true, nodeId: node.id };
     }
     
     if (args.action === 'update' && args.nodeId) {
-      const nodes = await db.getCanvasNodes(USER_ID);
+      const nodes = await db.getCanvasNodes(DEFAULT_USER_ID);
       const node = nodes.find(n => n.id === args.nodeId);
       
       if (!node) {
@@ -266,12 +295,12 @@ export class AgentExecutor {
         ...args.updates,
       };
       
-      await db.saveCanvasNode(updatedNode, USER_ID);
+      await db.saveCanvasNode(updatedNode, DEFAULT_USER_ID);
       return { success: true, nodeId: node.id };
     }
     
     if (args.action === 'delete' && args.nodeId) {
-      await db.deleteCanvasNode(args.nodeId, USER_ID);
+      await db.deleteCanvasNode(args.nodeId, DEFAULT_USER_ID);
       return { success: true, nodeId: args.nodeId };
     }
     
@@ -307,7 +336,7 @@ export class AgentService {
    */
   async getAgents(): Promise<(AgentConfig & { id: string })[]> {
     const db = getDatabaseInstance();
-    return await db.getAgentConfigs(USER_ID);
+    return await db.getAgentConfigs(DEFAULT_USER_ID);
   }
 
   /**

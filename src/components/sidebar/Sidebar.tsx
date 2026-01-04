@@ -11,9 +11,7 @@ import {
   Sparkles, Zap, Globe, LucideIcon, Send, Loader2, AlertCircle
 } from 'lucide-react';
 import { getDatabaseInstance } from '@/services/database';
-
-// Single-user desktop app - always use admin user
-const USER_ID = 'admin';
+import { DEFAULT_DEFAULT_USER_ID } from '@/lib/constants';
 
 // Presets for popular API providers
 const API_PRESETS = {
@@ -93,7 +91,7 @@ export const Sidebar: React.FC = () => {
   const loadAgents = async () => {
     try {
       const db = getDatabaseInstance();
-      const loadedAgents = await db.getAgentConfigs(USER_ID);
+      const loadedAgents = await db.getAgentConfigs(DEFAULT_USER_ID);
       setAgents(loadedAgents);
       if (loadedAgents.length > 0 && !selectedAgent) {
         setSelectedAgent(loadedAgents[0].id!);
@@ -106,7 +104,7 @@ export const Sidebar: React.FC = () => {
   const loadActivityLog = async () => {
     try {
       const db = getDatabaseInstance();
-      const logs = await db.getActivityLog(USER_ID, 50);
+      const logs = await db.getActivityLog(DEFAULT_USER_ID, 50);
       setActivityLog(logs);
     } catch (error) {
       console.error('Failed to load activity log:', error);
@@ -172,7 +170,7 @@ export const Sidebar: React.FC = () => {
 
     try {
       const db = getDatabaseInstance();
-      await db.saveAgentConfig(editingAgent, USER_ID);
+      await db.saveAgentConfig(editingAgent, DEFAULT_USER_ID);
       await loadAgents();
       setShowAgentForm(false);
       setEditingAgent(null);
@@ -187,7 +185,7 @@ export const Sidebar: React.FC = () => {
 
     try {
       const db = getDatabaseInstance();
-      await db.deleteAgentConfig(id, USER_ID);
+      await db.deleteAgentConfig(id, DEFAULT_USER_ID);
       await loadAgents();
       if (selectedAgent === id) {
         setSelectedAgent(agents.length > 1 ? agents[0].id! : null);
