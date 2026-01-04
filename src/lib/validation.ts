@@ -122,7 +122,7 @@ export function validate(
 
 // Form field validation helper
 export function validateField(
-  fieldName: string,
+  _fieldName: string,
   value: any,
   rules: Array<(value: any) => string | null>
 ): { isValid: boolean; error: string | null } {
