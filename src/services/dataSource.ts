@@ -209,24 +209,3 @@ export class DataSourceService {
     };
   }
 }
-
-// Type declaration for window.electron
-declare global {
-  interface Window {
-    electron?: {
-      fs?: {
-        selectFolder(): Promise<string | null>;
-        readDir(path: string): Promise<any[]>;
-        readFile(path: string, encoding?: string): Promise<string>;
-        readFileBuffer(path: string): Promise<number[]>;
-        stat(path: string): Promise<any>;
-        exists(path: string): Promise<boolean>;
-      };
-      db?: {
-        initialize(config: any): Promise<{ success: boolean; dbPath: string }>;
-        execute(query: any): Promise<any>;
-        close(): Promise<void>;
-      };
-    };
-  }
-}

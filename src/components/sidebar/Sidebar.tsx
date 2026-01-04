@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AgentConfig, AgentTool, MCPConfig, OpenAPIConfig } from '@/types';
 import {
   Settings, Plus, Trash2, History, FileText, Bot, Save,
   X, Edit, ChevronDown, ChevronRight, ToggleLeft, ToggleRight,
-  Sparkles, Zap, Globe
+  Sparkles, Zap, Globe, LucideIcon
 } from 'lucide-react';
 import { getDatabaseInstance } from '@/services/database';
 
@@ -44,6 +44,17 @@ const API_PRESETS = {
   },
 };
 
+// Icon mapping for Lucide icons
+const LUCIDE_ICON_MAP: Record<string, LucideIcon> = {
+  Bot,
+  Sparkles,
+  Zap,
+  Globe,
+  Settings,
+  History,
+  FileText,
+};
+
 export const Sidebar: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'agents' | 'tools' | 'history' | 'log'>('agents');
   const [agents, setAgents] = useState<(AgentConfig & { id: string })[]>([]);
@@ -51,11 +62,19 @@ export const Sidebar: React.FC = () => {
   const [editingAgent, setEditingAgent] = useState<(AgentConfig & { id: string }) | null>(null);
   const [showAgentForm, setShowAgentForm] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [activityLog, setActivityLog] = useState<any[]>([]);
 
   // Load agents from database on mount
   useEffect(() => {
     loadAgents();
   }, []);
+
+  // Load activity log when log tab is active
+  useEffect(() => {
+    if (activeTab === 'log') {
+      loadActivityLog();
+    }
+  }, [activeTab]);
 
   const loadAgents = async () => {
     try {
@@ -67,6 +86,16 @@ export const Sidebar: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to load agents:', error);
+    }
+  };
+
+  const loadActivityLog = async () => {
+    try {
+      const db = getDatabaseInstance();
+      const logs = await db.getActivityLog(USER_ID, 50);
+      setActivityLog(logs);
+    } catch (error) {
+      console.error('Failed to load activity log:', error);
     }
   };
 
@@ -201,8 +230,9 @@ export const Sidebar: React.FC = () => {
     if (iconType === 'emoji') {
       return <span className="text-xl">{icon}</span>;
     }
-    // For lucide icons, we'll use Bot as default
-    return <Bot className="h-5 w-5" />;
+    // For lucide icons, look up the icon component by name
+    const IconComponent = LUCIDE_ICON_MAP[icon] || Bot;
+    return <IconComponent className="h-5 w-5" />;
   };
 
   const addKeyValuePair = (field: 'headers' | 'queryParams', key: string = '', value: string = '') => {
@@ -761,7 +791,7 @@ export const Sidebar: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-2">
-                {selectedAgentData.tools?.map((tool, index) => (
+                {selectedAgentData.tools?.map((tool) => (
                   <Card key={tool.id}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
@@ -788,19 +818,70 @@ export const Sidebar: React.FC = () => {
 
         {activeTab === 'history' && (
           <div className="space-y-2">
-            <h3 className="font-semibold mb-4">History</h3>
-            <div className="text-center text-muted-foreground text-sm py-8">
-              History feature coming soon
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold">Agent History</h3>
+              <Button size="sm" variant="ghost" onClick={loadActivityLog}>
+                <History className="h-4 w-4" />
+              </Button>
             </div>
+            {selectedAgentData ? (
+              <div className="space-y-2">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-sm text-muted-foreground">
+                      Agent interaction history will appear here once agent execution is implemented.
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <div className="text-center text-muted-foreground text-sm py-8">
+                Select an agent to view its history
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === 'log' && (
           <div className="space-y-2">
-            <h3 className="font-semibold mb-4">Logs</h3>
-            <div className="text-center text-muted-foreground text-sm py-8">
-              Logging feature coming soon
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold">Activity Log</h3>
+              <Button size="sm" variant="ghost" onClick={loadActivityLog}>
+                <History className="h-4 w-4" />
+              </Button>
             </div>
+            {activityLog.length === 0 ? (
+              <div className="text-center text-muted-foreground text-sm py-8">
+                No activity logged yet
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                {activityLog.map((log) => (
+                  <Card key={log.id}>
+                    <CardContent className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <div className="text-xs font-medium">{log.action}</div>
+                          {log.resourceType && (
+                            <div className="text-xs text-muted-foreground">
+                              {log.resourceType}: {log.resourceId}
+                            </div>
+                          )}
+                          {log.details && Object.keys(log.details).length > 0 && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {JSON.stringify(log.details)}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

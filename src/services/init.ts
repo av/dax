@@ -26,9 +26,9 @@ export async function initializeApp(config: AppConfig = {}): Promise<void> {
     const tursoAuthToken = config.tursoAuthToken || import.meta.env.VITE_TURSO_AUTH_TOKEN;
 
     if (!tursoUrl) {
-      console.warn('No database URL configured. Running in UI-only mode.');
-      console.warn('Set VITE_TURSO_URL to a libsql://, http://, or https:// URL');
-      return;
+      const errorMsg = 'No database URL configured. Set VITE_TURSO_URL environment variable to use the application.';
+      console.error(errorMsg);
+      throw new Error(errorMsg);
     }
 
     console.log('Database URL:', tursoUrl);

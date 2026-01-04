@@ -16,6 +16,8 @@ export const Canvas: React.FC = () => {
   const [selectedNodeType, setSelectedNodeType] = useState<'data' | 'agent' | 'transform' | 'output'>('data');
   const [isLoading, setIsLoading] = useState(true);
   const [configuringNode, setConfiguringNode] = useState<CanvasNode | null>(null);
+  const [previewingNode, setPreviewingNode] = useState<CanvasNode | null>(null);
+  const [previewData, setPreviewData] = useState<any>(null);
   const [configDataSource, setConfigDataSource] = useState<DataSource>({
     type: 'fs',
     path: '',
@@ -152,6 +154,28 @@ export const Canvas: React.FC = () => {
     setConfiguringNode(null);
   };
 
+  const previewNode = async (node: CanvasNode) => {
+    setPreviewingNode(node);
+    setPreviewData(null);
+
+    try {
+      if (node.type === 'data' && node.config?.source) {
+        // Preview data source
+        const data = await DataSourceService.readData(node.config.source);
+        setPreviewData(data);
+      } else {
+        // For other node types, show the node data
+        setPreviewData(node.data);
+      }
+    } catch (error) {
+      console.error('Failed to preview node:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setPreviewData({ 
+        error: `Failed to load ${node.type} node preview: ${errorMessage}` 
+      });
+    }
+  };
+
   const selectFolder = async () => {
     try {
       const folderPath = await DataSourceService.selectFolder();
@@ -222,6 +246,7 @@ export const Canvas: React.FC = () => {
               onDelete={deleteNode}
               onDuplicate={duplicateNode}
               onConfigure={configureNode}
+              onPreview={previewNode}
             />
           ))}
         </div>
@@ -376,6 +401,56 @@ export const Canvas: React.FC = () => {
                   Cancel
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {previewingNode && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-[700px] max-h-[80vh] overflow-auto">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Preview: {previewingNode.title}</CardTitle>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setPreviewingNode(null);
+                    setPreviewData(null);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {previewData === null ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Loading preview...
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="text-sm">
+                    <span className="font-medium">Type:</span> {previewingNode.type}
+                  </div>
+                  
+                  {previewData.error ? (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded p-4">
+                      <div className="font-medium text-red-800 dark:text-red-200">Error</div>
+                      <div className="text-sm text-red-600 dark:text-red-300">{previewData.error}</div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="font-medium mb-2">Data:</div>
+                      <pre className="bg-slate-100 dark:bg-slate-800 p-4 rounded text-xs overflow-auto max-h-96">
+                        {JSON.stringify(previewData, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Canvas } from './components/canvas/Canvas';
 import { Sidebar } from './components/sidebar/Sidebar';
 import { Button } from './components/ui/button';

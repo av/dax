@@ -10,6 +10,7 @@ interface CanvasNodeComponentProps {
   onDelete: (id: string) => void;
   onDuplicate: (node: CanvasNode) => void;
   onConfigure: (node: CanvasNode) => void;
+  onPreview: (node: CanvasNode) => void;
 }
 
 export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
@@ -18,6 +19,7 @@ export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
   onDelete,
   onDuplicate,
   onConfigure,
+  onPreview,
 }) => {
   const [showToolbar, setShowToolbar] = useState(false);
 
@@ -80,6 +82,7 @@ export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
               size="sm"
               variant="secondary"
               className="bg-white dark:bg-slate-800 shadow-md"
+              onClick={() => onPreview(node)}
             >
               <Eye className="h-4 w-4" />
             </Button>
