@@ -6,32 +6,32 @@ export class RDFService {
   // Add entity
   async addEntity(entity: RDFEntity): Promise<void> {
     const db = getDatabaseInstance();
-    await db.saveRDFEntity(entity, USER_ID);
+    await db.saveRDFEntity(entity, DEFAULT_USER_ID);
   }
 
   // Get entity
   async getEntity(id: string): Promise<RDFEntity | undefined> {
     const db = getDatabaseInstance();
-    const entities = await db.getRDFEntities(USER_ID);
+    const entities = await db.getRDFEntities(DEFAULT_USER_ID);
     return entities.find(e => e.id === id);
   }
 
   // Add link between entities
   async addLink(link: RDFLink): Promise<void> {
     const db = getDatabaseInstance();
-    await db.saveRDFLink(link, USER_ID);
+    await db.saveRDFLink(link, DEFAULT_USER_ID);
   }
 
   // Query entities by type
   async queryByType(type: string): Promise<RDFEntity[]> {
     const db = getDatabaseInstance();
-    return await db.getRDFEntities(USER_ID, type);
+    return await db.getRDFEntities(DEFAULT_USER_ID, type);
   }
 
   // Query entities by attribute
   async queryByAttribute(key: string, value: any): Promise<RDFEntity[]> {
     const db = getDatabaseInstance();
-    return await db.queryRDFEntitiesByAttribute(USER_ID, key, value);
+    return await db.queryRDFEntitiesByAttribute(DEFAULT_USER_ID, key, value);
   }
 
   // Extract entities from data
@@ -79,37 +79,37 @@ export class RDFService {
   async search(searchTerm: string): Promise<RDFEntity[]> {
     // Search across entity types and attributes
     const db = getDatabaseInstance();
-    return await db.searchRDFEntities(USER_ID, searchTerm);
+    return await db.searchRDFEntities(DEFAULT_USER_ID, searchTerm);
   }
 
   // Get all entities
   async getAllEntities(): Promise<RDFEntity[]> {
     const db = getDatabaseInstance();
-    return await db.getRDFEntities(USER_ID);
+    return await db.getRDFEntities(DEFAULT_USER_ID);
   }
 
   // Get all links
   async getAllLinks(): Promise<RDFLink[]> {
     const db = getDatabaseInstance();
-    return await db.getRDFLinks(USER_ID);
+    return await db.getRDFLinks(DEFAULT_USER_ID);
   }
 
   // Delete entity by id
   async deleteEntity(id: string): Promise<void> {
     const db = getDatabaseInstance();
-    await db.deleteRDFEntity(id, USER_ID);
+    await db.deleteRDFEntity(id, DEFAULT_USER_ID);
   }
 
   // Delete link
   async deleteLink(from: string, to: string): Promise<void> {
     const db = getDatabaseInstance();
-    await db.deleteRDFLink(from, to, USER_ID);
+    await db.deleteRDFLink(from, to, DEFAULT_USER_ID);
   }
 
   // Clear all RDF data
   async clear(): Promise<void> {
     const db = getDatabaseInstance();
-    await db.clearRDFData(USER_ID);
+    await db.clearRDFData(DEFAULT_USER_ID);
   }
 }
 

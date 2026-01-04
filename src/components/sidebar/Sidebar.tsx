@@ -11,7 +11,7 @@ import {
   Sparkles, Zap, Globe, LucideIcon, Send, Loader2, AlertCircle
 } from 'lucide-react';
 import { getDatabaseInstance } from '@/services/database';
-import { DEFAULT_DEFAULT_USER_ID } from '@/lib/constants';
+import { DEFAULT_USER_ID } from '@/lib/constants';
 
 // Presets for popular API providers
 const API_PRESETS = {

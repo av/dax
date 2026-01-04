@@ -33,7 +33,7 @@ export class PreferencesService {
   async loadPreferences(): Promise<Preferences> {
     try {
       const db = getDatabaseInstance();
-      const prefs = await db.getPreferences(USER_ID);
+      const prefs = await db.getPreferences(DEFAULT_USER_ID);
       
       if (prefs) {
         this.preferences = prefs;
@@ -62,7 +62,7 @@ export class PreferencesService {
     
     try {
       const db = getDatabaseInstance();
-      await db.savePreferences(USER_ID, this.preferences);
+      await db.savePreferences(DEFAULT_USER_ID, this.preferences);
     } catch (error) {
       console.error('Error saving preferences to database:', error);
       // Fall back to localStorage
@@ -96,7 +96,7 @@ export class PreferencesService {
     
     try {
       const db = getDatabaseInstance();
-      await db.savePreferences(USER_ID, this.preferences);
+      await db.savePreferences(DEFAULT_USER_ID, this.preferences);
     } catch (error) {
       console.error('Error resetting preferences:', error);
       localStorage.setItem('preferences', JSON.stringify(this.preferences));
