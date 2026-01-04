@@ -15,6 +15,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const projectRoot = join(__dirname, '..');
 
 let testsPassed = 0;
 let testsFailed = 0;
@@ -35,19 +36,19 @@ console.log('🧪 Starting Comprehensive Feature Verification...\n');
 
 // Test 1: Build artifacts exist
 test('Build output directory exists', () => {
-  if (!existsSync(join(__dirname, 'dist'))) {
+  if (!existsSync(join(projectRoot, 'dist'))) {
     throw new Error('dist directory not found');
   }
 });
 
 test('Renderer build exists', () => {
-  if (!existsSync(join(__dirname, 'dist/renderer/index.html'))) {
+  if (!existsSync(join(projectRoot, 'dist/renderer/index.html'))) {
     throw new Error('Renderer index.html not found');
   }
 });
 
 test('Main process build exists', () => {
-  if (!existsSync(join(__dirname, 'dist/main/main.js'))) {
+  if (!existsSync(join(projectRoot, 'dist/main/main.js'))) {
     throw new Error('Main process main.js not found');
   }
 });
@@ -55,7 +56,7 @@ test('Main process build exists', () => {
 test('Migrations copied to dist', () => {
   const migrationFiles = ['000_init.sql', '001_initial_schema.sql', '002_update_agent_configs.sql'];
   for (const file of migrationFiles) {
-    if (!existsSync(join(__dirname, 'dist/migrations', file))) {
+    if (!existsSync(join(projectRoot, 'dist/migrations', file))) {
       throw new Error(`Migration file ${file} not found in dist`);
     }
   }
@@ -65,7 +66,7 @@ test('Migrations copied to dist', () => {
 test('All core service files exist', () => {
   const services = ['database.ts', 'dataSource.ts', 'agent.ts', 'rdf.ts', 'preferences.ts', 'init.ts'];
   for (const service of services) {
-    if (!existsSync(join(__dirname, 'src/services', service))) {
+    if (!existsSync(join(projectRoot, 'src/services', service))) {
       throw new Error(`Service ${service} not found`);
     }
   }
@@ -74,7 +75,7 @@ test('All core service files exist', () => {
 test('Canvas components exist', () => {
   const components = ['Canvas.tsx', 'CanvasNode.tsx'];
   for (const component of components) {
-    if (!existsSync(join(__dirname, 'src/components/canvas', component))) {
+    if (!existsSync(join(projectRoot, 'src/components/canvas', component))) {
       throw new Error(`Canvas component ${component} not found`);
     }
   }
@@ -83,7 +84,7 @@ test('Canvas components exist', () => {
 test('UI components exist', () => {
   const components = ['button.tsx', 'input.tsx', 'card.tsx'];
   for (const component of components) {
-    if (!existsSync(join(__dirname, 'src/components/ui', component))) {
+    if (!existsSync(join(projectRoot, 'src/components/ui', component))) {
       throw new Error(`UI component ${component} not found`);
     }
   }
@@ -99,7 +100,7 @@ test('No Date.now() used for ID generation', () => {
   ];
   
   for (const file of files) {
-    const content = readFileSync(join(__dirname, file), 'utf-8');
+    const content = readFileSync(join(projectRoot, file), 'utf-8');
     if (content.match(/Date\.now\(\).*id/i)) {
       throw new Error(`Date.now() found in ${file} for ID generation`);
     }
@@ -107,7 +108,7 @@ test('No Date.now() used for ID generation', () => {
 });
 
 test('UUID generation uses crypto.randomUUID', () => {
-  const utilsPath = join(__dirname, 'src/lib/utils.ts');
+  const utilsPath = join(projectRoot, 'src/lib/utils.ts');
   const content = readFileSync(utilsPath, 'utf-8');
   
   if (!content.includes('crypto.randomUUID')) {
@@ -116,7 +117,7 @@ test('UUID generation uses crypto.randomUUID', () => {
 });
 
 test('Validation utilities are comprehensive', () => {
-  const validationPath = join(__dirname, 'src/lib/validation.ts');
+  const validationPath = join(projectRoot, 'src/lib/validation.ts');
   const content = readFileSync(validationPath, 'utf-8');
   
   const requiredValidators = ['required', 'email', 'url', 'minLength', 'maxLength', 'range'];
@@ -128,7 +129,7 @@ test('Validation utilities are comprehensive', () => {
 });
 
 test('HTML sanitization is recursive', () => {
-  const validationPath = join(__dirname, 'src/lib/validation.ts');
+  const validationPath = join(projectRoot, 'src/lib/validation.ts');
   const content = readFileSync(validationPath, 'utf-8');
   
   // Check for recursive HTML stripping pattern
@@ -138,7 +139,7 @@ test('HTML sanitization is recursive', () => {
 });
 
 test('Path sanitization removes directory traversal', () => {
-  const validationPath = join(__dirname, 'src/lib/validation.ts');
+  const validationPath = join(projectRoot, 'src/lib/validation.ts');
   const content = readFileSync(validationPath, 'utf-8');
   
   // Check for sanitizePath function and the regex pattern that removes ..
@@ -151,33 +152,33 @@ test('Path sanitization removes directory traversal', () => {
 test('Database migration files exist', () => {
   const migrations = ['000_init.sql', '001_initial_schema.sql', '002_update_agent_configs.sql'];
   for (const migration of migrations) {
-    if (!existsSync(join(__dirname, 'src/services/migrations', migration))) {
+    if (!existsSync(join(projectRoot, 'src/services/migrations', migration))) {
       throw new Error(`Migration ${migration} not found`);
     }
   }
 });
 
 test('Database schema file exists', () => {
-  if (!existsSync(join(__dirname, 'src/services/schema.sql'))) {
+  if (!existsSync(join(projectRoot, 'src/services/schema.sql'))) {
     throw new Error('schema.sql not found');
   }
 });
 
 // Test 5: Configuration files
 test('TypeScript configuration exists', () => {
-  if (!existsSync(join(__dirname, 'tsconfig.json'))) {
+  if (!existsSync(join(projectRoot, 'tsconfig.json'))) {
     throw new Error('tsconfig.json not found');
   }
 });
 
 test('Vite configuration exists', () => {
-  if (!existsSync(join(__dirname, 'vite.config.ts'))) {
+  if (!existsSync(join(projectRoot, 'vite.config.ts'))) {
     throw new Error('vite.config.ts not found');
   }
 });
 
 test('Package.json has required scripts', () => {
-  const packageJson = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf-8'));
+  const packageJson = JSON.parse(readFileSync(join(projectRoot, 'package.json'), 'utf-8'));
   const requiredScripts = ['dev', 'build', 'start'];
   
   for (const script of requiredScripts) {
@@ -188,20 +189,20 @@ test('Package.json has required scripts', () => {
 });
 
 test('Environment example file exists', () => {
-  if (!existsSync(join(__dirname, '.env.example'))) {
+  if (!existsSync(join(projectRoot, '.env.example'))) {
     throw new Error('.env.example not found');
   }
 });
 
 test('Environment file exists', () => {
-  if (!existsSync(join(__dirname, '.env'))) {
+  if (!existsSync(join(projectRoot, '.env'))) {
     throw new Error('.env not found - should be created from .env.example');
   }
 });
 
 // Test 6: Feature implementation checks
 test('Canvas node management is implemented', () => {
-  const canvasPath = join(__dirname, 'src/components/canvas/Canvas.tsx');
+  const canvasPath = join(projectRoot, 'src/components/canvas/Canvas.tsx');
   const content = readFileSync(canvasPath, 'utf-8');
   
   const features = ['addNode', 'updateNode', 'deleteNode', 'duplicateNode'];
@@ -213,7 +214,7 @@ test('Canvas node management is implemented', () => {
 });
 
 test('Data source connectors are implemented', () => {
-  const dataSourcePath = join(__dirname, 'src/services/dataSource.ts');
+  const dataSourcePath = join(projectRoot, 'src/services/dataSource.ts');
   const content = readFileSync(dataSourcePath, 'utf-8');
   
   if (!content.includes('LocalFilesystem') || !content.includes('HTTPFilesystem')) {
@@ -222,7 +223,7 @@ test('Data source connectors are implemented', () => {
 });
 
 test('Agent execution system is implemented', () => {
-  const agentPath = join(__dirname, 'src/services/agent.ts');
+  const agentPath = join(projectRoot, 'src/services/agent.ts');
   const content = readFileSync(agentPath, 'utf-8');
   
   if (!content.includes('AgentExecutor') || !content.includes('execute')) {
@@ -231,7 +232,7 @@ test('Agent execution system is implemented', () => {
 });
 
 test('RDF service has CRUD operations', () => {
-  const rdfPath = join(__dirname, 'src/services/rdf.ts');
+  const rdfPath = join(projectRoot, 'src/services/rdf.ts');
   const content = readFileSync(rdfPath, 'utf-8');
   
   const operations = ['addEntity', 'getEntity', 'updateEntity', 'addLink'];
@@ -243,7 +244,7 @@ test('RDF service has CRUD operations', () => {
 });
 
 test('Preferences service is complete', () => {
-  const prefsPath = join(__dirname, 'src/services/preferences.ts');
+  const prefsPath = join(projectRoot, 'src/services/preferences.ts');
   const content = readFileSync(prefsPath, 'utf-8');
   
   if (!content.includes('loadPreferences') || !content.includes('savePreferences')) {
@@ -252,7 +253,7 @@ test('Preferences service is complete', () => {
 });
 
 test('Window electron API checks are present', () => {
-  const dataSourcePath = join(__dirname, 'src/services/dataSource.ts');
+  const dataSourcePath = join(projectRoot, 'src/services/dataSource.ts');
   const content = readFileSync(dataSourcePath, 'utf-8');
   
   // Check for proper window.electron checks before using Electron APIs
@@ -262,7 +263,7 @@ test('Window electron API checks are present', () => {
 });
 
 test('Error handling is comprehensive', () => {
-  const canvasPath = join(__dirname, 'src/components/canvas/Canvas.tsx');
+  const canvasPath = join(projectRoot, 'src/components/canvas/Canvas.tsx');
   const content = readFileSync(canvasPath, 'utf-8');
   
   if (!content.includes('try') || !content.includes('catch')) {
@@ -271,7 +272,7 @@ test('Error handling is comprehensive', () => {
 });
 
 test('Constants are centralized', () => {
-  const constantsPath = join(__dirname, 'src/lib/constants.ts');
+  const constantsPath = join(projectRoot, 'src/lib/constants.ts');
   if (!existsSync(constantsPath)) {
     throw new Error('constants.ts not found');
   }
@@ -301,7 +302,7 @@ test('No TODO comments left unaddressed', () => {
     }
   }
   
-  checkDirectory(join(__dirname, 'src'));
+  checkDirectory(join(projectRoot, 'src'));
 });
 
 // Summary
