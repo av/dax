@@ -20,6 +20,7 @@ function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     async function init() {
@@ -55,8 +56,7 @@ function App() {
     const handleClickOutside = (event: MouseEvent) => {
       if (showMenu && menuRef.current && !menuRef.current.contains(event.target as Node)) {
         // Check if the click was on the menu button itself
-        const menuButton = document.querySelector('[data-menu-button]');
-        if (menuButton && menuButton.contains(event.target as Node)) {
+        if (menuButtonRef.current && menuButtonRef.current.contains(event.target as Node)) {
           return;
         }
         setShowMenu(false);
@@ -100,16 +100,9 @@ function App() {
       setShowMenu(false);
     } catch (error) {
       console.error('Failed to clear canvas:', error);
-      alert('Failed to clear canvas. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to clear canvas: ${errorMessage}`);
     }
-  };
-
-  const handleNewCanvas = async () => {
-    if (!confirm('Create a new canvas? This will clear all current nodes. This action cannot be undone.')) {
-      return;
-    }
-
-    await handleClearCanvas();
   };
 
   if (initError) {
@@ -141,7 +134,12 @@ function App() {
     <div className="h-screen flex flex-col bg-background text-foreground">
       {/* Top Menu Bar */}
       <div className="bg-white dark:bg-slate-900 border-b border-border px-4 py-2 flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => setShowMenu(!showMenu)} data-menu-button>
+        <Button 
+          ref={menuButtonRef}
+          variant="ghost" 
+          size="icon" 
+          onClick={() => setShowMenu(!showMenu)}
+        >
           <Menu className="h-5 w-5" />
         </Button>
         <h1 className="text-xl font-bold">DAX</h1>
@@ -171,13 +169,6 @@ function App() {
             <div className="font-semibold mb-3">Menu</div>
             <div className="space-y-1">
               <div className="text-xs font-semibold text-muted-foreground px-2 py-1">File</div>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start pl-4"
-                onClick={handleNewCanvas}
-              >
-                New Canvas
-              </Button>
               <Button 
                 variant="ghost" 
                 className="w-full justify-start pl-4"

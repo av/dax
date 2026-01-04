@@ -29,10 +29,10 @@ export const Canvas: React.FC = () => {
     loadNodes();
   }, []);
 
-  // Listen for canvas-cleared event
+  // Listen for canvas-cleared event to refresh nodes
   useEffect(() => {
     const handleCanvasCleared = () => {
-      setNodes([]);
+      loadNodes();
     };
 
     window.addEventListener('canvas-cleared', handleCanvasCleared);
