@@ -4,9 +4,10 @@ import { CanvasNodeComponent } from './CanvasNode';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, X, Folder } from 'lucide-react';
+import { Plus, X, Folder, AlertCircle } from 'lucide-react';
 import { getDatabaseInstance } from '@/services/database';
 import { DataSourceService } from '@/services/dataSource';
+import { validators, sanitizers } from '@/lib/validation';
 
 // Single-user desktop app - always use admin user with full access
 const USER_ID = 'admin';
@@ -22,6 +23,7 @@ export const Canvas: React.FC = () => {
     type: 'fs',
     path: '',
   });
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // Load nodes from database on mount
   useEffect(() => {
@@ -142,8 +144,45 @@ export const Canvas: React.FC = () => {
   const saveNodeConfiguration = async () => {
     if (!configuringNode) return;
 
+    // Validate configuration
+    const errors: Record<string, string> = {};
+
+    // Validate title
+    const titleError = validators.required(configuringNode.title);
+    if (titleError) {
+      errors.title = titleError;
+    }
+
+    // Validate data source configuration
+    if (configuringNode.type === 'data') {
+      if (configDataSource.type === 'fs') {
+        const pathError = validators.required(configDataSource.path);
+        if (pathError) {
+          errors.path = 'Folder path is required';
+        }
+      } else if (configDataSource.type === 'http') {
+        const urlError = validators.url(configDataSource.url || '');
+        if (urlError) {
+          errors.url = urlError;
+        }
+      } else if (configDataSource.type === 's3') {
+        const urlError = validators.required(configDataSource.url);
+        if (urlError) {
+          errors.url = 'S3 URL is required';
+        }
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    setValidationErrors({});
+
     const updatedNode: CanvasNode = {
       ...configuringNode,
+      title: sanitizers.trim(configuringNode.title),
       config: {
         ...configuringNode.config,
         source: configDataSource,
@@ -273,11 +312,21 @@ export const Canvas: React.FC = () => {
                 <label className="text-sm font-medium">Node Title</label>
                 <Input
                   value={configuringNode.title}
-                  onChange={(e) =>
-                    setConfiguringNode({ ...configuringNode, title: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setConfiguringNode({ ...configuringNode, title: e.target.value });
+                    if (validationErrors.title) {
+                      setValidationErrors({ ...validationErrors, title: '' });
+                    }
+                  }}
                   placeholder="Node title"
+                  className={validationErrors.title ? 'border-red-500' : ''}
                 />
+                {validationErrors.title && (
+                  <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {validationErrors.title}
+                  </div>
+                )}
               </div>
 
               {configuringNode.type === 'data' && (
@@ -311,15 +360,25 @@ export const Canvas: React.FC = () => {
                       <div className="flex gap-2 mt-1">
                         <Input
                           value={configDataSource.path || ''}
-                          onChange={(e) =>
-                            setConfigDataSource({ ...configDataSource, path: e.target.value })
-                          }
+                          onChange={(e) => {
+                            setConfigDataSource({ ...configDataSource, path: e.target.value });
+                            if (validationErrors.path) {
+                              setValidationErrors({ ...validationErrors, path: '' });
+                            }
+                          }}
                           placeholder="/path/to/folder"
+                          className={validationErrors.path ? 'border-red-500' : ''}
                         />
                         <Button size="sm" onClick={selectFolder}>
                           <Folder className="h-4 w-4" />
                         </Button>
                       </div>
+                      {validationErrors.path && (
+                        <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {validationErrors.path}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -328,15 +387,25 @@ export const Canvas: React.FC = () => {
                       <label className="text-sm font-medium">URL</label>
                       <Input
                         value={configDataSource.url || ''}
-                        onChange={(e) =>
-                          setConfigDataSource({ ...configDataSource, url: e.target.value })
-                        }
+                        onChange={(e) => {
+                          setConfigDataSource({ ...configDataSource, url: e.target.value });
+                          if (validationErrors.url) {
+                            setValidationErrors({ ...validationErrors, url: '' });
+                          }
+                        }}
                         placeholder={
                           configDataSource.type === 'http'
                             ? 'https://api.example.com/data'
                             : 's3://bucket-name/key'
                         }
+                        className={validationErrors.url ? 'border-red-500' : ''}
                       />
+                      {validationErrors.url && (
+                        <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {validationErrors.url}
+                        </div>
+                      )}
                     </div>
                   )}
 

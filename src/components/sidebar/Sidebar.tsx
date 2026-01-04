@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AgentConfig, AgentTool, MCPConfig, OpenAPIConfig } from '@/types';
+import { agentService, AgentMessage } from '@/services/agent';
+import { validators } from '@/lib/validation';
 import {
   Settings, Plus, Trash2, History, FileText, Bot, Save,
   X, Edit, ChevronDown, ChevronRight, ToggleLeft, ToggleRight,
-  Sparkles, Zap, Globe, LucideIcon
+  Sparkles, Zap, Globe, LucideIcon, Send, Loader2, AlertCircle
 } from 'lucide-react';
 import { getDatabaseInstance } from '@/services/database';
 
@@ -63,6 +65,11 @@ export const Sidebar: React.FC = () => {
   const [showAgentForm, setShowAgentForm] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [activityLog, setActivityLog] = useState<any[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatHistory, setChatHistory] = useState<AgentMessage[]>([]);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Load agents from database on mount
   useEffect(() => {
@@ -75,6 +82,13 @@ export const Sidebar: React.FC = () => {
       loadActivityLog();
     }
   }, [activeTab]);
+
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    if (activeTab === 'agents' && !showAgentForm) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatHistory, activeTab, showAgentForm]);
 
   const loadAgents = async () => {
     try {
@@ -124,6 +138,37 @@ export const Sidebar: React.FC = () => {
 
   const saveAgent = async () => {
     if (!editingAgent) return;
+
+    // Validate agent configuration
+    const errors: Record<string, string> = {};
+
+    const nameError = validators.required(editingAgent.name);
+    if (nameError) errors.name = nameError;
+
+    const urlError = validators.url(editingAgent.apiUrl);
+    if (urlError) errors.apiUrl = urlError;
+
+    if (editingAgent.apiKey) {
+      const keyError = validators.apiKey(editingAgent.apiKey);
+      if (keyError) errors.apiKey = keyError;
+    }
+
+    if (editingAgent.temperature !== undefined) {
+      const tempError = validators.temperature(editingAgent.temperature);
+      if (tempError) errors.temperature = tempError;
+    }
+
+    if (editingAgent.maxTokens !== undefined) {
+      const tokensError = validators.positiveInteger(editingAgent.maxTokens);
+      if (tokensError) errors.maxTokens = tokensError;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    setValidationErrors({});
 
     try {
       const db = getDatabaseInstance();
@@ -222,6 +267,52 @@ export const Sidebar: React.FC = () => {
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const handleSendMessage = async () => {
+    if (!chatInput.trim() || !selectedAgent || isExecuting) return;
+
+    const userMessage = chatInput.trim();
+    setChatInput('');
+    
+    // Add user message to history
+    const newHistory: AgentMessage[] = [
+      ...chatHistory,
+      { role: 'user', content: userMessage },
+    ];
+    setChatHistory(newHistory);
+    setIsExecuting(true);
+
+    try {
+      const response = await agentService.chat(
+        selectedAgent,
+        userMessage,
+        chatHistory
+      );
+
+      // Add assistant response to history
+      setChatHistory([
+        ...newHistory,
+        { role: 'assistant', content: response.content },
+      ]);
+    } catch (error) {
+      console.error('Agent execution error:', error);
+      setChatHistory([
+        ...newHistory,
+        { 
+          role: 'assistant', 
+          content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+        },
+      ]);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  const clearChat = () => {
+    if (confirm('Clear chat history?')) {
+      setChatHistory([]);
+    }
   };
 
   const selectedAgentData = agents.find(a => a.id === selectedAgent);
@@ -341,75 +432,128 @@ export const Sidebar: React.FC = () => {
                     No agents configured. Create one to get started.
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {agents.map((agent) => (
-                      <Card
-                        key={agent.id}
-                        className={`cursor-pointer transition-colors ${
-                          selectedAgent === agent.id ? 'border-primary' : ''
-                        }`}
-                        onClick={() => setSelectedAgent(agent.id!)}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center space-x-3">
-                              {renderIcon(agent.icon, agent.iconType)}
-                              <div>
-                                <div className="font-medium text-sm">{agent.name}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {agent.preset || 'Custom'}
+                  <>
+                    <div className="space-y-2">
+                      {agents.map((agent) => (
+                        <Card
+                          key={agent.id}
+                          className={`cursor-pointer transition-colors ${
+                            selectedAgent === agent.id ? 'border-primary' : ''
+                          }`}
+                          onClick={() => {
+                            setSelectedAgent(agent.id!);
+                            setChatHistory([]);
+                          }}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center space-x-3">
+                                {renderIcon(agent.icon, agent.iconType)}
+                                <div>
+                                  <div className="font-medium text-sm">{agent.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {agent.preset || 'Custom'}
+                                  </div>
                                 </div>
                               </div>
+                              <div className="flex space-x-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    editAgent(agent);
+                                  }}
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteAgent(agent.id!);
+                                  }}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </div>
-                            <div className="flex space-x-1">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  editAgent(agent);
-                                }}
-                              >
-                                <Edit className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteAgent(agent.id!);
-                                }}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+
+                    {/* Chat Interface */}
+                    {selectedAgent && selectedAgentData && (
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base">Chat with {selectedAgentData.name}</CardTitle>
+                            <Button size="sm" variant="ghost" onClick={clearChat}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {/* Chat history */}
+                          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                            {chatHistory.length === 0 ? (
+                              <div className="text-center text-sm text-muted-foreground py-4">
+                                Start a conversation...
+                              </div>
+                            ) : (
+                              chatHistory.map((msg, idx) => (
+                                <div
+                                  key={idx}
+                                  className={`p-2 rounded text-sm ${
+                                    msg.role === 'user'
+                                      ? 'bg-blue-100 dark:bg-blue-900 ml-4'
+                                      : msg.role === 'assistant'
+                                      ? 'bg-slate-100 dark:bg-slate-800 mr-4'
+                                      : 'bg-yellow-100 dark:bg-yellow-900 text-center'
+                                  }`}
+                                >
+                                  <div className="font-semibold text-xs mb-1">
+                                    {msg.role === 'user' ? 'You' : msg.role === 'assistant' ? selectedAgentData.name : 'System'}
+                                  </div>
+                                  <div className="whitespace-pre-wrap">{msg.content}</div>
+                                </div>
+                              ))
+                            )}
+                            <div ref={chatEndRef} />
+                          </div>
+
+                          {/* Input */}
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Type a message..."
+                              value={chatInput}
+                              onChange={(e) => setChatInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleSendMessage();
+                                }
+                              }}
+                              disabled={isExecuting}
+                            />
+                            <Button 
+                              size="sm" 
+                              onClick={handleSendMessage}
+                              disabled={!chatInput.trim() || isExecuting}
+                            >
+                              {isExecuting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Send className="h-4 w-4" />
+                              )}
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
-                    ))}
-                  </div>
-                )}
-
-                {selectedAgentData && (
-                  <Card className="mt-4">
-                    <CardHeader>
-                      <CardTitle className="text-base">Agent Details</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
-                      <div>
-                        <span className="font-medium">API URL:</span>
-                        <div className="text-xs text-muted-foreground break-all">
-                          {selectedAgentData.apiUrl}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="font-medium">Tools:</span>
-                        <div className="text-xs text-muted-foreground">
-                          {selectedAgentData.tools?.length || 0} configured
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    )}
+                  </>
                 )}
               </>
             ) : (
@@ -447,11 +591,21 @@ export const Sidebar: React.FC = () => {
                   <label className="text-sm font-medium">Agent Name</label>
                   <Input
                     value={editingAgent?.name || ''}
-                    onChange={(e) =>
-                      setEditingAgent(editingAgent ? { ...editingAgent, name: e.target.value } : null)
-                    }
+                    onChange={(e) => {
+                      setEditingAgent(editingAgent ? { ...editingAgent, name: e.target.value } : null);
+                      if (validationErrors.name) {
+                        setValidationErrors({ ...validationErrors, name: '' });
+                      }
+                    }}
                     placeholder="My Agent"
+                    className={validationErrors.name ? 'border-red-500' : ''}
                   />
+                  {validationErrors.name && (
+                    <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {validationErrors.name}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -488,11 +642,21 @@ export const Sidebar: React.FC = () => {
                   <label className="text-sm font-medium">API URL</label>
                   <Input
                     value={editingAgent?.apiUrl || ''}
-                    onChange={(e) =>
-                      setEditingAgent(editingAgent ? { ...editingAgent, apiUrl: e.target.value } : null)
-                    }
+                    onChange={(e) => {
+                      setEditingAgent(editingAgent ? { ...editingAgent, apiUrl: e.target.value } : null);
+                      if (validationErrors.apiUrl) {
+                        setValidationErrors({ ...validationErrors, apiUrl: '' });
+                      }
+                    }}
                     placeholder="https://api.example.com/v1/chat"
+                    className={validationErrors.apiUrl ? 'border-red-500' : ''}
                   />
+                  {validationErrors.apiUrl && (
+                    <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {validationErrors.apiUrl}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -500,11 +664,21 @@ export const Sidebar: React.FC = () => {
                   <Input
                     type="password"
                     value={editingAgent?.apiKey || ''}
-                    onChange={(e) =>
-                      setEditingAgent(editingAgent ? { ...editingAgent, apiKey: e.target.value } : null)
-                    }
+                    onChange={(e) => {
+                      setEditingAgent(editingAgent ? { ...editingAgent, apiKey: e.target.value } : null);
+                      if (validationErrors.apiKey) {
+                        setValidationErrors({ ...validationErrors, apiKey: '' });
+                      }
+                    }}
                     placeholder="sk-..."
+                    className={validationErrors.apiKey ? 'border-red-500' : ''}
                   />
+                  {validationErrors.apiKey && (
+                    <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {validationErrors.apiKey}
+                    </div>
+                  )}
                 </div>
 
                 {/* Headers Section */}
