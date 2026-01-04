@@ -1,6 +1,7 @@
 import { RDFEntity, RDFLink } from '@/types';
 import { getDatabaseInstance } from './database';
 import { DEFAULT_USER_ID } from '@/lib/constants';
+import { generateUUID } from '@/lib/utils';
 
 export class RDFService {
   // Add entity
@@ -43,7 +44,7 @@ export class RDFService {
       for (let index = 0; index < data.length; index++) {
         const item = data[index];
         const entity: RDFEntity = {
-          id: `entity-${Date.now()}-${index}`,
+          id: `entity-${generateUUID()}`,
           type: schema?.type || 'generic',
           attributes: item,
           links: [],

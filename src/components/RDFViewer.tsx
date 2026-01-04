@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { Plus, Trash2, Search, Link as LinkIcon, X, Save } from 'lucide-react';
 import { RDFEntity, RDFLink } from '@/types';
 import { rdfService } from '@/services/rdf';
+import { generateUUID } from '@/lib/utils';
 
 interface RDFViewerProps {
   isOpen: boolean;
@@ -68,7 +69,7 @@ export const RDFViewer: React.FC<RDFViewerProps> = ({ isOpen, onClose }) => {
     }
 
     const entity: RDFEntity = {
-      id: `entity-${Date.now()}`,
+      id: `entity-${generateUUID()}`,
       type: newEntity.type,
       attributes: newEntity.attributes || {},
       links: [],

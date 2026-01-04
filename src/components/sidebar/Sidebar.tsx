@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { AgentConfig, AgentTool, MCPConfig, OpenAPIConfig } from '@/types';
 import { agentService, AgentMessage } from '@/services/agent';
 import { validators } from '@/lib/validation';
+import { generateUUID } from '@/lib/utils';
 import {
   Settings, Plus, Trash2, History, FileText, Bot, Save,
   X, Edit, ChevronDown, ChevronRight, ToggleLeft, ToggleRight,
@@ -113,7 +114,7 @@ export const Sidebar: React.FC = () => {
 
   const createNewAgent = () => {
     setEditingAgent({
-      id: `agent-${Date.now()}`,
+      id: `agent-${generateUUID()}`,
       name: 'New Agent',
       icon: 'Bot',
       iconType: 'lucide',
@@ -216,7 +217,7 @@ export const Sidebar: React.FC = () => {
     if (!editingAgent) return;
 
     const newTool: AgentTool = {
-      id: `tool-${Date.now()}`,
+      id: `tool-${generateUUID()}`,
       name: 'New Tool',
       description: '',
       type: 'mcp',
@@ -331,7 +332,7 @@ export const Sidebar: React.FC = () => {
       ...editingAgent,
       [field]: {
         ...editingAgent[field],
-        [key || `key-${Date.now()}`]: value,
+        [key || `key-${generateUUID()}`]: value,
       },
     });
   };

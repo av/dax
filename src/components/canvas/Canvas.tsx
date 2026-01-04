@@ -9,6 +9,7 @@ import { getDatabaseInstance } from '@/services/database';
 import { DataSourceService } from '@/services/dataSource';
 import { validators, sanitizers } from '@/lib/validation';
 import { DEFAULT_USER_ID } from '@/lib/constants';
+import { generateUUID } from '@/lib/utils';
 
 export const Canvas: React.FC = () => {
   const [nodes, setNodes] = useState<CanvasNode[]>([]);
@@ -42,7 +43,7 @@ export const Canvas: React.FC = () => {
 
   const addNode = async () => {
     const newNode: CanvasNode = {
-      id: `node-${Date.now()}`,
+      id: `node-${generateUUID()}`,
       type: selectedNodeType,
       title: `${selectedNodeType.charAt(0).toUpperCase() + selectedNodeType.slice(1)} Node`,
       x: Math.random() * 400 + 50,
@@ -85,7 +86,7 @@ export const Canvas: React.FC = () => {
   const duplicateNode = async (node: CanvasNode) => {
     const newNode: CanvasNode = {
       ...node,
-      id: `node-${Date.now()}`,
+      id: `node-${generateUUID()}`,
       x: node.x + 20,
       y: node.y + 20,
     };
@@ -117,7 +118,7 @@ export const Canvas: React.FC = () => {
 
     const duplicatedNodes = nodes.map(n => ({
       ...n,
-      id: `node-${Date.now()}-${Math.random()}`,
+      id: `node-${generateUUID()}`,
       x: n.x + 30,
       y: n.y + 30,
     }));
