@@ -29,6 +29,18 @@ export const Canvas: React.FC = () => {
     loadNodes();
   }, []);
 
+  // Listen for canvas-cleared event
+  useEffect(() => {
+    const handleCanvasCleared = () => {
+      setNodes([]);
+    };
+
+    window.addEventListener('canvas-cleared', handleCanvasCleared);
+    return () => {
+      window.removeEventListener('canvas-cleared', handleCanvasCleared);
+    };
+  }, []);
+
   const loadNodes = async () => {
     try {
       const db = getDatabaseInstance();
