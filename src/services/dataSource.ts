@@ -102,7 +102,89 @@ class LocalFilesystem implements FileSystemInterface {
   }
 }
 
-// Main DataSource service
+// HTTP/HTTPS implementation
+class HTTPFilesystem implements FileSystemInterface {
+  private baseUrl: string;
+  private headers: Record<string, string>;
+
+  constructor(url: string, headers?: Record<string, string>) {
+    this.baseUrl = url;
+    this.headers = headers || {};
+  }
+
+  async readDir(path: string): Promise<FileSystemEntry[]> {
+    throw new Error('HTTP directory listing not supported. Use readFile to fetch specific URLs.');
+  }
+
+  async readFile(filePath: string, encoding: string = 'utf-8'): Promise<string> {
+    const url = filePath.startsWith('http') ? filePath : `${this.baseUrl}${filePath}`;
+    
+    const response = await fetch(url, { headers: this.headers });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return await response.text();
+  }
+
+  async readFileBuffer(filePath: string): Promise<ArrayBuffer> {
+    const url = filePath.startsWith('http') ? filePath : `${this.baseUrl}${filePath}`;
+    
+    const response = await fetch(url, { headers: this.headers });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return await response.arrayBuffer();
+  }
+
+  async stat(filePath: string): Promise<FileSystemEntry> {
+    // For HTTP, we can only check if the resource exists
+    const url = filePath.startsWith('http') ? filePath : `${this.baseUrl}${filePath}`;
+    
+    const response = await fetch(url, { 
+      method: 'HEAD',
+      headers: this.headers 
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const contentLength = response.headers.get('content-length');
+    const lastModified = response.headers.get('last-modified');
+
+    return {
+      name: url.split('/').pop() || '',
+      path: url,
+      isDirectory: false,
+      isFile: true,
+      size: contentLength ? parseInt(contentLength) : undefined,
+      modified: lastModified || undefined,
+    };
+  }
+
+  async exists(filePath: string): Promise<boolean> {
+    try {
+      const url = filePath.startsWith('http') ? filePath : `${this.baseUrl}${filePath}`;
+      const response = await fetch(url, { 
+        method: 'HEAD',
+        headers: this.headers 
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  getBasePath(): string {
+    return this.baseUrl;
+  }
+
+  getType(): string {
+    return 'http';
+  }
+}
 export class DataSourceService {
   private static connections: Map<string, FileSystemInterface> = new Map();
 
@@ -125,22 +207,64 @@ export class DataSourceService {
       case 'fs':
         return this.connectFilesystem(source);
       case 'http':
-        throw new Error('HTTP data source not yet implemented with FS interface');
+        return this.connectHTTP(source);
       case 's3':
-        throw new Error('S3 data source not yet implemented');
+        throw new Error('S3 data source not yet implemented. Please install and configure AWS SDK.');
       case 'ftp':
-        throw new Error('FTP data source not yet implemented');
+        throw new Error('FTP data source not yet implemented. Please install FTP client library.');
       case 'gdrive':
-        throw new Error('Google Drive data source not yet implemented');
+        throw new Error('Google Drive data source not yet implemented. Please configure Google Drive API.');
       case 'smb':
-        throw new Error('SMB data source not yet implemented');
+        throw new Error('SMB data source not yet implemented. Please install SMB client library.');
       case 'webdav':
-        throw new Error('WebDAV data source not yet implemented');
+        throw new Error('WebDAV data source not yet implemented. Please install WebDAV client library.');
       case 'zip':
-        throw new Error('ZIP data source not yet implemented');
+        throw new Error('ZIP data source not yet implemented. Please install ZIP extraction library.');
       default:
         throw new Error(`Unknown source type: ${source.type}`);
     }
+  }
+
+  private static async connectHTTP(source: DataSource): Promise<FileSystemInterface> {
+    if (!source.url) {
+      throw new Error('HTTP URL is required');
+    }
+
+    console.log('Connecting to HTTP source:', source.url);
+
+    // Create HTTP filesystem with optional credentials as headers
+    const headers: Record<string, string> = {};
+    
+    if (source.credentials) {
+      // Support basic auth
+      if (source.credentials.username && source.credentials.password) {
+        const auth = btoa(`${source.credentials.username}:${source.credentials.password}`);
+        headers['Authorization'] = `Basic ${auth}`;
+      }
+      
+      // Support bearer token
+      if (source.credentials.token) {
+        headers['Authorization'] = `Bearer ${source.credentials.token}`;
+      }
+
+      // Support API key
+      if (source.credentials.apiKey) {
+        headers['X-API-Key'] = source.credentials.apiKey;
+      }
+    }
+
+    // Add any additional headers from options
+    if (source.options?.headers) {
+      Object.assign(headers, source.options.headers);
+    }
+
+    const fs = new HTTPFilesystem(source.url, headers);
+
+    // Store connection for reuse
+    const connectionId = `http:${source.url}`;
+    this.connections.set(connectionId, fs);
+
+    return fs;
   }
 
   private static async connectFilesystem(source: DataSource): Promise<FileSystemInterface> {
