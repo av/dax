@@ -1,16 +1,3 @@
-#!/usr/bin/env node
-/**
- * Agent Features Verification Test
- * 
- * This script performs automated verification of all agent-related features:
- * - OpenAI Chat Completion API integration
- * - Configurable Parameters (Model selection, Temperature, Max tokens, System prompts)
- * - Agent Tools (Read/Write canvas operations, Query RDF data)
- * - Multi-agent support
- * - Per-agent toolsets
- * - History & Logging
- */
-
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -45,22 +32,26 @@ function readSourceFile(path) {
   return readFileSync(fullPath, 'utf-8');
 }
 
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function assertContains(content, pattern, errorMsg) {
-  const regex = typeof pattern === 'string' ? new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) : pattern;
+  const regex = typeof pattern === 'string' ? new RegExp(escapeRegex(pattern)) : pattern;
   if (!regex.test(content)) {
     throw new Error(errorMsg || `Expected to find pattern: ${pattern}`);
   }
 }
 
 function assertNotContains(content, pattern, errorMsg) {
-  const regex = typeof pattern === 'string' ? new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) : pattern;
+  const regex = typeof pattern === 'string' ? new RegExp(escapeRegex(pattern)) : pattern;
   if (regex.test(content)) {
     throw new Error(errorMsg || `Expected NOT to find pattern: ${pattern}`);
   }
 }
 
 console.log('🧪 Starting Agent Features Verification...\n');
-console.log('=' .repeat(60));
+console.log('='.repeat(60));
 
 // ============================================================================
 // 1. OpenAI Chat Completion API Integration
