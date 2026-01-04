@@ -17,6 +17,12 @@ export class RDFService {
     return entities.find(e => e.id === id);
   }
 
+  // Update entity
+  async updateEntity(entity: RDFEntity): Promise<void> {
+    const db = getDatabaseInstance();
+    await db.saveRDFEntity(entity, DEFAULT_USER_ID);
+  }
+
   // Add link between entities
   async addLink(link: RDFLink): Promise<void> {
     const db = getDatabaseInstance();
