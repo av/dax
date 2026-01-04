@@ -211,7 +211,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                         handleChange({
                           backup: {
                             ...preferences.backup,
-                            interval: parseInt(e.target.value) * 60000,
+                            interval: parseInt(e.target.value, 10) * 60000,
                           },
                         })
                       }

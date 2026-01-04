@@ -130,11 +130,35 @@ export const validators = {
   // Hotkey validator
   hotkey: (value: string): string | null => {
     if (!value) return null;
-    // Basic check for valid hotkey format (e.g., Ctrl+X, Alt+Shift+S)
-    const hotkeyPattern = /^(Ctrl|Alt|Shift|Meta)(\+(Ctrl|Alt|Shift|Meta))*\+[A-Za-z0-9]$/;
-    if (!hotkeyPattern.test(value)) {
-      return 'Invalid hotkey format. Use modifiers (Ctrl, Alt, Shift) + key (e.g., Ctrl+S)';
+    
+    // Split into modifiers and key
+    const parts = value.split('+');
+    if (parts.length < 2) {
+      return 'Hotkey must include at least one modifier and a key';
     }
+    
+    const key = parts[parts.length - 1];
+    const modifiers = parts.slice(0, -1);
+    
+    // Validate modifiers
+    const validModifiers = ['Ctrl', 'Alt', 'Shift', 'Meta'];
+    for (const mod of modifiers) {
+      if (!validModifiers.includes(mod)) {
+        return `Invalid modifier: ${mod}. Use Ctrl, Alt, Shift, or Meta`;
+      }
+    }
+    
+    // Check for duplicate modifiers
+    const uniqueModifiers = new Set(modifiers);
+    if (uniqueModifiers.size !== modifiers.length) {
+      return 'Duplicate modifiers are not allowed';
+    }
+    
+    // Validate key (alphanumeric or special keys)
+    if (!/^[A-Za-z0-9]$/.test(key)) {
+      return 'Key must be a single letter or number';
+    }
+    
     return null;
   },
 
