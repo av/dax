@@ -132,8 +132,10 @@ ipcMain.handle('db:initialize', async (event, config) => {
     let migrationsPath = path.join(__dirname, '../migrations');
     try {
       await fs.access(migrationsPath);
-    } catch {
-      // Fallback to development path
+      console.log('Using production migrations path:', migrationsPath);
+    } catch (error) {
+      // Fallback to development path if production path doesn't exist
+      console.log('Production migrations not found, using development path');
       migrationsPath = path.join(__dirname, '../../src/services/migrations');
     }
     const migrationFiles = await fs.readdir(migrationsPath);
