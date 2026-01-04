@@ -145,17 +145,104 @@ export class AgentExecutor {
    * Format tools for the API
    */
   private formatTools(tools: AgentTool[]): any[] {
-    return tools.map(tool => ({
-      type: 'function',
-      function: {
-        name: tool.name,
-        description: tool.description,
-        parameters: {
-          type: 'object',
-          properties: {},
+    return tools.map(tool => {
+      const schema = this.getToolSchema(tool.name);
+      return {
+        type: 'function',
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: schema,
+        },
+      };
+    });
+  }
+
+  /**
+   * Get parameter schema for a specific tool
+   */
+  private getToolSchema(toolName: string): any {
+    const schemas: Record<string, any> = {
+      read_canvas: {
+        type: 'object',
+        properties: {
+          type: {
+            type: 'string',
+            enum: ['data', 'agent', 'transform', 'output'],
+            description: 'Filter nodes by type (optional)',
+          },
         },
       },
-    }));
+      write_canvas: {
+        type: 'object',
+        required: ['action'],
+        properties: {
+          action: {
+            type: 'string',
+            enum: ['add', 'update', 'delete'],
+            description: 'The action to perform on canvas nodes',
+          },
+          nodeId: {
+            type: 'string',
+            description: 'Node ID for update or delete actions',
+          },
+          nodeType: {
+            type: 'string',
+            enum: ['data', 'agent', 'transform', 'output'],
+            description: 'Type of node for add action',
+          },
+          title: {
+            type: 'string',
+            description: 'Title of the node',
+          },
+          x: {
+            type: 'number',
+            description: 'X coordinate for node position',
+          },
+          y: {
+            type: 'number',
+            description: 'Y coordinate for node position',
+          },
+          data: {
+            type: 'object',
+            description: 'Node data object',
+          },
+          config: {
+            type: 'object',
+            description: 'Node configuration object',
+          },
+          updates: {
+            type: 'object',
+            description: 'Updates to apply for update action',
+          },
+        },
+      },
+      query_rdf: {
+        type: 'object',
+        properties: {
+          type: {
+            type: 'string',
+            description: 'Query entities by type',
+          },
+          attribute: {
+            type: 'string',
+            description: 'Query entities by attribute key',
+          },
+          value: {
+            description: 'Query entities by attribute value',
+          },
+          search: {
+            type: 'string',
+            description: 'Search entities by term',
+          },
+        },
+      },
+    };
+    
+    return schemas[toolName] || {
+      type: 'object',
+      properties: {},
+    };
   }
 
   /**
