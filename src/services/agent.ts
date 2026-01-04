@@ -345,9 +345,16 @@ export class AgentExecutor {
     const db = getDatabaseInstance();
     
     if (args.action === 'add') {
+      // Validate node type
+      const validTypes = ['data', 'agent', 'transform', 'output'];
+      const nodeType = args.nodeType || 'data';
+      if (!validTypes.includes(nodeType)) {
+        throw new Error(`Invalid node type: ${nodeType}. Must be one of: ${validTypes.join(', ')}`);
+      }
+      
       const node = {
         id: `node-${generateUUID()}`,
-        type: args.nodeType || 'data',
+        type: nodeType,
         title: args.title || 'New Node',
         x: args.x || Math.random() * 400 + 50,
         y: args.y || Math.random() * 300 + 50,
@@ -367,6 +374,14 @@ export class AgentExecutor {
       
       if (!node) {
         throw new Error(`Node ${args.nodeId} not found`);
+      }
+      
+      // Validate updates if node type is being changed
+      if (args.updates?.type) {
+        const validTypes = ['data', 'agent', 'transform', 'output'];
+        if (!validTypes.includes(args.updates.type)) {
+          throw new Error(`Invalid node type: ${args.updates.type}. Must be one of: ${validTypes.join(', ')}`);
+        }
       }
       
       const updatedNode = {
