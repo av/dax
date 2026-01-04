@@ -127,7 +127,15 @@ ipcMain.handle('db:initialize', async (event, config) => {
     });
 
     // Run migrations
-    const migrationsPath = path.join(__dirname, '../../src/services/migrations');
+    // In production (built), migrations are in dist/migrations
+    // In development, migrations are in src/services/migrations
+    let migrationsPath = path.join(__dirname, '../migrations');
+    try {
+      await fs.access(migrationsPath);
+    } catch {
+      // Fallback to development path
+      migrationsPath = path.join(__dirname, '../../src/services/migrations');
+    }
     const migrationFiles = await fs.readdir(migrationsPath);
     const sqlFiles = migrationFiles.filter(f => f.endsWith('.sql')).sort();
 

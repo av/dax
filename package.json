@@ -10,7 +10,7 @@
     "dev:electron": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",
     "build": "npm run build:renderer && npm run build:electron",
     "build:renderer": "vite build",
-    "build:electron": "tsc src/main/main.js --outDir dist/main --allowJs --skipLibCheck",
+    "build:electron": "tsc src/main/main.js --outDir dist/main --allowJs --skipLibCheck && node -e \"require('fs').cpSync('src/main/preload.cjs', 'dist/main/preload.cjs')\" && node -e \"require('fs').cpSync('src/services/migrations', 'dist/migrations', {recursive: true})\"",
     "start": "electron .",
     "package": "electron-builder",
     "lint": "echo 'No linting configured'",
