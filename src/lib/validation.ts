@@ -106,6 +106,67 @@ export const validators = {
     }
     return null;
   },
+
+  // Theme validator
+  theme: (value: string): string | null => {
+    const validThemes = ['light', 'dark', 'system'];
+    if (!value) return 'Theme is required';
+    if (!validThemes.includes(value)) {
+      return 'Theme must be light, dark, or system';
+    }
+    return null;
+  },
+
+  // Language code validator
+  languageCode: (value: string): string | null => {
+    if (!value) return 'Language is required';
+    // Basic ISO 639-1 language code format (2 letters)
+    if (!/^[a-z]{2}(-[A-Z]{2})?$/.test(value)) {
+      return 'Invalid language code format';
+    }
+    return null;
+  },
+
+  // Hotkey validator
+  hotkey: (value: string): string | null => {
+    if (!value) return null;
+    // Basic check for valid hotkey format (e.g., Ctrl+X, Alt+Shift+S)
+    const hotkeyPattern = /^(Ctrl|Alt|Shift|Meta)(\+(Ctrl|Alt|Shift|Meta))*\+[A-Za-z0-9]$/;
+    if (!hotkeyPattern.test(value)) {
+      return 'Invalid hotkey format. Use modifiers (Ctrl, Alt, Shift) + key (e.g., Ctrl+S)';
+    }
+    return null;
+  },
+
+  // Backup interval validator (in milliseconds)
+  backupInterval: (value: number): string | null => {
+    if (value === null || value === undefined) return null;
+    // Minimum 5 minutes (300000ms), maximum 24 hours (86400000ms)
+    const minInterval = 300000; // 5 minutes
+    const maxInterval = 86400000; // 24 hours
+    if (value < minInterval) {
+      return 'Backup interval must be at least 5 minutes';
+    }
+    if (value > maxInterval) {
+      return 'Backup interval cannot exceed 24 hours';
+    }
+    return null;
+  },
+
+  // Directory path validator
+  directoryPath: (value: string): string | null => {
+    if (!value) return 'Directory path is required';
+    // Check for invalid characters in paths
+    const invalidChars = /[<>"|?*\x00-\x1F]/;
+    if (invalidChars.test(value)) {
+      return 'Path contains invalid characters';
+    }
+    // Check for path traversal attempts
+    if (value.includes('..')) {
+      return 'Path traversal patterns (..) are not allowed';
+    }
+    return null;
+  },
 };
 
 // Validation helper that runs multiple validators
