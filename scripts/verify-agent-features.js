@@ -351,7 +351,6 @@ test('AgentTool interface is defined', () => {
 });
 
 test('AgentConfig includes tools array', () => {
-  const types = readSourceFile('src/types/index.ts');
   const typesContent = readSourceFile('src/types/index.ts');
   const agentConfigMatch = typesContent.match(/interface AgentConfig\s*{[^}]+}/s);
   if (!agentConfigMatch || !agentConfigMatch[0].includes('tools')) {
@@ -360,7 +359,6 @@ test('AgentConfig includes tools array', () => {
 });
 
 test('Tools have enabled flag', () => {
-  const types = readSourceFile('src/types/index.ts');
   const typesContent = readSourceFile('src/types/index.ts');
   const agentToolMatch = typesContent.match(/interface AgentTool\s*{[^}]+}/s);
   if (!agentToolMatch || !agentToolMatch[0].includes('enabled')) {
@@ -399,7 +397,6 @@ test('Tools support OpenAPI configuration', () => {
 });
 
 test('Tool types include mcp and openapi', () => {
-  const types = readSourceFile('src/types/index.ts');
   const typesContent = readSourceFile('src/types/index.ts');
   const agentToolMatch = typesContent.match(/interface AgentTool\s*{[^}]+}/s);
   if (!agentToolMatch || !agentToolMatch[0].includes('mcp') || !agentToolMatch[0].includes('openapi')) {
