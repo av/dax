@@ -4,6 +4,9 @@ import { rdfService } from './rdf';
 import { DEFAULT_USER_ID, DEFAULT_AGENT_TEMPERATURE, DEFAULT_AGENT_MAX_TOKENS } from '@/lib/constants';
 import { generateUUID } from '@/lib/utils';
 
+// Canvas node types - must match the CanvasNode type definition
+const VALID_NODE_TYPES = ['data', 'agent', 'transform', 'output'] as const;
+
 export interface AgentMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -168,7 +171,7 @@ export class AgentExecutor {
         properties: {
           type: {
             type: 'string',
-            enum: ['data', 'agent', 'transform', 'output'],
+            enum: VALID_NODE_TYPES,
             description: 'Filter nodes by type (optional)',
           },
         },
@@ -188,7 +191,7 @@ export class AgentExecutor {
           },
           nodeType: {
             type: 'string',
-            enum: ['data', 'agent', 'transform', 'output'],
+            enum: VALID_NODE_TYPES,
             description: 'Type of node for add action',
           },
           title: {
@@ -346,10 +349,9 @@ export class AgentExecutor {
     
     if (args.action === 'add') {
       // Validate node type
-      const validTypes = ['data', 'agent', 'transform', 'output'];
       const nodeType = args.nodeType || 'data';
-      if (!validTypes.includes(nodeType)) {
-        throw new Error(`Invalid node type: ${nodeType}. Must be one of: ${validTypes.join(', ')}`);
+      if (!VALID_NODE_TYPES.includes(nodeType)) {
+        throw new Error(`Invalid node type: ${nodeType}. Must be one of: ${VALID_NODE_TYPES.join(', ')}`);
       }
       
       const node = {
@@ -378,9 +380,8 @@ export class AgentExecutor {
       
       // Validate updates if node type is being changed
       if (args.updates?.type) {
-        const validTypes = ['data', 'agent', 'transform', 'output'];
-        if (!validTypes.includes(args.updates.type)) {
-          throw new Error(`Invalid node type: ${args.updates.type}. Must be one of: ${validTypes.join(', ')}`);
+        if (!VALID_NODE_TYPES.includes(args.updates.type)) {
+          throw new Error(`Invalid node type: ${args.updates.type}. Must be one of: ${VALID_NODE_TYPES.join(', ')}`);
         }
       }
       

@@ -1,5 +1,8 @@
 import { DataSource } from '@/types';
 
+// Constants
+const HTTP_CONTENT_PREVIEW_LENGTH = 500;
+
 // Unified file system interface for all data sources
 export interface FileSystemEntry {
   name: string;
@@ -329,7 +332,7 @@ export class DataSourceService {
           type: source.type,
           basePath: fs.getBasePath(),
           url: source.url,
-          contentPreview: content.substring(0, 500), // First 500 chars
+          contentPreview: content.substring(0, HTTP_CONTENT_PREVIEW_LENGTH),
           contentLength: content.length,
           metadata: {
             note: 'HTTP sources do not support directory listing. Showing content preview.',
