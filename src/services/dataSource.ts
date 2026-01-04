@@ -112,11 +112,11 @@ class HTTPFilesystem implements FileSystemInterface {
     this.headers = headers || {};
   }
 
-  async readDir(path: string): Promise<FileSystemEntry[]> {
+  async readDir(_path: string): Promise<FileSystemEntry[]> {
     throw new Error('HTTP directory listing not supported. Use readFile to fetch specific URLs.');
   }
 
-  async readFile(filePath: string, encoding: string = 'utf-8'): Promise<string> {
+  async readFile(filePath: string, _encoding: string = 'utf-8'): Promise<string> {
     const url = filePath.startsWith('http') ? filePath : `${this.baseUrl}${filePath}`;
     
     const response = await fetch(url, { headers: this.headers });
