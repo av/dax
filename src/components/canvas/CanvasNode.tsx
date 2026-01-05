@@ -26,15 +26,15 @@ export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
   const getNodeColor = (type: string) => {
     switch (type) {
       case 'data':
-        return 'bg-blue-100 dark:bg-blue-900 border-blue-400 dark:border-blue-600 text-blue-900 dark:text-blue-100';
+        return 'bg-blue-50 dark:bg-blue-950 border-blue-500 dark:border-blue-500 text-blue-900 dark:text-blue-50';
       case 'agent':
-        return 'bg-green-100 dark:bg-green-900 border-green-400 dark:border-green-600 text-green-900 dark:text-green-100';
+        return 'bg-green-50 dark:bg-green-950 border-green-500 dark:border-green-500 text-green-900 dark:text-green-50';
       case 'transform':
-        return 'bg-purple-100 dark:bg-purple-900 border-purple-400 dark:border-purple-600 text-purple-900 dark:text-purple-100';
+        return 'bg-purple-50 dark:bg-purple-950 border-purple-500 dark:border-purple-500 text-purple-900 dark:text-purple-50';
       case 'output':
-        return 'bg-orange-100 dark:bg-orange-900 border-orange-400 dark:border-orange-600 text-orange-900 dark:text-orange-100';
+        return 'bg-orange-50 dark:bg-orange-950 border-orange-500 dark:border-orange-500 text-orange-900 dark:text-orange-50';
       default:
-        return 'bg-gray-100 dark:bg-gray-800 border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100';
+        return 'bg-gray-50 dark:bg-gray-950 border-gray-500 dark:border-gray-500 text-gray-900 dark:text-gray-50';
     }
   };
 
@@ -56,69 +56,77 @@ export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
         });
       }}
       bounds="parent"
-      className={`rounded-lg border-2 ${getNodeColor(node.type)} shadow-md hover:shadow-xl transition-shadow duration-200`}
+      className={`rounded-lg border-2 ${getNodeColor(node.type)} shadow-lg hover:shadow-2xl transition-all duration-200 cursor-move`}
       onMouseEnter={() => setShowToolbar(true)}
       onMouseLeave={() => setShowToolbar(false)}
     >
-      <div className="h-full flex flex-col p-3">
+      <div className="h-full flex flex-col p-4">
         {/* Toolbar */}
         {showToolbar && (
-          <div className="absolute -top-11 left-0 right-0 flex justify-center gap-1.5 z-10 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="absolute -top-12 left-0 right-0 flex justify-center gap-1 z-10 animate-in fade-in slide-in-from-top-2 duration-200">
             <Button
               size="sm"
               variant="secondary"
-              className="bg-card hover:bg-accent shadow-lg h-8 w-8 p-0"
+              className="bg-card hover:bg-accent shadow-lg h-9 w-9 p-0 border border-border"
               onClick={() => onDuplicate(node)}
               aria-label="Duplicate node"
+              title="Duplicate node"
             >
-              <Copy className="h-3.5 w-3.5" />
+              <Copy className="h-4 w-4" />
             </Button>
             <Button
               size="sm"
               variant="secondary"
-              className="bg-card hover:bg-accent shadow-lg h-8 w-8 p-0"
+              className="bg-card hover:bg-accent shadow-lg h-9 w-9 p-0 border border-border"
               onClick={() => onConfigure(node)}
               aria-label="Configure node"
+              title="Configure node"
             >
-              <Settings className="h-3.5 w-3.5" />
+              <Settings className="h-4 w-4" />
             </Button>
             <Button
               size="sm"
               variant="secondary"
-              className="bg-card hover:bg-accent shadow-lg h-8 w-8 p-0"
+              className="bg-card hover:bg-accent shadow-lg h-9 w-9 p-0 border border-border"
               onClick={() => onPreview(node)}
               aria-label="Preview node"
+              title="Preview node"
             >
-              <Eye className="h-3.5 w-3.5" />
+              <Eye className="h-4 w-4" />
             </Button>
             <Button
               size="sm"
               variant="destructive"
-              className="shadow-lg h-8 w-8 p-0"
+              className="shadow-lg h-9 w-9 p-0"
               onClick={() => onDelete(node.id)}
               aria-label="Delete node"
+              title="Delete node"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         )}
 
         {/* Node Header */}
-        <div className="font-semibold text-sm mb-2 pb-2 border-b border-current/20">
+        <div className="font-semibold text-base mb-3 pb-2 border-b-2 border-current/20">
           {node.title}
         </div>
 
         {/* Node Content */}
-        <div className="flex-1 overflow-auto text-xs space-y-1.5">
-          <div className="font-medium opacity-75">Type: {node.type}</div>
+        <div className="flex-1 overflow-auto text-sm space-y-2 opacity-90">
+          <div className="font-medium">Type: <span className="font-normal">{node.type}</span></div>
           {node.config?.source && (
-            <div>Source: {node.config.source.type}</div>
+            <div className="font-medium">Source: <span className="font-normal">{node.config.source.type}</span></div>
           )}
           {node.config?.source?.path && (
-            <div className="truncate">Path: {node.config.source.path}</div>
+            <div className="truncate">
+              <span className="font-medium">Path:</span> <span className="font-normal">{node.config.source.path}</span>
+            </div>
           )}
           {node.config?.source?.url && (
-            <div className="truncate">URL: {node.config.source.url}</div>
+            <div className="truncate">
+              <span className="font-medium">URL:</span> <span className="font-normal">{node.config.source.url}</span>
+            </div>
           )}
         </div>
       </div>

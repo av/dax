@@ -132,20 +132,26 @@ function App() {
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground">
+      {/* Skip to main content for keyboard navigation */}
+      <a href="#main-content" className="skip-to-main">
+        Skip to main content
+      </a>
+
       {/* Top Menu Bar */}
-      <div className="bg-card border-b border-border px-4 py-3 flex items-center gap-4 shadow-sm">
+      <div className="bg-card border-b border-border px-6 py-4 flex items-center gap-4 shadow-sm">
         <Button 
           ref={menuButtonRef}
           variant="ghost" 
           size="icon"
-          className="hover:bg-accent"
+          className="hover:bg-accent shrink-0"
           onClick={() => setShowMenu(!showMenu)}
           aria-label="Open menu"
+          title="Menu"
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-bold tracking-tight">DAX</h1>
+        <div className="flex items-baseline gap-4">
+          <h1 className="text-3xl font-bold tracking-tight">DAX</h1>
           <span className="text-sm text-muted-foreground font-medium">Data Agent eXplorer</span>
         </div>
 
@@ -153,9 +159,10 @@ function App() {
           <Button 
             variant="ghost" 
             size="icon"
-            className="hover:bg-accent"
+            className="hover:bg-accent shrink-0"
             onClick={toggleTheme}
             aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {theme === 'dark' ? (
               <Sun className="h-5 w-5" />
@@ -167,19 +174,19 @@ function App() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div id="main-content" className="flex-1 flex overflow-hidden" role="main">
         <Canvas />
         <Sidebar />
       </div>
 
       {/* Menu Overlay */}
       {showMenu && (
-        <div ref={menuRef} className="absolute top-16 left-4 bg-card border border-border rounded-lg shadow-xl p-2 z-50 min-w-[220px] animate-in fade-in slide-in-from-top-2 duration-200">
+        <div ref={menuRef} className="absolute top-20 left-6 bg-card border border-border rounded-lg shadow-xl p-2 z-50 min-w-[240px] animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="space-y-1">
-            <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">File</div>
+            <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">File</div>
             <Button 
               variant="ghost" 
-              className="w-full justify-start px-3 py-2 h-auto font-normal hover:bg-accent"
+              className="w-full justify-start px-3 py-2.5 h-auto font-normal hover:bg-accent rounded-md"
               onClick={handleClearCanvas}
             >
               Clear All Nodes
@@ -187,7 +194,7 @@ function App() {
             <div className="h-px bg-border my-2" />
             <Button 
               variant="ghost" 
-              className="w-full justify-start px-3 py-2 h-auto font-normal hover:bg-accent"
+              className="w-full justify-start px-3 py-2.5 h-auto font-normal hover:bg-accent rounded-md"
               onClick={() => {
                 setShowMenu(false);
                 setShowRDFViewer(true);
@@ -197,7 +204,7 @@ function App() {
             </Button>
             <Button 
               variant="ghost" 
-              className="w-full justify-start px-3 py-2 h-auto font-normal hover:bg-accent"
+              className="w-full justify-start px-3 py-2.5 h-auto font-normal hover:bg-accent rounded-md"
               onClick={() => {
                 setShowMenu(false);
                 setShowPreferences(true);
@@ -208,7 +215,7 @@ function App() {
             <div className="h-px bg-border my-2" />
             <Button 
               variant="ghost" 
-              className="w-full justify-start px-3 py-2 h-auto font-normal hover:bg-accent"
+              className="w-full justify-start px-3 py-2.5 h-auto font-normal hover:bg-accent rounded-md"
               onClick={() => {
                 setShowMenu(false);
                 setShowAbout(true);
