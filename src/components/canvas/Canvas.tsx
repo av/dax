@@ -265,10 +265,10 @@ export const Canvas: React.FC = () => {
             className="px-4 py-2.5 border border-input bg-background text-foreground rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent shadow-sm hover:bg-accent transition-colors cursor-pointer"
             aria-label="Select node type"
           >
-            <option value="data">📊 Data Source</option>
-            <option value="agent">🤖 Agent</option>
-            <option value="transform">⚙️ Transform</option>
-            <option value="output">📤 Output</option>
+            <option value="data">Data Source</option>
+            <option value="agent">Agent</option>
+            <option value="transform">Transform</option>
+            <option value="output">Output</option>
           </select>
           <Button size="default" onClick={addNode} className="font-semibold shadow-sm hover:shadow-md transition-shadow">
             <Plus className="h-4 w-4 mr-2" />
@@ -316,7 +316,7 @@ export const Canvas: React.FC = () => {
 
       {/* Configuration Modal */}
       {configuringNode && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-background/95 backdrop-blur-sm flex items-center justify-center z-50 p-6 animate-in fade-in duration-200">
           <Card className="w-full max-w-2xl max-h-[90vh] overflow-auto shadow-2xl border-2 animate-in zoom-in-95 duration-200">
             <CardHeader className="space-y-2 pb-6 border-b-2 border-border bg-muted/30">
               <div className="flex items-center justify-between">
@@ -369,14 +369,14 @@ export const Canvas: React.FC = () => {
                       }
                       className="w-full px-4 py-2.5 border border-input bg-background text-foreground rounded-lg text-base font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent shadow-sm cursor-pointer hover:bg-accent transition-colors"
                     >
-                      <option value="fs">📁 Filesystem</option>
-                      <option value="http">🌐 HTTP/HTTPS</option>
-                      <option value="s3">☁️ Amazon S3</option>
-                      <option value="ftp">📡 FTP</option>
-                      <option value="gdrive">📂 Google Drive</option>
-                      <option value="smb">🖥️ SMB/CIFS</option>
-                      <option value="webdav">🔗 WebDAV</option>
-                      <option value="zip">📦 ZIP Archive</option>
+                      <option value="fs">Filesystem</option>
+                      <option value="http">HTTP/HTTPS</option>
+                      <option value="s3">Amazon S3</option>
+                      <option value="ftp">FTP</option>
+                      <option value="gdrive">Google Drive</option>
+                      <option value="smb">SMB/CIFS</option>
+                      <option value="webdav">WebDAV</option>
+                      <option value="zip">ZIP Archive</option>
                     </select>
                   </div>
 
@@ -504,7 +504,7 @@ export const Canvas: React.FC = () => {
 
       {/* Preview Modal */}
       {previewingNode && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-background/95 backdrop-blur-sm flex items-center justify-center z-50">
           <Card className="w-[700px] max-h-[80vh] overflow-auto">
             <CardHeader>
               <div className="flex items-center justify-between">

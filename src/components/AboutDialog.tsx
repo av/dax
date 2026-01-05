@@ -12,7 +12,7 @@ export const AboutDialog: React.FC<AboutDialogProps> = ({ isOpen, onClose }) => 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-background/95 backdrop-blur-sm flex items-center justify-center z-50">
       <Card className="w-[500px]">
         <CardHeader>
           <div className="flex items-center justify-between">

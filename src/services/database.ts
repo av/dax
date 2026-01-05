@@ -70,7 +70,7 @@ export class DatabaseService {
     if (useMock) {
       this.client = new MockDatabaseClient();
       this.isMockMode = true;
-      console.warn('⚠️  Using mock in-memory database. Data will not persist!');
+      console.warn('WARNING: Using mock in-memory database. Data will not persist!');
     } else {
       this.client = createClient({
         url: config.url,
@@ -704,7 +704,7 @@ export async function createDatabase(config?: DatabaseConfig, useMock: boolean =
 
   // Use mock database if explicitly requested or if no config provided
   if (useMock || !config?.url) {
-    console.log('🧪 Using mock in-memory database for development');
+    console.log('TEST MODE: Using mock in-memory database for development');
     const db = new DatabaseService({ url: '' }, true);
     await db.initialize();
     return db;

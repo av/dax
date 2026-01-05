@@ -27,9 +27,9 @@ export async function initializeApp(config: AppConfig = {}): Promise<void> {
 
     // If no URL or if URL is file:, use mock database for browser development
     if (!tursoUrl || tursoUrl.startsWith('file:')) {
-      console.log('🧪 Browser development mode: Using mock in-memory database');
-      console.log('⚠️  Data will not persist between page reloads');
-      console.log('💡 For production, set VITE_TURSO_URL to a valid Turso database URL');
+      console.log('TEST MODE: Browser development mode: Using mock in-memory database');
+      console.log('WARNING: Data will not persist between page reloads');
+      console.log('TIP: For production, set VITE_TURSO_URL to a valid Turso database URL');
       await initializeDatabase(undefined, true); // Use mock mode
       console.log('Mock database initialized successfully');
       return;

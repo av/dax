@@ -653,7 +653,7 @@ export const Sidebar: React.FC = () => {
                       onChange={(e) =>
                         setEditingAgent(editingAgent ? { ...editingAgent, icon: e.target.value } : null)
                       }
-                      placeholder="Bot or 🤖"
+                      placeholder="Bot"
                     />
                   </div>
                   <div className="space-y-2">

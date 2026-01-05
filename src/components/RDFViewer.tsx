@@ -165,7 +165,7 @@ export const RDFViewer: React.FC<RDFViewerProps> = ({ isOpen, onClose }) => {
     : entities;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-background/95 backdrop-blur-sm flex items-center justify-center z-50">
       <Card className="w-[900px] max-h-[90vh] overflow-hidden flex flex-col">
         <CardHeader>
           <div className="flex items-center justify-between">
