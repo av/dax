@@ -581,27 +581,27 @@ export const Sidebar: React.FC = () => {
               </>
             ) : (
               // Agent Form
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex justify-between items-center">
-                  <h3 className="font-semibold">
+                  <h3 className="font-bold text-lg">
                     {editingAgent?.id?.startsWith('agent-') ? 'New Agent' : 'Edit Agent'}
                   </h3>
-                  <Button size="sm" variant="ghost" onClick={() => setShowAgentForm(false)}>
-                    <X className="h-4 w-4" />
+                  <Button size="default" variant="ghost" onClick={() => setShowAgentForm(false)} className="rounded-full" title="Close">
+                    <X className="h-5 w-5" />
                   </Button>
                 </div>
 
                 {/* Presets */}
-                <div>
-                  <label className="text-sm font-medium">Quick Presets</label>
-                  <div className="grid grid-cols-3 gap-2 mt-2">
+                <div className="space-y-3">
+                  <label className="text-sm font-semibold">Quick Presets</label>
+                  <div className="grid grid-cols-3 gap-2">
                     {Object.entries(API_PRESETS).map(([key, preset]) => (
                       <Button
                         key={key}
-                        size="sm"
+                        size="default"
                         variant="outline"
                         onClick={() => applyPreset(key as keyof typeof API_PRESETS)}
-                        className="text-xs"
+                        className="text-sm"
                       >
                         {preset.name}
                       </Button>
@@ -610,8 +610,8 @@ export const Sidebar: React.FC = () => {
                 </div>
 
                 {/* Basic Info */}
-                <div>
-                  <label className="text-sm font-medium">Agent Name</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Agent Name</label>
                   <Input
                     value={editingAgent?.name || ''}
                     onChange={(e) => {
@@ -624,16 +624,16 @@ export const Sidebar: React.FC = () => {
                     className={validationErrors.name ? 'border-red-500' : ''}
                   />
                   {validationErrors.name && (
-                    <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
-                      <AlertCircle className="h-3 w-3" />
+                    <div className="flex items-center gap-2 text-sm text-red-600 mt-1">
+                      <AlertCircle className="h-4 w-4" />
                       {validationErrors.name}
                     </div>
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-sm font-medium">Icon</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">Icon</label>
                     <Input
                       value={editingAgent?.icon || ''}
                       onChange={(e) =>
@@ -642,8 +642,8 @@ export const Sidebar: React.FC = () => {
                       placeholder="Bot or 🤖"
                     />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Icon Type</label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">Icon Type</label>
                     <select
                       value={editingAgent?.iconType || 'lucide'}
                       onChange={(e) =>
@@ -653,7 +653,7 @@ export const Sidebar: React.FC = () => {
                             : null
                         )
                       }
-                      className="w-full mt-1 px-3 py-2 border border-input bg-background text-foreground rounded text-sm"
+                      className="w-full px-4 py-2.5 border border-input bg-background text-foreground rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent shadow-sm"
                     >
                       <option value="lucide">Lucide</option>
                       <option value="emoji">Emoji</option>
@@ -661,8 +661,8 @@ export const Sidebar: React.FC = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium">API URL</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">API URL</label>
                   <Input
                     value={editingAgent?.apiUrl || ''}
                     onChange={(e) => {
@@ -675,15 +675,15 @@ export const Sidebar: React.FC = () => {
                     className={validationErrors.apiUrl ? 'border-red-500' : ''}
                   />
                   {validationErrors.apiUrl && (
-                    <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
-                      <AlertCircle className="h-3 w-3" />
+                    <div className="flex items-center gap-2 text-sm text-red-600 mt-1">
+                      <AlertCircle className="h-4 w-4" />
                       {validationErrors.apiUrl}
                     </div>
                   )}
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium">API Key (optional)</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">API Key <span className="text-muted-foreground font-normal">(optional)</span></label>
                   <Input
                     type="password"
                     value={editingAgent?.apiKey || ''}
@@ -697,60 +697,69 @@ export const Sidebar: React.FC = () => {
                     className={validationErrors.apiKey ? 'border-red-500' : ''}
                   />
                   {validationErrors.apiKey && (
-                    <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
-                      <AlertCircle className="h-3 w-3" />
+                    <div className="flex items-center gap-2 text-sm text-red-600 mt-1">
+                      <AlertCircle className="h-4 w-4" />
                       {validationErrors.apiKey}
                     </div>
                   )}
                 </div>
 
                 {/* Headers Section */}
-                <div>
+                <div className="border border-border rounded-lg">
                   <div
-                    className="flex items-center justify-between cursor-pointer"
+                    className="flex items-center justify-between cursor-pointer p-4 hover:bg-accent/50 transition-colors rounded-lg"
                     onClick={() => toggleSection('headers')}
                   >
-                    <label className="text-sm font-medium">Headers</label>
-                    {expandedSections['headers'] ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
+                    <label className="text-sm font-semibold">Headers</label>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      {Object.keys(editingAgent?.headers || {}).length > 0 && (
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                          {Object.keys(editingAgent?.headers || {}).length}
+                        </span>
+                      )}
+                      {expandedSections['headers'] ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </div>
                   </div>
                   {expandedSections['headers'] && (
-                    <div className="mt-2 space-y-2">
+                    <div className="px-4 pb-4 space-y-3 border-t border-border pt-4">
                       {Object.entries(editingAgent?.headers || {}).map(([key, value]) => (
-                        <div key={key} className="flex space-x-2">
+                        <div key={key} className="flex gap-2">
                           <Input
-                            placeholder="Key"
+                            placeholder="Header name"
                             value={key}
                             onChange={(e) =>
                               updateKeyValuePair('headers', key, e.target.value, value as string)
                             }
-                            className="text-xs"
+                            className="text-sm"
                           />
                           <Input
-                            placeholder="Value"
+                            placeholder="Header value"
                             value={value as string}
                             onChange={(e) => updateKeyValuePair('headers', key, key, e.target.value)}
-                            className="text-xs"
+                            className="text-sm"
                           />
                           <Button
-                            size="sm"
+                            size="default"
                             variant="ghost"
                             onClick={() => deleteKeyValuePair('headers', key)}
+                            className="shrink-0"
+                            title="Remove header"
                           >
-                            <X className="h-3 w-3" />
+                            <X className="h-4 w-4" />
                           </Button>
                         </div>
                       ))}
                       <Button
-                        size="sm"
+                        size="default"
                         variant="outline"
                         onClick={() => addKeyValuePair('headers')}
-                        className="w-full text-xs"
+                        className="w-full"
                       >
-                        <Plus className="h-3 w-3 mr-1" />
+                        <Plus className="h-4 w-4 mr-2" />
                         Add Header
                       </Button>
                     </div>
@@ -758,54 +767,63 @@ export const Sidebar: React.FC = () => {
                 </div>
 
                 {/* Query Parameters Section */}
-                <div>
+                <div className="border border-border rounded-lg">
                   <div
-                    className="flex items-center justify-between cursor-pointer"
+                    className="flex items-center justify-between cursor-pointer p-4 hover:bg-accent/50 transition-colors rounded-lg"
                     onClick={() => toggleSection('queryParams')}
                   >
-                    <label className="text-sm font-medium">Query Parameters</label>
-                    {expandedSections['queryParams'] ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
+                    <label className="text-sm font-semibold">Query Parameters</label>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      {Object.keys(editingAgent?.queryParams || {}).length > 0 && (
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                          {Object.keys(editingAgent?.queryParams || {}).length}
+                        </span>
+                      )}
+                      {expandedSections['queryParams'] ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </div>
                   </div>
                   {expandedSections['queryParams'] && (
-                    <div className="mt-2 space-y-2">
+                    <div className="px-4 pb-4 space-y-3 border-t border-border pt-4">
                       {Object.entries(editingAgent?.queryParams || {}).map(([key, value]) => (
-                        <div key={key} className="flex space-x-2">
+                        <div key={key} className="flex gap-2">
                           <Input
-                            placeholder="Key"
+                            placeholder="Parameter name"
                             value={key}
                             onChange={(e) =>
                               updateKeyValuePair('queryParams', key, e.target.value, value as string)
                             }
-                            className="text-xs"
+                            className="text-sm"
                           />
                           <Input
-                            placeholder="Value"
+                            placeholder="Parameter value"
                             value={value as string}
                             onChange={(e) =>
                               updateKeyValuePair('queryParams', key, key, e.target.value)
                             }
-                            className="text-xs"
+                            className="text-sm"
                           />
                           <Button
-                            size="sm"
+                            size="default"
                             variant="ghost"
                             onClick={() => deleteKeyValuePair('queryParams', key)}
+                            className="shrink-0"
+                            title="Remove parameter"
                           >
-                            <X className="h-3 w-3" />
+                            <X className="h-4 w-4" />
                           </Button>
                         </div>
                       ))}
                       <Button
-                        size="sm"
+                        size="default"
                         variant="outline"
                         onClick={() => addKeyValuePair('queryParams')}
-                        className="w-full text-xs"
+                        className="w-full"
                       >
-                        <Plus className="h-3 w-3 mr-1" />
+                        <Plus className="h-4 w-4 mr-2" />
                         Add Parameter
                       </Button>
                     </div>
@@ -813,8 +831,8 @@ export const Sidebar: React.FC = () => {
                 </div>
 
                 {/* Extra Body (JSON) */}
-                <div>
-                  <label className="text-sm font-medium">Extra Body (JSON)</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Extra Body <span className="text-muted-foreground font-normal">(JSON)</span></label>
                   <textarea
                     value={JSON.stringify(editingAgent?.extraBody || {}, null, 2)}
                     onChange={(e) => {
@@ -825,15 +843,15 @@ export const Sidebar: React.FC = () => {
                         // Invalid JSON, ignore
                       }
                     }}
-                    className="w-full mt-1 px-3 py-2 border border-input bg-background text-foreground rounded min-h-[80px] text-xs font-mono"
+                    className="w-full px-4 py-3 border border-input bg-background text-foreground rounded-md min-h-[100px] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent shadow-sm"
                     placeholder='{"model": "gpt-4"}'
                   />
                 </div>
 
                 {/* Temperature & Max Tokens */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-sm font-medium">Temperature</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">Temperature</label>
                     <Input
                       type="number"
                       step="0.1"
@@ -849,8 +867,8 @@ export const Sidebar: React.FC = () => {
                       }
                     />
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Max Tokens</label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">Max Tokens</label>
                     <Input
                       type="number"
                       value={editingAgent?.maxTokens || 2000}
@@ -864,8 +882,8 @@ export const Sidebar: React.FC = () => {
                 </div>
 
                 {/* System Prompt */}
-                <div>
-                  <label className="text-sm font-medium">System Prompt</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">System Prompt</label>
                   <textarea
                     value={editingAgent?.systemPrompt || ''}
                     onChange={(e) =>
@@ -873,53 +891,54 @@ export const Sidebar: React.FC = () => {
                         editingAgent ? { ...editingAgent, systemPrompt: e.target.value } : null
                       )
                     }
-                    className="w-full mt-1 px-3 py-2 border border-input bg-background text-foreground rounded min-h-[80px] text-sm"
+                    className="w-full px-4 py-3 border border-input bg-background text-foreground rounded-md min-h-[100px] text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent shadow-sm"
                     placeholder="You are a helpful assistant..."
                   />
                 </div>
 
                 {/* Tools */}
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-sm font-medium">Tools</label>
-                    <Button size="sm" variant="outline" onClick={addTool}>
-                      <Plus className="h-3 w-3 mr-1" />
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <label className="text-sm font-semibold">Tools</label>
+                    <Button size="default" variant="outline" onClick={addTool}>
+                      <Plus className="h-4 w-4 mr-2" />
                       Add Tool
                     </Button>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {(editingAgent?.tools || []).map((tool, index) => (
                       <Card key={tool.id}>
-                        <CardContent className="p-3 space-y-2">
-                          <div className="flex items-center justify-between">
+                        <CardContent className="p-4 space-y-3">
+                          <div className="flex items-center gap-2">
                             <Input
                               placeholder="Tool name"
                               value={tool.name}
                               onChange={(e) => updateTool(index, { name: e.target.value })}
-                              className="text-xs flex-1 mr-2"
+                              className="text-sm flex-1"
                             />
                             <Button
-                              size="sm"
+                              size="default"
                               variant="ghost"
                               onClick={() => toggleToolEnabled(index)}
+                              title={tool.enabled ? "Disable tool" : "Enable tool"}
                             >
                               {tool.enabled ? (
-                                <ToggleRight className="h-4 w-4 text-green-600" />
+                                <ToggleRight className="h-5 w-5 text-green-600" />
                               ) : (
-                                <ToggleLeft className="h-4 w-4 text-gray-400" />
+                                <ToggleLeft className="h-5 w-5 text-gray-400" />
                               )}
                             </Button>
-                            <Button size="sm" variant="ghost" onClick={() => deleteTool(index)}>
-                              <Trash2 className="h-3 w-3" />
+                            <Button size="default" variant="ghost" onClick={() => deleteTool(index)} title="Delete tool">
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
 
                           <Input
-                            placeholder="Description"
+                            placeholder="Tool description"
                             value={tool.description}
                             onChange={(e) => updateTool(index, { description: e.target.value })}
-                            className="text-xs"
+                            className="text-sm"
                           />
 
                           <select
@@ -927,7 +946,7 @@ export const Sidebar: React.FC = () => {
                             onChange={(e) =>
                               updateTool(index, { type: e.target.value as 'mcp' | 'openapi' })
                             }
-                            className="w-full px-2 py-1 border border-input bg-background text-foreground rounded text-xs"
+                            className="w-full px-3 py-2 border border-input bg-background text-foreground rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring"
                           >
                             <option value="mcp">MCP</option>
                             <option value="openapi">OpenAPI</option>
@@ -942,7 +961,7 @@ export const Sidebar: React.FC = () => {
                                   config: { ...(tool.config || {}), specUrl: e.target.value },
                                 })
                               }
-                              className="text-xs"
+                              className="text-sm"
                             />
                           )}
 
@@ -955,7 +974,7 @@ export const Sidebar: React.FC = () => {
                                   config: { ...(tool.config || {}), serverUrl: e.target.value },
                                 })
                               }
-                              className="text-xs"
+                              className="text-sm"
                             />
                           )}
                         </CardContent>
@@ -965,12 +984,12 @@ export const Sidebar: React.FC = () => {
                 </div>
 
                 {/* Save Button */}
-                <div className="flex space-x-2 pt-4 border-t">
-                  <Button onClick={saveAgent} className="flex-1">
+                <div className="flex gap-3 pt-6 border-t border-border">
+                  <Button onClick={saveAgent} className="flex-1 font-semibold shadow-sm">
                     <Save className="h-4 w-4 mr-2" />
                     Save Agent
                   </Button>
-                  <Button variant="outline" onClick={() => setShowAgentForm(false)}>
+                  <Button variant="outline" onClick={() => setShowAgentForm(false)} className="font-semibold shadow-sm">
                     Cancel
                   </Button>
                 </div>
