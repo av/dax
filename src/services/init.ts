@@ -21,14 +21,18 @@ export async function initializeApp(config: AppConfig = {}): Promise<void> {
       return;
     }
 
-    // Web mode - requires Turso URL
+    // Web mode - check for Turso URL or use mock database
     const tursoUrl = config.tursoUrl || import.meta.env.VITE_TURSO_URL;
     const tursoAuthToken = config.tursoAuthToken || import.meta.env.VITE_TURSO_AUTH_TOKEN;
 
-    if (!tursoUrl) {
-      const errorMsg = 'No database URL configured. Set VITE_TURSO_URL environment variable to use the application.';
-      console.error(errorMsg);
-      throw new Error(errorMsg);
+    // If no URL or if URL is file:, use mock database for browser development
+    if (!tursoUrl || tursoUrl.startsWith('file:')) {
+      console.log('🧪 Browser development mode: Using mock in-memory database');
+      console.log('⚠️  Data will not persist between page reloads');
+      console.log('💡 For production, set VITE_TURSO_URL to a valid Turso database URL');
+      await initializeDatabase(undefined, true); // Use mock mode
+      console.log('Mock database initialized successfully');
+      return;
     }
 
     console.log('Database URL:', tursoUrl);

@@ -1,6 +1,7 @@
 import { createClient, Client } from '@libsql/client';
 import { ACLEntry, User, CanvasNode, RDFEntity, RDFLink, Preferences, AgentConfig } from '@/types';
 import { MigrationRunner } from './migrationRunner';
+import { MockDatabaseClient } from './mockDatabase';
 
 export interface DatabaseConfig {
   url: string;
@@ -63,12 +64,19 @@ class ElectronDatabaseClient implements Client {
 export class DatabaseService {
   private client: Client;
   private initialized: boolean = false;
+  private isMockMode: boolean = false;
 
-  constructor(config: DatabaseConfig) {
-    this.client = createClient({
-      url: config.url,
-      authToken: config.authToken,
-    });
+  constructor(config: DatabaseConfig, useMock: boolean = false) {
+    if (useMock) {
+      this.client = new MockDatabaseClient();
+      this.isMockMode = true;
+      console.warn('⚠️  Using mock in-memory database. Data will not persist!');
+    } else {
+      this.client = createClient({
+        url: config.url,
+        authToken: config.authToken,
+      });
+    }
   }
 
   async initialize(): Promise<void> {
@@ -677,7 +685,7 @@ export class DatabaseService {
 }
 
 // Factory function to create database instance
-export async function createDatabase(config?: DatabaseConfig): Promise<DatabaseService> {
+export async function createDatabase(config?: DatabaseConfig, useMock: boolean = false): Promise<DatabaseService> {
   if (isElectron()) {
     console.log('Running in Electron - using IPC database client');
     if (!window.electron?.db) {
@@ -689,15 +697,20 @@ export async function createDatabase(config?: DatabaseConfig): Promise<DatabaseS
     const db = Object.create(DatabaseService.prototype);
     db.client = electronClient;
     db.initialized = true;
+    db.isMockMode = false;
     await db.createDefaultAdmin();
     return db;
   }
 
-  if (!config?.url) {
-    throw new Error('Database URL is required for non-Electron environments');
+  // Use mock database if explicitly requested or if no config provided
+  if (useMock || !config?.url) {
+    console.log('🧪 Using mock in-memory database for development');
+    const db = new DatabaseService({ url: '' }, true);
+    await db.initialize();
+    return db;
   }
 
-  const db = new DatabaseService(config);
+  const db = new DatabaseService(config, false);
   await db.initialize();
   return db;
 }
@@ -706,9 +719,9 @@ export async function createDatabase(config?: DatabaseConfig): Promise<DatabaseS
 // This should be initialized by the application
 let databaseInstance: DatabaseService | null = null;
 
-export async function initializeDatabase(config?: DatabaseConfig): Promise<DatabaseService> {
+export async function initializeDatabase(config?: DatabaseConfig, useMock: boolean = false): Promise<DatabaseService> {
   if (!databaseInstance) {
-    databaseInstance = await createDatabase(config);
+    databaseInstance = await createDatabase(config, useMock);
   }
   return databaseInstance;
 }
