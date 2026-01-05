@@ -13,13 +13,13 @@
   --secondary: 210 40% 96.1%;
   --secondary-foreground: 222.2 47.4% 11.2%;
   --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 40%; /* Improved contrast from 46.9% */
+  --muted-foreground: 215.4 16.3% 46.9%;
   --accent: 210 40% 96.1%;
   --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 50%; /* Improved contrast from 60.2% */
+  --destructive: 0 84.2% 55%;
   --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 85%; /* Improved visibility from 91.4% */
-  --input: 214.3 31.8% 85%; /* Improved visibility from 91.4% */
+  --border: 214.3 31.8% 88%;
+  --input: 214.3 31.8% 88%;
   --ring: 221.2 83.2% 53.3%;
   --radius: 0.5rem;
   
@@ -60,18 +60,18 @@
   --card-foreground: 210 40% 98%;
   --popover: 222.2 84% 8%;
   --popover-foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 65%; /* Improved contrast from 59.8% */
+  --primary: 217.2 91.2% 60%;
   --primary-foreground: 222.2 47.4% 11.2%;
   --secondary: 217.2 32.6% 17.5%;
   --secondary-foreground: 210 40% 98%;
   --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 70%; /* Improved contrast from 65.1% */
+  --muted-foreground: 215 20.2% 65.1%;
   --accent: 217.2 32.6% 17.5%;
   --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 45%; /* Improved contrast from 30.6% */
+  --destructive: 0 62.8% 50%;
   --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 25%; /* Improved visibility from 17.5% */
-  --input: 217.2 32.6% 25%; /* Improved visibility from 17.5% */
+  --border: 217.2 32.6% 22%;
+  --input: 217.2 32.6% 22%;
   --ring: 217.2 91.2% 65%;
   
   /* Dark mode shadows */
@@ -96,8 +96,8 @@ body {
 /* Enhanced focus styles for accessibility */
 *:focus-visible {
   outline: 3px solid hsl(var(--ring));
-  outline-offset: 2px;
-  border-radius: 4px;
+  outline-offset: 3px;
+  border-radius: 6px;
 }
 
 /* Remove default focus outline for mouse users */
@@ -107,7 +107,16 @@ body {
 
 /* Smooth transitions for interactive elements */
 button, a, input, select, textarea {
-  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Improved button hover states */
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 /* Skip to main content link for keyboard navigation */

@@ -26,15 +26,15 @@ export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
   const getNodeColor = (type: string) => {
     switch (type) {
       case 'data':
-        return 'bg-blue-50 dark:bg-blue-950 border-blue-500 dark:border-blue-500 text-blue-900 dark:text-blue-50';
+        return 'bg-blue-50 dark:bg-blue-900/30 border-blue-400 dark:border-blue-500 text-blue-900 dark:text-blue-100';
       case 'agent':
-        return 'bg-green-50 dark:bg-green-950 border-green-500 dark:border-green-500 text-green-900 dark:text-green-50';
+        return 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-400 dark:border-emerald-500 text-emerald-900 dark:text-emerald-100';
       case 'transform':
-        return 'bg-purple-50 dark:bg-purple-950 border-purple-500 dark:border-purple-500 text-purple-900 dark:text-purple-50';
+        return 'bg-purple-50 dark:bg-purple-900/30 border-purple-400 dark:border-purple-500 text-purple-900 dark:text-purple-100';
       case 'output':
-        return 'bg-orange-50 dark:bg-orange-950 border-orange-500 dark:border-orange-500 text-orange-900 dark:text-orange-50';
+        return 'bg-amber-50 dark:bg-amber-900/30 border-amber-400 dark:border-amber-500 text-amber-900 dark:text-amber-100';
       default:
-        return 'bg-gray-50 dark:bg-gray-950 border-gray-500 dark:border-gray-500 text-gray-900 dark:text-gray-50';
+        return 'bg-slate-50 dark:bg-slate-800/50 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100';
     }
   };
 
@@ -56,18 +56,18 @@ export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
         });
       }}
       bounds="parent"
-      className={`rounded-lg border-2 ${getNodeColor(node.type)} shadow-lg hover:shadow-2xl transition-all duration-200 cursor-move`}
+      className={`rounded-xl border-2 ${getNodeColor(node.type)} shadow-md hover:shadow-xl transition-all duration-200 cursor-move backdrop-blur-sm`}
       onMouseEnter={() => setShowToolbar(true)}
       onMouseLeave={() => setShowToolbar(false)}
     >
       <div className="h-full flex flex-col p-4">
         {/* Toolbar */}
         {showToolbar && (
-          <div className="absolute -top-12 left-0 right-0 flex justify-center gap-1 z-10 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="absolute -top-14 left-0 right-0 flex justify-center gap-2 z-10 animate-in fade-in slide-in-from-top-2 duration-150">
             <Button
               size="sm"
               variant="secondary"
-              className="bg-card hover:bg-accent shadow-lg h-9 w-9 p-0 border border-border"
+              className="bg-card hover:bg-accent shadow-lg hover:shadow-xl h-10 w-10 p-0 border border-border rounded-lg transition-all"
               onClick={() => onDuplicate(node)}
               aria-label="Duplicate node"
               title="Duplicate node"
@@ -77,7 +77,7 @@ export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
             <Button
               size="sm"
               variant="secondary"
-              className="bg-card hover:bg-accent shadow-lg h-9 w-9 p-0 border border-border"
+              className="bg-card hover:bg-accent shadow-lg hover:shadow-xl h-10 w-10 p-0 border border-border rounded-lg transition-all"
               onClick={() => onConfigure(node)}
               aria-label="Configure node"
               title="Configure node"
@@ -87,7 +87,7 @@ export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
             <Button
               size="sm"
               variant="secondary"
-              className="bg-card hover:bg-accent shadow-lg h-9 w-9 p-0 border border-border"
+              className="bg-card hover:bg-accent shadow-lg hover:shadow-xl h-10 w-10 p-0 border border-border rounded-lg transition-all"
               onClick={() => onPreview(node)}
               aria-label="Preview node"
               title="Preview node"
@@ -97,7 +97,7 @@ export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
             <Button
               size="sm"
               variant="destructive"
-              className="shadow-lg h-9 w-9 p-0"
+              className="shadow-lg hover:shadow-xl h-10 w-10 p-0 rounded-lg transition-all"
               onClick={() => onDelete(node.id)}
               aria-label="Delete node"
               title="Delete node"
@@ -108,24 +108,32 @@ export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
         )}
 
         {/* Node Header */}
-        <div className="font-semibold text-base mb-3 pb-2 border-b-2 border-current/20">
+        <div className="font-bold text-base mb-3 pb-3 border-b-2 border-current/30">
           {node.title}
         </div>
 
         {/* Node Content */}
-        <div className="flex-1 overflow-auto text-sm space-y-2 opacity-90">
-          <div className="font-medium">Type: <span className="font-normal">{node.type}</span></div>
+        <div className="flex-1 overflow-auto text-sm space-y-2.5">
+          <div className="flex items-baseline gap-2">
+            <span className="font-semibold text-xs uppercase tracking-wide opacity-70">Type:</span>
+            <span className="font-medium capitalize">{node.type}</span>
+          </div>
           {node.config?.source && (
-            <div className="font-medium">Source: <span className="font-normal">{node.config.source.type}</span></div>
+            <div className="flex items-baseline gap-2">
+              <span className="font-semibold text-xs uppercase tracking-wide opacity-70">Source:</span>
+              <span className="font-medium uppercase">{node.config.source.type}</span>
+            </div>
           )}
           {node.config?.source?.path && (
-            <div className="truncate">
-              <span className="font-medium">Path:</span> <span className="font-normal">{node.config.source.path}</span>
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold text-xs uppercase tracking-wide opacity-70">Path:</span>
+              <span className="font-mono text-xs truncate bg-black/5 dark:bg-white/5 px-2 py-1 rounded">{node.config.source.path}</span>
             </div>
           )}
           {node.config?.source?.url && (
-            <div className="truncate">
-              <span className="font-medium">URL:</span> <span className="font-normal">{node.config.source.url}</span>
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold text-xs uppercase tracking-wide opacity-70">URL:</span>
+              <span className="font-mono text-xs truncate bg-black/5 dark:bg-white/5 px-2 py-1 rounded">{node.config.source.url}</span>
             </div>
           )}
         </div>
