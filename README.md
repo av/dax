@@ -203,6 +203,40 @@ Each node can connect to different data sources:
 - Query using SPARQL-like syntax
 - Auto-generate schemas from data
 
+## Testing
+
+Run the full test suite:
+
+```bash
+npm test
+```
+
+Run specific test suites:
+
+```bash
+npm run test:features              # General features
+npm run test:agent-features        # Agent system
+npm run test:rdf-features          # RDF/Knowledge graph
+npm run test:preferences-features  # User preferences
+npm run test:database-features     # Database functionality
+```
+
+**Test Results:**
+- ✅ 28 general feature tests
+- ✅ 73 agent feature tests
+- ✅ 77 RDF feature tests
+- ✅ 67 preferences feature tests
+- ✅ 119 database feature tests
+- **Total: 364 tests - 100% passing**
+
+## Documentation
+
+- **[Database Verification Report](DATABASE_VERIFICATION_REPORT.md)** - Comprehensive verification of all database features
+- **[Database Quick Reference](DATABASE_QUICK_REFERENCE.md)** - Developer guide for database operations
+- **[Agent Features Guide](AGENT_FEATURES_GUIDE.md)** - Complete agent system documentation
+- **[RDF Features Documentation](RDF_FEATURES_DOCUMENTATION.md)** - Knowledge graph usage guide
+- **[Architecture](ARCHITECTURE.md)** - System architecture overview
+
 ## License
 
 ISC

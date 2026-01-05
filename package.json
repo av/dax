@@ -14,11 +14,12 @@
     "start": "electron .",
     "package": "electron-builder",
     "lint": "echo 'No linting configured'",
-    "test": "npm run test:features && npm run test:agent-features && npm run test:rdf-features && npm run test:preferences-features",
+    "test": "npm run test:features && npm run test:agent-features && npm run test:rdf-features && npm run test:preferences-features && npm run test:database-features",
     "test:features": "node scripts/feature-verification-test.js",
     "test:agent-features": "node scripts/verify-agent-features.js",
     "test:rdf-features": "node scripts/verify-rdf-features.js",
-    "test:preferences-features": "node scripts/verify-preferences-features.js"
+    "test:preferences-features": "node scripts/verify-preferences-features.js",
+    "test:database-features": "node scripts/verify-database-features.js"
   },
   "keywords": [
     "electron",
