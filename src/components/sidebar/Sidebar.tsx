@@ -373,79 +373,85 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <div className="w-96 bg-white dark:bg-slate-900 border-l border-border flex flex-col">
+    <div className="w-96 bg-card border-l border-border flex flex-col shadow-lg">
       {/* Sidebar Tabs */}
-      <div className="border-b border-border flex">
+      <div className="border-b border-border flex bg-muted/50">
         <button
-          className={`flex-1 py-2 px-4 text-sm transition-colors ${
+          className={`flex-1 py-3 px-4 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
             activeTab === 'agents'
-              ? 'bg-primary text-primary-foreground'
-              : 'hover:bg-accent hover:text-accent-foreground'
+              ? 'bg-background text-foreground border-b-2 border-primary'
+              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('agents')}
+          aria-label="Agents"
         >
-          <Bot className="h-4 w-4 inline mr-1" />
-          Agents
+          <Bot className="h-4 w-4" />
+          <span className="hidden sm:inline">Agents</span>
         </button>
         <button
-          className={`flex-1 py-2 px-4 text-sm transition-colors ${
+          className={`flex-1 py-3 px-4 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
             activeTab === 'tools'
-              ? 'bg-primary text-primary-foreground'
-              : 'hover:bg-accent hover:text-accent-foreground'
+              ? 'bg-background text-foreground border-b-2 border-primary'
+              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('tools')}
+          aria-label="Tools"
         >
-          <Settings className="h-4 w-4 inline mr-1" />
-          Tools
+          <Settings className="h-4 w-4" />
+          <span className="hidden sm:inline">Tools</span>
         </button>
         <button
-          className={`flex-1 py-2 px-4 text-sm transition-colors ${
+          className={`flex-1 py-3 px-4 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
             activeTab === 'history'
-              ? 'bg-primary text-primary-foreground'
-              : 'hover:bg-accent hover:text-accent-foreground'
+              ? 'bg-background text-foreground border-b-2 border-primary'
+              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('history')}
+          aria-label="History"
         >
-          <History className="h-4 w-4 inline mr-1" />
+          <History className="h-4 w-4" />
         </button>
         <button
-          className={`flex-1 py-2 px-4 text-sm transition-colors ${
+          className={`flex-1 py-3 px-4 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
             activeTab === 'log'
-              ? 'bg-primary text-primary-foreground'
-              : 'hover:bg-accent hover:text-accent-foreground'
+              ? 'bg-background text-foreground border-b-2 border-primary'
+              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('log')}
+          aria-label="Activity Log"
         >
-          <FileText className="h-4 w-4 inline mr-1" />
+          <FileText className="h-4 w-4" />
         </button>
       </div>
 
       {/* Sidebar Content */}
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto p-5">
         {activeTab === 'agents' && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {!showAgentForm ? (
               <>
                 <div className="flex justify-between items-center">
-                  <h3 className="font-semibold">Agents</h3>
-                  <Button size="sm" onClick={createNewAgent}>
-                    <Plus className="h-4 w-4 mr-1" />
+                  <h3 className="text-lg font-semibold">Agents</h3>
+                  <Button size="sm" onClick={createNewAgent} className="font-medium">
+                    <Plus className="h-4 w-4 mr-1.5" />
                     New Agent
                   </Button>
                 </div>
 
                 {agents.length === 0 ? (
-                  <div className="text-center text-muted-foreground text-sm py-8">
-                    No agents configured. Create one to get started.
+                  <div className="text-center text-muted-foreground text-sm py-12 px-4">
+                    <Bot className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p className="font-medium">No agents configured</p>
+                    <p className="text-xs mt-1">Create one to get started</p>
                   </div>
                 ) : (
                   <>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {agents.map((agent) => (
                         <Card
                           key={agent.id}
-                          className={`cursor-pointer transition-colors ${
-                            selectedAgent === agent.id ? 'border-primary' : ''
+                          className={`cursor-pointer transition-all hover:shadow-md ${
+                            selectedAgent === agent.id ? 'border-primary ring-2 ring-primary/20' : 'hover:border-accent-foreground/20'
                           }`}
                           onClick={() => {
                             setSelectedAgent(agent.id!);
@@ -453,36 +459,42 @@ export const Sidebar: React.FC = () => {
                           }}
                         >
                           <CardContent className="p-4">
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-center space-x-3">
-                                {renderIcon(agent.icon, agent.iconType)}
-                                <div>
-                                  <div className="font-medium text-sm">{agent.name}</div>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center space-x-3 min-w-0 flex-1">
+                                <div className="shrink-0">
+                                  {renderIcon(agent.icon, agent.iconType)}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-medium text-sm truncate">{agent.name}</div>
                                   <div className="text-xs text-muted-foreground">
                                     {agent.preset || 'Custom'}
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex space-x-1">
+                              <div className="flex space-x-1 shrink-0">
                                 <Button
                                   size="sm"
                                   variant="ghost"
+                                  className="h-8 w-8 p-0 hover:bg-accent"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     editAgent(agent);
                                   }}
+                                  aria-label="Edit agent"
                                 >
-                                  <Edit className="h-3 w-3" />
+                                  <Edit className="h-3.5 w-3.5" />
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"
+                                  className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     deleteAgent(agent.id!);
                                   }}
+                                  aria-label="Delete agent"
                                 >
-                                  <Trash2 className="h-3 w-3" />
+                                  <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                               </div>
                             </div>
