@@ -373,76 +373,80 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <div className="w-96 bg-card border-l border-border flex flex-col shadow-lg">
+    <div className="w-80 bg-card border-l border-border flex flex-col shadow-lg">
       {/* Sidebar Tabs */}
       <div className="border-b border-border flex bg-muted/50">
         <button
-          className={`flex-1 py-3 px-4 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-3.5 px-4 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'agents'
               ? 'bg-background text-foreground border-b-2 border-primary'
               : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('agents')}
           aria-label="Agents"
+          title="Agents"
         >
           <Bot className="h-4 w-4" />
           <span className="hidden sm:inline">Agents</span>
         </button>
         <button
-          className={`flex-1 py-3 px-4 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-3.5 px-4 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'tools'
               ? 'bg-background text-foreground border-b-2 border-primary'
               : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('tools')}
           aria-label="Tools"
+          title="Tools"
         >
           <Settings className="h-4 w-4" />
           <span className="hidden sm:inline">Tools</span>
         </button>
         <button
-          className={`flex-1 py-3 px-4 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-3.5 px-4 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'history'
               ? 'bg-background text-foreground border-b-2 border-primary'
               : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('history')}
           aria-label="History"
+          title="History"
         >
           <History className="h-4 w-4" />
         </button>
         <button
-          className={`flex-1 py-3 px-4 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-3.5 px-4 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'log'
               ? 'bg-background text-foreground border-b-2 border-primary'
               : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('log')}
           aria-label="Activity Log"
+          title="Activity Log"
         >
           <FileText className="h-4 w-4" />
         </button>
       </div>
 
       {/* Sidebar Content */}
-      <div className="flex-1 overflow-auto p-5">
+      <div className="flex-1 overflow-auto p-6">
         {activeTab === 'agents' && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             {!showAgentForm ? (
               <>
                 <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">Agents</h3>
-                  <Button size="sm" onClick={createNewAgent} className="font-medium">
-                    <Plus className="h-4 w-4 mr-1.5" />
+                  <h3 className="text-lg font-bold">Agents</h3>
+                  <Button size="default" onClick={createNewAgent} className="font-semibold shadow-sm">
+                    <Plus className="h-4 w-4 mr-2" />
                     New Agent
                   </Button>
                 </div>
 
                 {agents.length === 0 ? (
-                  <div className="text-center text-muted-foreground text-sm py-12 px-4">
-                    <Bot className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p className="font-medium">No agents configured</p>
-                    <p className="text-xs mt-1">Create one to get started</p>
+                  <div className="text-center text-muted-foreground text-sm py-16 px-4">
+                    <Bot className="h-16 w-16 mx-auto mb-4 opacity-40" />
+                    <p className="font-semibold text-base mb-1">No agents configured</p>
+                    <p className="text-sm">Create one to get started</p>
                   </div>
                 ) : (
                   <>
