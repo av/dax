@@ -373,9 +373,9 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <div className="w-80 bg-card border-l border-border flex flex-col shadow-lg">
+    <aside className="w-80 bg-card border-l border-border flex flex-col shadow-lg" aria-label="Sidebar">
       {/* Sidebar Tabs */}
-      <div className="border-b border-border flex bg-muted/50">
+      <nav className="border-b border-border flex bg-muted/50" role="tablist" aria-label="Sidebar navigation">
         <button
           className={`flex-1 py-3.5 px-4 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'agents'
@@ -383,6 +383,9 @@ export const Sidebar: React.FC = () => {
               : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('agents')}
+          role="tab"
+          aria-selected={activeTab === 'agents'}
+          aria-controls="agents-panel"
           aria-label="Agents"
           title="Agents"
         >
@@ -396,6 +399,9 @@ export const Sidebar: React.FC = () => {
               : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('tools')}
+          role="tab"
+          aria-selected={activeTab === 'tools'}
+          aria-controls="tools-panel"
           aria-label="Tools"
           title="Tools"
         >
@@ -409,6 +415,9 @@ export const Sidebar: React.FC = () => {
               : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('history')}
+          role="tab"
+          aria-selected={activeTab === 'history'}
+          aria-controls="history-panel"
           aria-label="History"
           title="History"
         >
@@ -421,17 +430,20 @@ export const Sidebar: React.FC = () => {
               : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('log')}
+          role="tab"
+          aria-selected={activeTab === 'log'}
+          aria-controls="log-panel"
           aria-label="Activity Log"
           title="Activity Log"
         >
           <FileText className="h-4 w-4" />
         </button>
-      </div>
+      </nav>
 
       {/* Sidebar Content */}
       <div className="flex-1 overflow-auto p-6">
         {activeTab === 'agents' && (
-          <div className="space-y-6">
+          <div id="agents-panel" role="tabpanel" aria-labelledby="agents-tab" className="space-y-6">
             {!showAgentForm ? (
               <>
                 <div className="flex justify-between items-center">
@@ -1101,6 +1113,6 @@ export const Sidebar: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+    </aside>
   );
 };

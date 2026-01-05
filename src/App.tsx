@@ -132,6 +132,11 @@ function App() {
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground">
+      {/* Skip to main content for keyboard navigation */}
+      <a href="#main-content" className="skip-to-main">
+        Skip to main content
+      </a>
+
       {/* Top Menu Bar */}
       <div className="bg-card border-b border-border px-6 py-4 flex items-center gap-4 shadow-sm">
         <Button 
@@ -169,7 +174,7 @@ function App() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div id="main-content" className="flex-1 flex overflow-hidden" role="main">
         <Canvas />
         <Sidebar />
       </div>
