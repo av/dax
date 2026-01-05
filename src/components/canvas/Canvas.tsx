@@ -257,29 +257,31 @@ export const Canvas: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col bg-slate-100 dark:bg-slate-950">
       {/* Canvas Toolbar */}
-      <div className="bg-white dark:bg-slate-900 border-b border-border p-2 flex gap-2 items-center">
+      <div className="bg-card border-b border-border px-4 py-3 flex gap-3 items-center shadow-sm">
         <select
           value={selectedNodeType}
           onChange={(e) => setSelectedNodeType(e.target.value as any)}
-          className="px-3 py-1 border border-input bg-background text-foreground rounded text-sm"
+          className="px-3 py-2 border border-input bg-background text-foreground rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
         >
           <option value="data">Data Source</option>
           <option value="agent">Agent</option>
           <option value="transform">Transform</option>
           <option value="output">Output</option>
         </select>
-        <Button size="sm" onClick={addNode}>
-          <Plus className="h-4 w-4 mr-1" />
+        <Button size="sm" onClick={addNode} className="font-medium">
+          <Plus className="h-4 w-4 mr-1.5" />
           Add Node
         </Button>
-        <Button size="sm" variant="outline" onClick={multiAddNodes}>
+        <Button size="sm" variant="outline" onClick={multiAddNodes} className="font-medium">
           Multi-Add
         </Button>
-        <Button size="sm" variant="destructive" onClick={batchDelete}>
+        <Button size="sm" variant="destructive" onClick={batchDelete} className="font-medium">
           Clear All
         </Button>
-        <div className="ml-auto text-sm text-muted-foreground">
-          {nodes.length} nodes
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">
+            {nodes.length} {nodes.length === 1 ? 'node' : 'nodes'}
+          </span>
         </div>
       </div>
 
@@ -311,23 +313,25 @@ export const Canvas: React.FC = () => {
 
       {/* Configuration Modal */}
       {configuringNode && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-[500px] max-h-[80vh] overflow-auto">
-            <CardHeader>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <Card className="w-full max-w-lg max-h-[85vh] overflow-auto shadow-xl animate-in zoom-in-95 duration-200">
+            <CardHeader className="space-y-1 pb-4">
               <div className="flex items-center justify-between">
-                <CardTitle>Configure {configuringNode.title}</CardTitle>
+                <CardTitle className="text-xl font-semibold">Configure {configuringNode.title}</CardTitle>
                 <Button
                   size="sm"
                   variant="ghost"
+                  className="h-8 w-8 p-0 hover:bg-accent"
                   onClick={closeConfigModal}
+                  aria-label="Close"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Node Title</label>
+            <CardContent className="space-y-5">
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none">Node Title</label>
                 <Input
                   value={configuringNode.title}
                   onChange={(e) => {
@@ -337,11 +341,11 @@ export const Canvas: React.FC = () => {
                     }
                   }}
                   placeholder="Node title"
-                  className={validationErrors.title ? 'border-red-500' : ''}
+                  className={validationErrors.title ? 'border-red-500 focus:ring-red-500' : ''}
                 />
                 {validationErrors.title && (
-                  <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
-                    <AlertCircle className="h-3 w-3" />
+                  <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
+                    <AlertCircle className="h-3.5 w-3.5" />
                     {validationErrors.title}
                   </div>
                 )}
@@ -349,8 +353,8 @@ export const Canvas: React.FC = () => {
 
               {configuringNode.type === 'data' && (
                 <>
-                  <div>
-                    <label className="text-sm font-medium">Data Source Type</label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium leading-none">Data Source Type</label>
                     <select
                       value={configDataSource.type}
                       onChange={(e) =>
@@ -359,7 +363,7 @@ export const Canvas: React.FC = () => {
                           type: e.target.value as DataSource['type'],
                         })
                       }
-                      className="w-full mt-1 px-3 py-2 border border-input bg-background text-foreground rounded text-sm"
+                      className="w-full px-3 py-2 border border-input bg-background text-foreground rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     >
                       <option value="fs">Filesystem</option>
                       <option value="http">HTTP/HTTPS</option>
@@ -373,9 +377,9 @@ export const Canvas: React.FC = () => {
                   </div>
 
                   {configDataSource.type === 'fs' && (
-                    <div>
-                      <label className="text-sm font-medium">Folder Path</label>
-                      <div className="flex gap-2 mt-1">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium leading-none">Folder Path</label>
+                      <div className="flex gap-2">
                         <Input
                           value={configDataSource.path || ''}
                           onChange={(e) => {
@@ -385,15 +389,15 @@ export const Canvas: React.FC = () => {
                             }
                           }}
                           placeholder="/path/to/folder"
-                          className={validationErrors.path ? 'border-red-500' : ''}
+                          className={validationErrors.path ? 'border-red-500 focus:ring-red-500' : ''}
                         />
-                        <Button size="sm" onClick={selectFolder}>
+                        <Button size="sm" onClick={selectFolder} variant="outline" className="shrink-0">
                           <Folder className="h-4 w-4" />
                         </Button>
                       </div>
                       {validationErrors.path && (
-                        <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
-                          <AlertCircle className="h-3 w-3" />
+                        <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
+                          <AlertCircle className="h-3.5 w-3.5" />
                           {validationErrors.path}
                         </div>
                       )}
@@ -401,8 +405,8 @@ export const Canvas: React.FC = () => {
                   )}
 
                   {(configDataSource.type === 'http' || configDataSource.type === 's3') && (
-                    <div>
-                      <label className="text-sm font-medium">URL</label>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium leading-none">URL</label>
                       <Input
                         value={configDataSource.url || ''}
                         onChange={(e) => {
@@ -416,11 +420,11 @@ export const Canvas: React.FC = () => {
                             ? 'https://api.example.com/data'
                             : 's3://bucket-name/key'
                         }
-                        className={validationErrors.url ? 'border-red-500' : ''}
+                        className={validationErrors.url ? 'border-red-500 focus:ring-red-500' : ''}
                       />
                       {validationErrors.url && (
-                        <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
-                          <AlertCircle className="h-3 w-3" />
+                        <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
+                          <AlertCircle className="h-3.5 w-3.5" />
                           {validationErrors.url}
                         </div>
                       )}
@@ -477,13 +481,14 @@ export const Canvas: React.FC = () => {
                 </>
               )}
 
-              <div className="flex gap-2 pt-4 border-t">
-                <Button onClick={saveNodeConfiguration} className="flex-1">
+              <div className="flex gap-3 pt-6 border-t border-border">
+                <Button onClick={saveNodeConfiguration} className="flex-1 font-medium">
                   Save Configuration
                 </Button>
                 <Button
                   variant="outline"
                   onClick={closeConfigModal}
+                  className="font-medium"
                 >
                   Cancel
                 </Button>

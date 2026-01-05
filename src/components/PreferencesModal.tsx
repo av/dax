@@ -103,39 +103,45 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="w-[700px] max-h-[85vh] overflow-auto">
-        <CardHeader>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-auto shadow-2xl animate-in zoom-in-95 duration-200">
+        <CardHeader className="space-y-1 pb-4 border-b">
           <div className="flex items-center justify-between">
-            <CardTitle>Preferences</CardTitle>
-            <Button size="sm" variant="ghost" onClick={onClose}>
+            <CardTitle className="text-2xl font-semibold">Preferences</CardTitle>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={onClose}
+              className="h-8 w-8 p-0 hover:bg-accent"
+              aria-label="Close"
+            >
               <X className="h-4 w-4" />
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-8 pt-6">
           {/* Appearance */}
-          <section>
-            <h3 className="text-lg font-semibold mb-3">Appearance</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium">Theme</label>
+          <section className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">Appearance</h3>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none">Theme</label>
                 <select
                   value={preferences.theme}
                   onChange={(e) => handleChange({ theme: e.target.value as 'light' | 'dark' | 'system' })}
-                  className="w-full mt-1 px-3 py-2 border border-input bg-background text-foreground rounded text-sm"
+                  className="w-full px-3 py-2 border border-input bg-background text-foreground rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 >
                   <option value="light">Light</option>
                   <option value="dark">Dark</option>
                   <option value="system">System</option>
                 </select>
               </div>
-              <div>
-                <label className="text-sm font-medium">Language</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none">Language</label>
                 <select
                   value={preferences.language}
                   onChange={(e) => handleChange({ language: e.target.value })}
-                  className="w-full mt-1 px-3 py-2 border border-input bg-background text-foreground rounded text-sm"
+                  className="w-full px-3 py-2 border border-input bg-background text-foreground rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 >
                   <option value="en">English</option>
                   <option value="es">Español</option>
@@ -149,43 +155,43 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
           </section>
 
           {/* System */}
-          <section>
-            <h3 className="text-lg font-semibold mb-3">System</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium">Launch on Startup</label>
+          <section className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">System</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium leading-none">Launch on Startup</label>
                   <p className="text-xs text-muted-foreground">Start DAX automatically when you log in</p>
                 </div>
                 <input
                   type="checkbox"
                   checked={preferences.autostart}
                   onChange={(e) => handleChange({ autostart: e.target.checked })}
-                  className="h-4 w-4"
+                  className="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 />
               </div>
-              <div>
-                <label className="text-sm font-medium">Data Directory</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none">Data Directory</label>
                 <Input
                   value={preferences.dataDir}
                   onChange={(e) => handleChange({ dataDir: e.target.value })}
                   placeholder="./data"
-                  className={errors.dataDir ? 'border-red-500' : ''}
+                  className={errors.dataDir ? 'border-red-500 focus:ring-red-500' : ''}
                 />
                 {errors.dataDir && (
-                  <p className="text-xs text-red-500 mt-1">{errors.dataDir}</p>
+                  <p className="text-xs text-red-600 dark:text-red-400">{errors.dataDir}</p>
                 )}
               </div>
             </div>
           </section>
 
           {/* Backup */}
-          <section>
-            <h3 className="text-lg font-semibold mb-3">Backup</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium">Enable Automatic Backups</label>
+          <section className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">Backup</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium leading-none">Enable Automatic Backups</label>
                   <p className="text-xs text-muted-foreground">Automatically backup your data periodically</p>
                 </div>
                 <input
@@ -315,16 +321,16 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
           </section>
 
           {/* Actions */}
-          <div className="flex gap-2 pt-4 border-t">
-            <Button onClick={handleSave} disabled={!hasChanges} className="flex-1">
+          <div className="flex gap-3 pt-6 border-t border-border">
+            <Button onClick={handleSave} disabled={!hasChanges} className="flex-1 font-medium">
               <Save className="h-4 w-4 mr-2" />
               Save Preferences
             </Button>
-            <Button variant="outline" onClick={handleReset}>
+            <Button variant="outline" onClick={handleReset} className="font-medium">
               <RotateCcw className="h-4 w-4 mr-2" />
               Reset
             </Button>
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={onClose} className="font-medium">
               Cancel
             </Button>
           </div>

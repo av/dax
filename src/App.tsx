@@ -133,20 +133,30 @@ function App() {
   return (
     <div className="h-screen flex flex-col bg-background text-foreground">
       {/* Top Menu Bar */}
-      <div className="bg-white dark:bg-slate-900 border-b border-border px-4 py-2 flex items-center gap-4">
+      <div className="bg-card border-b border-border px-4 py-3 flex items-center gap-4 shadow-sm">
         <Button 
           ref={menuButtonRef}
           variant="ghost" 
-          size="icon" 
+          size="icon"
+          className="hover:bg-accent"
           onClick={() => setShowMenu(!showMenu)}
+          aria-label="Open menu"
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <h1 className="text-xl font-bold">DAX</h1>
-        <span className="text-sm text-muted-foreground">Data Agent eXplorer</span>
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-2xl font-bold tracking-tight">DAX</h1>
+          <span className="text-sm text-muted-foreground font-medium">Data Agent eXplorer</span>
+        </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={toggleTheme}>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="hover:bg-accent"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
             {theme === 'dark' ? (
               <Sun className="h-5 w-5" />
             ) : (
@@ -164,23 +174,20 @@ function App() {
 
       {/* Menu Overlay */}
       {showMenu && (
-        <div ref={menuRef} className="absolute top-14 left-4 bg-white dark:bg-slate-900 border border-border rounded-lg shadow-lg p-4 z-50">
-          <div className="space-y-2">
-            <div className="font-semibold mb-3">Menu</div>
-            <div className="space-y-1">
-              <div className="text-xs font-semibold text-muted-foreground px-2 py-1">File</div>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start pl-4"
-                onClick={handleClearCanvas}
-              >
-                Clear All Nodes
-              </Button>
-            </div>
-            <hr className="my-2 border-border" />
+        <div ref={menuRef} className="absolute top-16 left-4 bg-card border border-border rounded-lg shadow-xl p-2 z-50 min-w-[220px] animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="space-y-1">
+            <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">File</div>
             <Button 
               variant="ghost" 
-              className="w-full justify-start"
+              className="w-full justify-start px-3 py-2 h-auto font-normal hover:bg-accent"
+              onClick={handleClearCanvas}
+            >
+              Clear All Nodes
+            </Button>
+            <div className="h-px bg-border my-2" />
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start px-3 py-2 h-auto font-normal hover:bg-accent"
               onClick={() => {
                 setShowMenu(false);
                 setShowRDFViewer(true);
@@ -190,7 +197,7 @@ function App() {
             </Button>
             <Button 
               variant="ghost" 
-              className="w-full justify-start"
+              className="w-full justify-start px-3 py-2 h-auto font-normal hover:bg-accent"
               onClick={() => {
                 setShowMenu(false);
                 setShowPreferences(true);
@@ -198,10 +205,10 @@ function App() {
             >
               Preferences
             </Button>
-            <hr className="my-2 border-border" />
+            <div className="h-px bg-border my-2" />
             <Button 
               variant="ghost" 
-              className="w-full justify-start"
+              className="w-full justify-start px-3 py-2 h-auto font-normal hover:bg-accent"
               onClick={() => {
                 setShowMenu(false);
                 setShowAbout(true);

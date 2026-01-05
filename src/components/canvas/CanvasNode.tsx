@@ -56,68 +56,70 @@ export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
         });
       }}
       bounds="parent"
-      className={`rounded-lg border-2 ${getNodeColor(node.type)} shadow-lg backdrop-blur-sm`}
+      className={`rounded-lg border-2 ${getNodeColor(node.type)} shadow-md hover:shadow-xl transition-shadow duration-200`}
       onMouseEnter={() => setShowToolbar(true)}
       onMouseLeave={() => setShowToolbar(false)}
     >
-      <div className="h-full flex flex-col p-2">
+      <div className="h-full flex flex-col p-3">
         {/* Toolbar */}
         {showToolbar && (
-          <div className="absolute -top-10 left-0 right-0 flex justify-center gap-1 z-10">
+          <div className="absolute -top-11 left-0 right-0 flex justify-center gap-1.5 z-10 animate-in fade-in slide-in-from-top-2 duration-200">
             <Button
               size="sm"
               variant="secondary"
-              className="bg-white dark:bg-slate-800 shadow-md"
+              className="bg-card hover:bg-accent shadow-lg h-8 w-8 p-0"
               onClick={() => onDuplicate(node)}
+              aria-label="Duplicate node"
             >
-              <Copy className="h-4 w-4" />
+              <Copy className="h-3.5 w-3.5" />
             </Button>
             <Button
               size="sm"
               variant="secondary"
-              className="bg-white dark:bg-slate-800 shadow-md"
+              className="bg-card hover:bg-accent shadow-lg h-8 w-8 p-0"
               onClick={() => onConfigure(node)}
+              aria-label="Configure node"
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-3.5 w-3.5" />
             </Button>
             <Button
               size="sm"
               variant="secondary"
-              className="bg-white dark:bg-slate-800 shadow-md"
+              className="bg-card hover:bg-accent shadow-lg h-8 w-8 p-0"
               onClick={() => onPreview(node)}
+              aria-label="Preview node"
             >
-              <Eye className="h-4 w-4" />
+              <Eye className="h-3.5 w-3.5" />
             </Button>
             <Button
               size="sm"
               variant="destructive"
-              className="shadow-md"
+              className="shadow-lg h-8 w-8 p-0"
               onClick={() => onDelete(node.id)}
+              aria-label="Delete node"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
         )}
 
         {/* Node Header */}
-        <div className="font-semibold text-sm mb-2 border-b border-current pb-1">
+        <div className="font-semibold text-sm mb-2 pb-2 border-b border-current/20">
           {node.title}
         </div>
 
         {/* Node Content */}
-        <div className="flex-1 overflow-auto text-xs">
-          <div className="space-y-1">
-            <div>Type: {node.type}</div>
-            {node.config?.source && (
-              <div>Source: {node.config.source.type}</div>
-            )}
-            {node.config?.source?.path && (
-              <div className="truncate">Path: {node.config.source.path}</div>
-            )}
-            {node.config?.source?.url && (
-              <div className="truncate">URL: {node.config.source.url}</div>
-            )}
-          </div>
+        <div className="flex-1 overflow-auto text-xs space-y-1.5">
+          <div className="font-medium opacity-75">Type: {node.type}</div>
+          {node.config?.source && (
+            <div>Source: {node.config.source.type}</div>
+          )}
+          {node.config?.source?.path && (
+            <div className="truncate">Path: {node.config.source.path}</div>
+          )}
+          {node.config?.source?.url && (
+            <div className="truncate">URL: {node.config.source.url}</div>
+          )}
         </div>
       </div>
     </Rnd>
