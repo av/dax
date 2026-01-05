@@ -75,10 +75,18 @@ export const Sidebar: React.FC = () => {
     loadAgents();
   }, []);
 
-  // Load activity log when log tab is active
+  // Load activity log when log tab is active and set up auto-refresh
   useEffect(() => {
     if (activeTab === 'log') {
       loadActivityLog();
+      
+      // Auto-refresh activity log every 3 seconds when the tab is active
+      const intervalId = setInterval(() => {
+        loadActivityLog();
+      }, 3000);
+      
+      // Clean up interval when tab changes or component unmounts
+      return () => clearInterval(intervalId);
     }
   }, [activeTab]);
 

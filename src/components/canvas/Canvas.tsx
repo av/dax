@@ -128,11 +128,12 @@ export const Canvas: React.FC = () => {
       return;
     }
 
-    const duplicatedNodes = nodes.map(n => ({
+    // Spread nodes out in a grid pattern to avoid overlap
+    const duplicatedNodes = nodes.map((n, index) => ({
       ...n,
       id: `node-${generateUUID()}`,
-      x: n.x + 30,
-      y: n.y + 30,
+      x: n.x + 250 + (index % 3) * 50, // Offset significantly to the right with some variation
+      y: n.y + Math.floor(index / 3) * 200, // Stack in rows of 3
     }));
 
     try {
