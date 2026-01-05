@@ -106,6 +106,91 @@ export const validators = {
     }
     return null;
   },
+
+  // Theme validator
+  theme: (value: string): string | null => {
+    const validThemes = ['light', 'dark', 'system'];
+    if (!value) return 'Theme is required';
+    if (!validThemes.includes(value)) {
+      return 'Theme must be light, dark, or system';
+    }
+    return null;
+  },
+
+  // Language code validator
+  languageCode: (value: string): string | null => {
+    if (!value) return 'Language is required';
+    // Basic ISO 639-1 language code format (2 letters)
+    if (!/^[a-z]{2}(-[A-Z]{2})?$/.test(value)) {
+      return 'Invalid language code format';
+    }
+    return null;
+  },
+
+  // Hotkey validator
+  hotkey: (value: string): string | null => {
+    if (!value) return null;
+    
+    // Split into modifiers and key
+    const parts = value.split('+');
+    if (parts.length < 2) {
+      return 'Hotkey must include at least one modifier and a key';
+    }
+    
+    const key = parts[parts.length - 1];
+    const modifiers = parts.slice(0, -1);
+    
+    // Validate modifiers
+    const validModifiers = ['Ctrl', 'Alt', 'Shift', 'Meta'];
+    for (const mod of modifiers) {
+      if (!validModifiers.includes(mod)) {
+        return `Invalid modifier: ${mod}. Use Ctrl, Alt, Shift, or Meta`;
+      }
+    }
+    
+    // Check for duplicate modifiers
+    const uniqueModifiers = new Set(modifiers);
+    if (uniqueModifiers.size !== modifiers.length) {
+      return 'Duplicate modifiers are not allowed';
+    }
+    
+    // Validate key (alphanumeric or special keys)
+    if (!/^[A-Za-z0-9]$/.test(key)) {
+      return 'Key must be a single letter or number';
+    }
+    
+    return null;
+  },
+
+  // Backup interval validator (in milliseconds)
+  backupInterval: (value: number): string | null => {
+    if (value === null || value === undefined) return null;
+    // Minimum 5 minutes (300000ms), maximum 24 hours (86400000ms)
+    const minInterval = 300000; // 5 minutes
+    const maxInterval = 86400000; // 24 hours
+    if (value < minInterval) {
+      return 'Backup interval must be at least 5 minutes';
+    }
+    if (value > maxInterval) {
+      return 'Backup interval cannot exceed 24 hours';
+    }
+    return null;
+  },
+
+  // Directory path validator
+  directoryPath: (value: string): string | null => {
+    if (!value) return 'Directory path is required';
+    // Check for invalid characters in paths
+    const invalidChars = /[<>"|?*\x00-\x1F]/;
+    if (invalidChars.test(value)) {
+      return 'Path contains invalid characters';
+    }
+    // Check for path traversal attempts
+    if (value.includes('..')) {
+      return 'Path traversal patterns (..) are not allowed';
+    }
+    return null;
+  },
 };
 
 // Validation helper that runs multiple validators

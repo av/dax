@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { X, Save, RotateCcw } from 'lucide-react';
 import { Preferences } from '@/types';
 import { preferencesService } from '@/services/preferences';
+import { validators } from '@/lib/validation';
 
 interface PreferencesModalProps {
   isOpen: boolean;
@@ -14,11 +15,13 @@ interface PreferencesModalProps {
 export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose }) => {
   const [preferences, setPreferences] = useState<Preferences>(preferencesService.getPreferences());
   const [hasChanges, setHasChanges] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (isOpen) {
       setPreferences(preferencesService.getPreferences());
       setHasChanges(false);
+      setErrors({});
     }
   }, [isOpen]);
 
@@ -27,9 +30,50 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
     setHasChanges(true);
   };
 
+  const validatePreferences = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Validate theme
+    const themeError = validators.theme(preferences.theme);
+    if (themeError) newErrors.theme = themeError;
+
+    // Validate data directory
+    const dataDirError = validators.directoryPath(preferences.dataDir);
+    if (dataDirError) newErrors.dataDir = dataDirError;
+
+    // Validate backup settings
+    if (preferences.backup.enabled) {
+      const intervalError = validators.backupInterval(preferences.backup.interval);
+      if (intervalError) newErrors.backupInterval = intervalError;
+
+      const locationError = validators.directoryPath(preferences.backup.location);
+      if (locationError) newErrors.backupLocation = locationError;
+    }
+
+    // Validate language
+    const languageError = validators.languageCode(preferences.language);
+    if (languageError) newErrors.language = languageError;
+
+    // Validate hotkeys
+    for (const [action, key] of Object.entries(preferences.hotkeys)) {
+      const hotkeyError = validators.hotkey(key);
+      if (hotkeyError) {
+        newErrors[`hotkey_${action}`] = hotkeyError;
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSave = async () => {
+    if (!validatePreferences()) {
+      return;
+    }
+
     await preferencesService.savePreferences(preferences);
     setHasChanges(false);
+    setErrors({});
     
     // Apply theme immediately
     const root = document.documentElement;
@@ -126,7 +170,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                   value={preferences.dataDir}
                   onChange={(e) => handleChange({ dataDir: e.target.value })}
                   placeholder="./data"
+                  className={errors.dataDir ? 'border-red-500' : ''}
                 />
+                {errors.dataDir && (
+                  <p className="text-xs text-red-500 mt-1">{errors.dataDir}</p>
+                )}
               </div>
             </div>
           </section>
@@ -163,12 +211,18 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                         handleChange({
                           backup: {
                             ...preferences.backup,
-                            interval: parseInt(e.target.value) * 60000,
+                            interval: parseInt(e.target.value, 10) * 60000,
                           },
                         })
                       }
                       placeholder="60"
+                      min="5"
+                      max="1440"
+                      className={errors.backupInterval ? 'border-red-500' : ''}
                     />
+                    {errors.backupInterval && (
+                      <p className="text-xs text-red-500 mt-1">{errors.backupInterval}</p>
+                    )}
                   </div>
                   <div>
                     <label className="text-sm font-medium">Backup Location</label>
@@ -180,7 +234,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                         })
                       }
                       placeholder="./backups"
+                      className={errors.backupLocation ? 'border-red-500' : ''}
                     />
+                    {errors.backupLocation && (
+                      <p className="text-xs text-red-500 mt-1">{errors.backupLocation}</p>
+                    )}
                   </div>
                 </>
               )}
@@ -236,16 +294,21 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
             <h3 className="text-lg font-semibold mb-3">Keyboard Shortcuts</h3>
             <div className="space-y-2">
               {Object.entries(preferences.hotkeys).map(([action, key]) => (
-                <div key={action} className="flex items-center justify-between">
-                  <label className="text-sm font-medium capitalize">
-                    {action.replace(/([A-Z])/g, ' $1').trim()}
-                  </label>
-                  <Input
-                    value={key}
-                    onChange={(e) => handleHotkeyChange(action, e.target.value)}
-                    className="w-40"
-                    placeholder="Ctrl+N"
-                  />
+                <div key={action}>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium capitalize">
+                      {action.replace(/([A-Z])/g, ' $1').trim()}
+                    </label>
+                    <Input
+                      value={key}
+                      onChange={(e) => handleHotkeyChange(action, e.target.value)}
+                      className={`w-40 ${errors[`hotkey_${action}`] ? 'border-red-500' : ''}`}
+                      placeholder="Ctrl+N"
+                    />
+                  </div>
+                  {errors[`hotkey_${action}`] && (
+                    <p className="text-xs text-red-500 mt-1 text-right">{errors[`hotkey_${action}`]}</p>
+                  )}
                 </div>
               ))}
             </div>
