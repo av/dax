@@ -373,13 +373,13 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className="w-80 bg-card border-l border-border flex flex-col shadow-lg" aria-label="Sidebar">
+    <aside className="w-80 bg-card border-l-2 border-border flex flex-col shadow-lg" aria-label="Sidebar">
       {/* Sidebar Tabs */}
-      <nav className="border-b border-border flex bg-muted/50" role="tablist" aria-label="Sidebar navigation">
+      <nav className="border-b-2 border-border flex bg-muted/30" role="tablist" aria-label="Sidebar navigation">
         <button
-          className={`flex-1 py-3.5 px-4 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-4 px-4 text-sm font-bold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'agents'
-              ? 'bg-background text-foreground border-b-2 border-primary'
+              ? 'bg-background text-foreground border-b-2 border-primary -mb-0.5'
               : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('agents')}
@@ -390,12 +390,12 @@ export const Sidebar: React.FC = () => {
           title="Agents"
         >
           <Bot className="h-4 w-4" />
-          <span className="hidden sm:inline">Agents</span>
+          <span>Agents</span>
         </button>
         <button
-          className={`flex-1 py-3.5 px-4 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-4 px-4 text-sm font-bold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'tools'
-              ? 'bg-background text-foreground border-b-2 border-primary'
+              ? 'bg-background text-foreground border-b-2 border-primary -mb-0.5'
               : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('tools')}
@@ -406,12 +406,12 @@ export const Sidebar: React.FC = () => {
           title="Tools"
         >
           <Settings className="h-4 w-4" />
-          <span className="hidden sm:inline">Tools</span>
+          <span>Tools</span>
         </button>
         <button
-          className={`flex-1 py-3.5 px-4 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-4 px-4 text-sm font-bold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'history'
-              ? 'bg-background text-foreground border-b-2 border-primary'
+              ? 'bg-background text-foreground border-b-2 border-primary -mb-0.5'
               : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('history')}
@@ -424,9 +424,9 @@ export const Sidebar: React.FC = () => {
           <History className="h-4 w-4" />
         </button>
         <button
-          className={`flex-1 py-3.5 px-4 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-4 px-4 text-sm font-bold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'log'
-              ? 'bg-background text-foreground border-b-2 border-primary'
+              ? 'bg-background text-foreground border-b-2 border-primary -mb-0.5'
               : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('log')}
@@ -456,9 +456,9 @@ export const Sidebar: React.FC = () => {
 
                 {agents.length === 0 ? (
                   <div className="text-center text-muted-foreground text-sm py-16 px-4">
-                    <Bot className="h-16 w-16 mx-auto mb-4 opacity-40" />
-                    <p className="font-semibold text-base mb-1">No agents configured</p>
-                    <p className="text-sm">Create one to get started</p>
+                    <Bot className="h-20 w-20 mx-auto mb-4 opacity-30 text-primary" />
+                    <p className="font-bold text-base mb-2 text-foreground">No agents configured</p>
+                    <p className="text-sm">Create your first agent to get started</p>
                   </div>
                 ) : (
                   <>
@@ -466,8 +466,8 @@ export const Sidebar: React.FC = () => {
                       {agents.map((agent) => (
                         <Card
                           key={agent.id}
-                          className={`cursor-pointer transition-all hover:shadow-md ${
-                            selectedAgent === agent.id ? 'border-primary ring-2 ring-primary/20' : 'hover:border-accent-foreground/20'
+                          className={`cursor-pointer transition-all hover:shadow-lg border-2 ${
+                            selectedAgent === agent.id ? 'border-primary ring-2 ring-primary/30 shadow-lg' : 'hover:border-accent-foreground/30'
                           }`}
                           onClick={() => {
                             setSelectedAgent(agent.id!);
@@ -477,12 +477,12 @@ export const Sidebar: React.FC = () => {
                           <CardContent className="p-4">
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex items-center space-x-3 min-w-0 flex-1">
-                                <div className="shrink-0">
+                                <div className="shrink-0 text-primary">
                                   {renderIcon(agent.icon, agent.iconType)}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <div className="font-medium text-sm truncate">{agent.name}</div>
-                                  <div className="text-xs text-muted-foreground">
+                                  <div className="font-bold text-sm truncate">{agent.name}</div>
+                                  <div className="text-xs text-muted-foreground font-medium">
                                     {agent.preset || 'Custom'}
                                   </div>
                                 </div>
@@ -491,26 +491,28 @@ export const Sidebar: React.FC = () => {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-8 w-8 p-0 hover:bg-accent"
+                                  className="h-9 w-9 p-0 hover:bg-accent rounded-lg transition-colors"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     editAgent(agent);
                                   }}
                                   aria-label="Edit agent"
+                                  title="Edit agent"
                                 >
-                                  <Edit className="h-3.5 w-3.5" />
+                                  <Edit className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                  className="h-9 w-9 p-0 hover:bg-destructive/10 hover:text-destructive rounded-lg transition-colors"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     deleteAgent(agent.id!);
                                   }}
                                   aria-label="Delete agent"
+                                  title="Delete agent"
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
                             </div>
