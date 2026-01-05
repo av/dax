@@ -3,6 +3,16 @@
  * 
  * This provides an in-memory database implementation for testing and development
  * when running the app in a browser (not Electron) without a Turso database.
+ * 
+ * LIMITATIONS:
+ * - All data is stored in-memory and will be lost on page reload
+ * - SQL parsing is simplified and may not handle all edge cases
+ * - UPDATE only handles basic SET column=? syntax
+ * - INSERT assumes explicit column lists are provided
+ * - Complex WHERE clauses with multiple conditions may not parse correctly
+ * - LIMIT parsing assumes it's the last argument
+ * - Transactions are not supported
+ * - For production use, always use a real Turso database or Electron mode
  */
 
 import { Client, ResultSet, Transaction } from '@libsql/client';
@@ -225,16 +235,42 @@ export class MockDatabaseClient implements Client {
       return { rows: [], columns: [], rowsAffected: 0 };
     }
 
-    const filteredRows = this.filterRows(table.rows, sql, args);
-    
-    // Update the rows (simplified - assumes SET clause comes before WHERE)
-    const setMatch = sql.match(/SET\s+(.+?)\s+WHERE/i);
-    if (setMatch) {
-      // For now, just mark as updated
-      filteredRows.forEach(row => {
-        row.updated_at = new Date().toISOString();
-      });
+    // Parse SET clause to get column updates
+    const setMatch = sql.match(/SET\s+(.+?)\s+(?:WHERE|$)/i);
+    if (!setMatch) {
+      return { rows: [], columns: [], rowsAffected: 0 };
     }
+
+    // Extract column assignments (simplified parser)
+    const setClauses = setMatch[1].split(',').map(s => s.trim());
+    const updates: { [key: string]: any } = {};
+    let argIndex = 0;
+
+    // Parse SET assignments like "column = ?" or "column = value"
+    setClauses.forEach(clause => {
+      const assignMatch = clause.match(/(\w+)\s*=\s*(.+)/);
+      if (assignMatch) {
+        const column = assignMatch[1];
+        const value = assignMatch[2].trim();
+        if (value === '?') {
+          updates[column] = args[argIndex++];
+        } else if (value.startsWith("'") && value.endsWith("'")) {
+          updates[column] = value.slice(1, -1);
+        } else {
+          updates[column] = value;
+        }
+      }
+    });
+
+    // Get WHERE args (remaining args after SET)
+    const whereArgs = args.slice(argIndex);
+    const filteredRows = this.filterRows(table.rows, sql, whereArgs);
+    
+    // Apply updates to filtered rows
+    filteredRows.forEach(row => {
+      Object.assign(row, updates);
+      row.updated_at = new Date().toISOString();
+    });
 
     return { rows: [], columns: [], rowsAffected: filteredRows.length };
   }
