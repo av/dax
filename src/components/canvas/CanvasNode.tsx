@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Rnd } from 'react-rnd';
 import { CanvasNode } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Trash2, Settings, Copy, Eye, AlertCircle } from 'lucide-react';
+import { Trash2, Settings, Copy, Eye, AlertCircle, FileInput, Bot, Cog, FileOutput } from 'lucide-react';
 
 interface CanvasNodeComponentProps {
   node: CanvasNode;
@@ -145,33 +145,41 @@ export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
           </div>
         )}
 
-        {/* Node Header */}
-        <div className="font-bold text-base mb-3 pb-3 border-b-2 border-current/30">
-          {node.title}
+        {/* Node Header with icon */}
+        <div className="flex items-center gap-2 font-bold text-base mb-3 pb-3 border-b-2 border-current/30">
+          {node.type === 'data' && <FileInput className="h-4 w-4 opacity-70" />}
+          {node.type === 'agent' && <Bot className="h-4 w-4 opacity-70" />}
+          {node.type === 'transform' && <Cog className="h-4 w-4 opacity-70" />}
+          {node.type === 'output' && <FileOutput className="h-4 w-4 opacity-70" />}
+          <span className="truncate">{node.title}</span>
         </div>
 
-        {/* Node Content */}
-        <div className="flex-1 overflow-auto text-sm space-y-2.5">
-          <div className="flex items-baseline gap-2">
-            <span className="font-semibold text-xs uppercase tracking-wide opacity-70">Type:</span>
-            <span className="font-medium capitalize">{node.type}</span>
+        {/* Node Content with better visual hierarchy */}
+        <div className="flex-1 overflow-auto text-sm space-y-3">
+          <div className="flex items-center gap-2 bg-current/5 px-2 py-1.5 rounded">
+            <span className="font-semibold text-xs uppercase tracking-wide opacity-60">Type:</span>
+            <span className="font-bold capitalize text-current">{node.type}</span>
           </div>
           {node.config?.source && (
-            <div className="flex items-baseline gap-2">
-              <span className="font-semibold text-xs uppercase tracking-wide opacity-70">Source:</span>
-              <span className="font-medium uppercase">{node.config.source.type}</span>
+            <div className="flex items-center gap-2 bg-current/5 px-2 py-1.5 rounded">
+              <span className="font-semibold text-xs uppercase tracking-wide opacity-60">Source:</span>
+              <span className="font-bold uppercase text-current">{node.config.source.type}</span>
             </div>
           )}
           {node.config?.source?.path && (
-            <div className="flex flex-col gap-1">
-              <span className="font-semibold text-xs uppercase tracking-wide opacity-70">Path:</span>
-              <span className="font-mono text-xs truncate bg-black/5 dark:bg-white/5 px-2 py-1 rounded">{node.config.source.path}</span>
+            <div className="space-y-1">
+              <span className="font-semibold text-xs uppercase tracking-wide opacity-60 block">Path:</span>
+              <div className="font-mono text-xs bg-black/10 dark:bg-white/10 px-2 py-1.5 rounded break-all">
+                {node.config.source.path}
+              </div>
             </div>
           )}
           {node.config?.source?.url && (
-            <div className="flex flex-col gap-1">
-              <span className="font-semibold text-xs uppercase tracking-wide opacity-70">URL:</span>
-              <span className="font-mono text-xs truncate bg-black/5 dark:bg-white/5 px-2 py-1 rounded">{node.config.source.url}</span>
+            <div className="space-y-1">
+              <span className="font-semibold text-xs uppercase tracking-wide opacity-60 block">URL:</span>
+              <div className="font-mono text-xs bg-black/10 dark:bg-white/10 px-2 py-1.5 rounded break-all">
+                {node.config.source.url}
+              </div>
             </div>
           )}
         </div>

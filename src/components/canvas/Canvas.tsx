@@ -4,12 +4,34 @@ import { CanvasNodeComponent } from './CanvasNode';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, X, Folder, AlertCircle, Workflow, FileInput, Bot, Cog, FileOutput, Settings } from 'lucide-react';
+import { Plus, X, Folder, AlertCircle, Workflow, FileInput, Bot, Cog, FileOutput, Settings, CheckCircle2 } from 'lucide-react';
 import { getDatabaseInstance } from '@/services/database';
 import { DataSourceService } from '@/services/dataSource';
 import { validators, sanitizers } from '@/lib/validation';
 import { DEFAULT_USER_ID } from '@/lib/constants';
 import { generateUUID } from '@/lib/utils';
+
+// Toast notification component for better feedback
+const Toast: React.FC<{ message: string; type: 'success' | 'error' | 'info'; onClose: () => void }> = ({ message, type, onClose }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-primary';
+  
+  return (
+    <div className={`fixed bottom-6 right-6 ${bgColor} text-white px-6 py-4 rounded-xl shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-300 z-50 flex items-center gap-3 max-w-md`}>
+      {type === 'success' && <CheckCircle2 className="h-5 w-5 shrink-0" />}
+      {type === 'error' && <AlertCircle className="h-5 w-5 shrink-0" />}
+      {type === 'info' && <Settings className="h-5 w-5 shrink-0" />}
+      <span className="font-semibold">{message}</span>
+      <button onClick={onClose} className="ml-auto hover:opacity-70 transition-opacity">
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  );
+};
 
 export const Canvas: React.FC = () => {
   const [nodes, setNodes] = useState<CanvasNode[]>([]);
@@ -23,6 +45,12 @@ export const Canvas: React.FC = () => {
     path: '',
   });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  // Show toast notification
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ message, type });
+  };
 
   // Calculate workflow phase based on nodes
   const getWorkflowPhase = () => {
@@ -123,8 +151,10 @@ export const Canvas: React.FC = () => {
       const db = getDatabaseInstance();
       await db.saveCanvasNode(newNode, DEFAULT_USER_ID);
       setNodes([...nodes, newNode]);
+      showToast(`${newNode.title} added`, 'success');
     } catch (error) {
       console.error('Failed to add node:', error);
+      showToast('Failed to add node', 'error');
     }
   };
 
@@ -143,8 +173,10 @@ export const Canvas: React.FC = () => {
       const db = getDatabaseInstance();
       await db.deleteCanvasNode(id, DEFAULT_USER_ID);
       setNodes(nodes.filter((n) => n.id !== id));
+      showToast('Node deleted', 'info');
     } catch (error) {
       console.error('Failed to delete node:', error);
+      showToast('Failed to delete node', 'error');
     }
   };
 
@@ -160,8 +192,10 @@ export const Canvas: React.FC = () => {
       const db = getDatabaseInstance();
       await db.saveCanvasNode(newNode, DEFAULT_USER_ID);
       setNodes([...nodes, newNode]);
+      showToast('Node duplicated', 'success');
     } catch (error) {
       console.error('Failed to duplicate node:', error);
+      showToast('Failed to duplicate node', 'error');
     }
   };
 
@@ -246,6 +280,7 @@ export const Canvas: React.FC = () => {
 
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
+      showToast('Please fix validation errors', 'error');
       return;
     }
 
@@ -262,6 +297,7 @@ export const Canvas: React.FC = () => {
 
     await updateNode(updatedNode);
     closeConfigModal();
+    showToast('Configuration saved successfully', 'success');
   };
 
   const previewNode = async (node: CanvasNode) => {
@@ -837,6 +873,15 @@ export const Canvas: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Toast Notifications for user feedback */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );
