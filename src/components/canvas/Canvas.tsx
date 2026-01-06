@@ -19,14 +19,21 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error' | 'info'; onC
   }, [onClose]);
 
   const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-primary';
+  const ariaRole = type === 'error' ? 'alert' : 'status';
+  const ariaLive = type === 'error' ? 'assertive' : 'polite';
   
   return (
-    <div className={`fixed bottom-6 right-6 ${bgColor} text-white px-6 py-4 rounded-xl shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-300 z-50 flex items-center gap-3 max-w-md`}>
+    <div 
+      className={`fixed bottom-6 right-6 ${bgColor} text-white px-6 py-4 rounded-xl shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-300 z-50 flex items-center gap-3 max-w-md`}
+      role={ariaRole}
+      aria-live={ariaLive}
+      aria-atomic="true"
+    >
       {type === 'success' && <CheckCircle2 className="h-5 w-5 shrink-0" />}
       {type === 'error' && <AlertCircle className="h-5 w-5 shrink-0" />}
       {type === 'info' && <Settings className="h-5 w-5 shrink-0" />}
       <span className="font-semibold">{message}</span>
-      <button onClick={onClose} className="ml-auto hover:opacity-70 transition-opacity">
+      <button onClick={onClose} className="ml-auto hover:opacity-70 transition-opacity" aria-label="Close notification">
         <X className="h-4 w-4" />
       </button>
     </div>

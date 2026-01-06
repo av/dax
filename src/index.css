@@ -165,8 +165,8 @@ button:active:not(:disabled) {
 
 /* Better form focus states */
 input:focus-within, select:focus-within, textarea:focus-within {
-  ring: 2;
-  ring-color: hsl(var(--ring));
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
   border-color: hsl(var(--ring));
 }
 
