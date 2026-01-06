@@ -357,7 +357,8 @@ export const Canvas: React.FC = () => {
         {/* Workflow Phase Indicator - Enhanced prominence */}
         {nodes.length > 0 && (
           <div className="flex items-center gap-2 pr-4 border-r-2 border-border">
-            <div className="flex items-center gap-3 bg-primary/15 px-4 py-2.5 rounded-xl border-2 border-primary/30 shadow-sm">
+            <div className="flex items-center gap-3 bg-primary/15 px-4 py-2.5 rounded-xl border-2 border-primary/30 shadow-sm transition-all duration-300">
+              <div className="flex items-center gap-2 animate-fade-in">
               {workflowPhase === 'setup' && (
                 <>
                   <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
@@ -398,6 +399,7 @@ export const Canvas: React.FC = () => {
                   </div>
                 </>
               )}
+              </div>
             </div>
           </div>
         )}
