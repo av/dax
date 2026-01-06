@@ -486,7 +486,7 @@ export const Canvas: React.FC = () => {
                     </div>
                     <CardTitle className="text-2xl font-black">Configure Node</CardTitle>
                   </div>
-                  <p className="text-sm text-muted-foreground font-medium pl-13">
+                  <p className="text-sm text-muted-foreground font-medium pl-[52px]">
                     {configuringNode.type === 'data' && '📊 Set up your data source to start exploring'}
                     {configuringNode.type === 'agent' && '🤖 Configure AI agent to analyze your data'}
                     {configuringNode.type === 'transform' && '⚙️ Define data transformation rules'}
