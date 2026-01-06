@@ -523,69 +523,84 @@ export const Sidebar: React.FC = () => {
 
                     {/* Chat Interface */}
                     {selectedAgent && selectedAgentData && (
-                      <Card>
-                        <CardHeader>
+                      <Card className="border-2 border-primary/20">
+                        <CardHeader className="bg-primary/5">
                           <div className="flex items-center justify-between">
-                            <CardTitle className="text-base">Chat with {selectedAgentData.name}</CardTitle>
-                            <Button size="sm" variant="ghost" onClick={clearChat}>
+                            <div className="flex items-center gap-2">
+                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                {renderIcon(selectedAgentData.icon, selectedAgentData.iconType)}
+                              </div>
+                              <CardTitle className="text-base">Chat with {selectedAgentData.name}</CardTitle>
+                            </div>
+                            <Button size="sm" variant="ghost" onClick={clearChat} title="Clear chat history">
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
                         </CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardContent className="space-y-3 pt-4">
                           {/* Chat history */}
                           <div className="space-y-2 max-h-[300px] overflow-y-auto">
                             {chatHistory.length === 0 ? (
-                              <div className="text-center text-sm text-muted-foreground py-4">
-                                Start a conversation...
+                              <div className="text-center text-sm text-muted-foreground py-8 px-4">
+                                <Bot className="h-12 w-12 mx-auto mb-3 text-primary/40" />
+                                <p className="font-semibold mb-1">Ready to assist</p>
+                                <p className="text-xs">Ask me anything about your canvas data</p>
                               </div>
                             ) : (
                               chatHistory.map((msg, idx) => (
                                 <div
                                   key={idx}
-                                  className={`p-2 rounded text-sm ${
+                                  className={`p-3 rounded-lg text-sm ${
                                     msg.role === 'user'
-                                      ? 'bg-blue-100 dark:bg-blue-900 ml-4'
+                                      ? 'bg-primary/10 ml-4 border border-primary/20'
                                       : msg.role === 'assistant'
-                                      ? 'bg-slate-100 dark:bg-slate-800 mr-4'
-                                      : 'bg-yellow-100 dark:bg-yellow-900 text-center'
+                                      ? 'bg-muted/50 mr-4 border border-border'
+                                      : 'bg-yellow-100 dark:bg-yellow-900 text-center border border-yellow-200 dark:border-yellow-800'
                                   }`}
                                 >
-                                  <div className="font-semibold text-xs mb-1">
+                                  <div className="font-bold text-xs mb-1.5 uppercase tracking-wide opacity-70">
                                     {msg.role === 'user' ? 'You' : msg.role === 'assistant' ? selectedAgentData.name : 'System'}
                                   </div>
-                                  <div className="whitespace-pre-wrap">{msg.content}</div>
+                                  <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
                                 </div>
                               ))
                             )}
                             <div ref={chatEndRef} />
                           </div>
 
-                          {/* Input */}
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="Type a message..."
-                              value={chatInput}
-                              onChange={(e) => setChatInput(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                  e.preventDefault();
-                                  handleSendMessage();
-                                }
-                              }}
-                              disabled={isExecuting}
-                            />
-                            <Button 
-                              size="sm" 
-                              onClick={handleSendMessage}
-                              disabled={!chatInput.trim() || isExecuting}
-                            >
-                              {isExecuting ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Send className="h-4 w-4" />
-                              )}
-                            </Button>
+                          {/* Input with keyboard shortcut hint */}
+                          <div className="space-y-2">
+                            <div className="flex gap-2">
+                              <Input
+                                placeholder="Type a message..."
+                                value={chatInput}
+                                onChange={(e) => setChatInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSendMessage();
+                                  }
+                                }}
+                                disabled={isExecuting}
+                                className="text-sm"
+                              />
+                              <Button 
+                                size="sm" 
+                                onClick={handleSendMessage}
+                                disabled={!chatInput.trim() || isExecuting}
+                                className="shrink-0 h-10 w-10 p-0"
+                                title="Send message (Enter)"
+                              >
+                                {isExecuting ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Send className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono border">Enter</kbd> to send, <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono border">Shift+Enter</kbd> for new line
+                            </p>
                           </div>
                         </CardContent>
                       </Card>

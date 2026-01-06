@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Rnd } from 'react-rnd';
 import { CanvasNode } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Trash2, Settings, Copy, Eye } from 'lucide-react';
+import { Trash2, Settings, Copy, Eye, AlertCircle } from 'lucide-react';
 
 interface CanvasNodeComponentProps {
   node: CanvasNode;
@@ -38,6 +38,17 @@ export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
     }
   };
 
+  // Check if node is configured
+  const isNodeConfigured = () => {
+    if (node.type === 'data') {
+      return node.config?.source && (node.config.source.path || node.config.source.url);
+    }
+    // Other types can be configured later
+    return false;
+  };
+
+  const configured = isNodeConfigured();
+
   return (
     <Rnd
       size={{ width: node.width, height: node.height }}
@@ -61,6 +72,20 @@ export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
       onMouseLeave={() => setShowToolbar(false)}
     >
       <div className="h-full flex flex-col p-4">
+        {/* Configuration Status Indicator */}
+        {!configured && (
+          <div className="absolute top-2 right-2 flex items-center gap-1 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-md text-xs font-bold border border-amber-300 dark:border-amber-700">
+            <AlertCircle className="h-3 w-3" />
+            <span>Not configured</span>
+          </div>
+        )}
+        {configured && (
+          <div className="absolute top-2 right-2 flex items-center gap-1 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2 py-1 rounded-md text-xs font-bold border border-green-300 dark:border-green-700">
+            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            <span>Ready</span>
+          </div>
+        )}
+        
         {/* Toolbar */}
         {showToolbar && (
           <div className="absolute -top-14 left-0 right-0 flex justify-center gap-2 z-10 animate-in fade-in slide-in-from-top-2 duration-150">
