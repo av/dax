@@ -4,7 +4,7 @@ import { CanvasNodeComponent } from './CanvasNode';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, X, Folder, AlertCircle } from 'lucide-react';
+import { Plus, X, Folder, AlertCircle, Workflow, FileInput, Bot, Cog, FileOutput, Settings } from 'lucide-react';
 import { getDatabaseInstance } from '@/services/database';
 import { DataSourceService } from '@/services/dataSource';
 import { validators, sanitizers } from '@/lib/validation';
@@ -23,6 +23,23 @@ export const Canvas: React.FC = () => {
     path: '',
   });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  // Calculate workflow phase based on nodes
+  const getWorkflowPhase = () => {
+    if (nodes.length === 0) return 'setup';
+    
+    const hasData = nodes.some(n => n.type === 'data' && n.config?.source);
+    const hasAgent = nodes.some(n => n.type === 'agent');
+    const hasTransform = nodes.some(n => n.type === 'transform');
+    const hasOutput = nodes.some(n => n.type === 'output');
+    
+    if (hasOutput) return 'export';
+    if (hasTransform) return 'analyze';
+    if (hasAgent || hasData) return 'explore';
+    return 'setup';
+  };
+
+  const workflowPhase = getWorkflowPhase();
 
   // Load nodes from database on mount
   useEffect(() => {
@@ -255,9 +272,41 @@ export const Canvas: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900">
+    <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 relative">
       {/* Canvas Toolbar */}
       <div className="bg-card border-b border-border px-6 py-4 flex gap-3 items-center shadow-sm">
+        {/* Workflow Phase Indicator - Shows user progress */}
+        {nodes.length > 0 && (
+          <div className="flex items-center gap-2 pr-4 border-r border-border">
+            <div className="flex items-center gap-2 bg-primary/10 px-3 py-2 rounded-lg border border-primary/20">
+              {workflowPhase === 'setup' && (
+                <>
+                  <Workflow className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-bold text-primary">Setup</span>
+                </>
+              )}
+              {workflowPhase === 'explore' && (
+                <>
+                  <FileInput className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-sm font-bold text-blue-600 dark:text-blue-400">Explore</span>
+                </>
+              )}
+              {workflowPhase === 'analyze' && (
+                <>
+                  <Cog className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  <span className="text-sm font-bold text-purple-600 dark:text-purple-400">Analyze</span>
+                </>
+              )}
+              {workflowPhase === 'export' && (
+                <>
+                  <FileOutput className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  <span className="text-sm font-bold text-green-600 dark:text-green-400">Export</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        
         <div className="flex items-center gap-3 pr-3 border-r border-border">
           <select
             value={selectedNodeType}
@@ -274,11 +323,11 @@ export const Canvas: React.FC = () => {
             <Plus className="h-4 w-4 mr-2" />
             Add Node
           </Button>
-          <Button size="default" variant="outline" onClick={multiAddNodes} className="font-semibold shadow-sm hover:shadow-md transition-shadow">
+          <Button size="default" variant="outline" onClick={multiAddNodes} className="font-semibold shadow-sm hover:shadow-md transition-shadow" disabled={nodes.length === 0}>
             Multi-Add
           </Button>
         </div>
-        <Button size="default" variant="destructive" onClick={batchDelete} className="font-semibold shadow-sm hover:shadow-md transition-shadow">
+        <Button size="default" variant="destructive" onClick={batchDelete} className="font-semibold shadow-sm hover:shadow-md transition-shadow" disabled={nodes.length === 0}>
           Clear All
         </Button>
         <div className="ml-auto flex items-center gap-2">
@@ -287,6 +336,78 @@ export const Canvas: React.FC = () => {
           </span>
         </div>
       </div>
+
+      {/* Floating Quick-Add Button - Primary workflow optimization */}
+      {nodes.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+          <div className="text-center pointer-events-auto animate-in fade-in zoom-in duration-500">
+            <div className="mb-6">
+              <div className="inline-block p-6 bg-primary/10 rounded-full mb-4">
+                <Plus className="h-16 w-16 text-primary" />
+              </div>
+              <h3 className="text-2xl font-bold mb-2 text-foreground">Start Your Workflow</h3>
+              <p className="text-muted-foreground mb-6 max-w-md">
+                Add your first node to begin exploring data with AI agents
+              </p>
+            </div>
+            <div className="flex gap-3 justify-center">
+              <Button 
+                size="lg" 
+                onClick={() => {
+                  setSelectedNodeType('data');
+                  addNode();
+                }}
+                className="font-bold shadow-xl hover:shadow-2xl transition-all text-base h-14 px-8"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Add Data Source
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline"
+                onClick={() => {
+                  setSelectedNodeType('agent');
+                  addNode();
+                }}
+                className="font-bold shadow-lg hover:shadow-xl transition-all text-base h-14 px-8"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Add Agent
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Next Steps Guide - Shows after first node added */}
+      {nodes.length > 0 && nodes.length <= 2 && !nodes.some(n => n.config?.source) && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-auto z-10 animate-in fade-in slide-in-from-top duration-300">
+          <Card className="shadow-lg border-2 border-primary/20 bg-card/95 backdrop-blur">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Settings className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold mb-1">Configure your nodes</p>
+                <p className="text-xs text-muted-foreground">
+                  Click the <Settings className="h-3 w-3 inline" /> icon above a node to set up its data source
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  // Close hint by configuring first node
+                  if (nodes[0]) configureNode(nodes[0]);
+                }}
+                className="shrink-0"
+              >
+                Got it
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Canvas Area */}
       <div className="flex-1 relative overflow-hidden">
@@ -314,13 +435,27 @@ export const Canvas: React.FC = () => {
         </div>
       </div>
 
-      {/* Configuration Modal */}
+      {/* Configuration Sliding Panel - Keeps canvas context visible */}
       {configuringNode && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-6 animate-in fade-in duration-200">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-auto shadow-2xl border-2 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 animate-in fade-in duration-200">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm" 
+            onClick={closeConfigModal}
+          />
+          {/* Sliding Panel */}
+          <Card className="absolute top-0 right-0 bottom-0 w-full max-w-2xl shadow-2xl border-l-2 border-border animate-in slide-in-from-right duration-300 overflow-auto bg-card">
             <CardHeader className="space-y-2 pb-6 border-b-2 border-border bg-muted/30">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl font-bold">Configure {configuringNode.title}</CardTitle>
+                <div className="flex-1">
+                  <CardTitle className="text-2xl font-bold">Configure {configuringNode.title}</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {configuringNode.type === 'data' && 'Set up your data source to start exploring'}
+                    {configuringNode.type === 'agent' && 'Configure AI agent to analyze your data'}
+                    {configuringNode.type === 'transform' && 'Define data transformation rules'}
+                    {configuringNode.type === 'output' && 'Choose output format and destination'}
+                  </p>
+                </div>
                 <Button
                   size="sm"
                   variant="ghost"
