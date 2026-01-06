@@ -61,31 +61,22 @@ export const Canvas: React.FC = () => {
   // Keyboard shortcuts for better accessibility and power user support
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts if user is typing in an input (except Escape)
-      const isTyping = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
-      
-      if (isTyping && e.key !== 'Escape') {
-        // Allow Cmd/Ctrl+S to save even when typing
-        if ((e.metaKey || e.ctrlKey) && e.key === 's' && configuringNode) {
-          e.preventDefault();
-          saveNodeConfiguration();
-        }
-        return;
-      }
-
-      // Cmd/Ctrl + N: Add new node
+      // Cmd/Ctrl + N: Add new node (works globally except when typing)
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
-        e.preventDefault();
-        addNode();
+        const isTyping = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+        if (!isTyping) {
+          e.preventDefault();
+          addNode();
+        }
       }
 
-      // Cmd/Ctrl + S: Save configuration if panel is open
+      // Cmd/Ctrl + S: Save configuration if panel is open (works even when typing in inputs)
       if ((e.metaKey || e.ctrlKey) && e.key === 's' && configuringNode) {
         e.preventDefault();
         saveNodeConfiguration();
       }
 
-      // Escape: Close configuration panel or deselect
+      // Escape: Close configuration panel or preview (works globally)
       if (e.key === 'Escape') {
         if (configuringNode) {
           closeConfigModal();
@@ -95,18 +86,13 @@ export const Canvas: React.FC = () => {
           setPreviewData(null);
         }
       }
-
-      // ? key: Show keyboard shortcuts help
-      if (e.key === '?' && !e.shiftKey) {
-        // Could trigger a help modal in the future
-      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [configuringNode, previewingNode]);
+  }, [configuringNode, previewingNode, addNode, saveNodeConfiguration, closeConfigModal, setPreviewingNode, setPreviewData]);
 
   const loadNodes = async () => {
     try {
