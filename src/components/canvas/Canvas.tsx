@@ -58,6 +58,56 @@ export const Canvas: React.FC = () => {
     };
   }, []);
 
+  // Keyboard shortcuts for better accessibility and power user support
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts if user is typing in an input (except Escape)
+      const isTyping = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+      
+      if (isTyping && e.key !== 'Escape') {
+        // Allow Cmd/Ctrl+S to save even when typing
+        if ((e.metaKey || e.ctrlKey) && e.key === 's' && configuringNode) {
+          e.preventDefault();
+          saveNodeConfiguration();
+        }
+        return;
+      }
+
+      // Cmd/Ctrl + N: Add new node
+      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+        e.preventDefault();
+        addNode();
+      }
+
+      // Cmd/Ctrl + S: Save configuration if panel is open
+      if ((e.metaKey || e.ctrlKey) && e.key === 's' && configuringNode) {
+        e.preventDefault();
+        saveNodeConfiguration();
+      }
+
+      // Escape: Close configuration panel or deselect
+      if (e.key === 'Escape') {
+        if (configuringNode) {
+          closeConfigModal();
+        }
+        if (previewingNode) {
+          setPreviewingNode(null);
+          setPreviewData(null);
+        }
+      }
+
+      // ? key: Show keyboard shortcuts help
+      if (e.key === '?' && !e.shiftKey) {
+        // Could trigger a help modal in the future
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [configuringNode, previewingNode]);
+
   const loadNodes = async () => {
     try {
       const db = getDatabaseInstance();
@@ -336,9 +386,12 @@ export const Canvas: React.FC = () => {
             <option value="transform">⚙️ Transform</option>
             <option value="output">📤 Output</option>
           </select>
-          <Button size="default" onClick={addNode} className="font-bold shadow-md hover:shadow-lg transition-all h-11 px-6">
+          <Button size="default" onClick={addNode} className="font-bold shadow-md hover:shadow-lg transition-all h-11 px-6 group relative">
             <Plus className="h-5 w-5 mr-2" />
-            Add Node
+            <span>Add Node</span>
+            <kbd className="ml-2 px-1.5 py-0.5 bg-black/10 dark:bg-white/10 rounded text-xs font-mono opacity-60 group-hover:opacity-100 transition-opacity">
+              ⌘N
+            </kbd>
           </Button>
         </div>
         <Button size="default" variant="outline" onClick={multiAddNodes} className="font-semibold shadow-sm hover:shadow-md transition-shadow" disabled={nodes.length === 0}>
@@ -369,9 +422,13 @@ export const Canvas: React.FC = () => {
               <p className="text-muted-foreground mb-2 max-w-md text-base leading-relaxed">
                 Choose how you want to begin your data exploration journey
               </p>
-              <p className="text-sm text-muted-foreground/70 max-w-md">
+              <p className="text-sm text-muted-foreground/70 max-w-md mb-4">
                 Add a data source to connect your data, or start with an AI agent
               </p>
+              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-muted/30 px-4 py-2 rounded-lg max-w-sm mx-auto">
+                <kbd className="px-2 py-1 bg-background rounded font-mono border">⌘N</kbd>
+                <span>to quickly add a node</span>
+              </div>
             </div>
             <div className="flex flex-col gap-4 items-center">
               {/* Primary Action - Data Source (recommended first step) */}
@@ -574,18 +631,27 @@ export const Canvas: React.FC = () => {
                     <div className="space-y-3">
                       <label className="text-sm font-bold leading-none block text-foreground">Folder Path</label>
                       <div className="flex gap-3">
-                        <Input
-                          value={configDataSource.path || ''}
-                          onChange={(e) => {
-                            setConfigDataSource({ ...configDataSource, path: e.target.value });
-                            if (validationErrors.path) {
-                              setValidationErrors({ ...validationErrors, path: '' });
-                            }
-                          }}
-                          placeholder="/path/to/your/data/folder"
-                          className={`text-base font-mono h-12 ${validationErrors.path ? 'border-red-500 focus:ring-red-500' : ''}`}
-                        />
-                        <Button size="default" onClick={selectFolder} variant="outline" className="shrink-0 hover:bg-accent transition-colors h-12 w-12 p-0">
+                        <div className="flex-1 relative">
+                          <Input
+                            value={configDataSource.path || ''}
+                            onChange={(e) => {
+                              setConfigDataSource({ ...configDataSource, path: e.target.value });
+                              if (validationErrors.path) {
+                                setValidationErrors({ ...validationErrors, path: '' });
+                              }
+                            }}
+                            placeholder="e.g., /Users/username/Documents/data or C:\Users\username\Documents\data"
+                            className={`text-base font-mono h-12 pr-10 ${validationErrors.path ? 'border-red-500 focus:ring-red-500' : ''}`}
+                          />
+                          {configDataSource.path && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600 dark:text-green-400">
+                              <svg className="h-5 w-5" fill="none" strokeWidth="2" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        <Button size="default" onClick={selectFolder} variant="outline" className="shrink-0 hover:bg-accent transition-colors h-12 w-12 p-0" title="Browse for folder">
                           <Folder className="h-5 w-5" />
                         </Button>
                       </div>
@@ -595,9 +661,9 @@ export const Canvas: React.FC = () => {
                           <span>{validationErrors.path}</span>
                         </div>
                       )}
-                      <p className="text-xs text-muted-foreground mt-2 flex items-start gap-2">
+                      <p className="text-xs text-muted-foreground mt-2 flex items-start gap-2 bg-muted/30 px-3 py-2 rounded-lg">
                         <span className="shrink-0">💡</span>
-                        <span>Click the folder icon to browse, or type the path directly</span>
+                        <span>You can drag and drop a folder here, click the folder icon to browse, or paste the path directly</span>
                       </p>
                     </div>
                   )}
@@ -605,28 +671,43 @@ export const Canvas: React.FC = () => {
                   {(configDataSource.type === 'http' || configDataSource.type === 's3') && (
                     <div className="space-y-3">
                       <label className="text-sm font-bold leading-none block text-foreground">
-                        {configDataSource.type === 'http' ? 'HTTP/HTTPS URL' : 'S3 Bucket URL'}
+                        {configDataSource.type === 'http' ? 'API Endpoint URL' : 'S3 Bucket URL'}
                       </label>
-                      <Input
-                        value={configDataSource.url || ''}
-                        onChange={(e) => {
-                          setConfigDataSource({ ...configDataSource, url: e.target.value });
-                          if (validationErrors.url) {
-                            setValidationErrors({ ...validationErrors, url: '' });
+                      <div className="relative">
+                        <Input
+                          value={configDataSource.url || ''}
+                          onChange={(e) => {
+                            setConfigDataSource({ ...configDataSource, url: e.target.value });
+                            if (validationErrors.url) {
+                              setValidationErrors({ ...validationErrors, url: '' });
+                            }
+                          }}
+                          placeholder={
+                            configDataSource.type === 'http'
+                              ? 'e.g., https://api.example.com/v1/data'
+                              : 'e.g., s3://your-bucket-name/path/to/data'
                           }
-                        }}
-                        placeholder={
-                          configDataSource.type === 'http'
-                            ? 'https://api.example.com/data'
-                            : 's3://your-bucket-name/path/to/data'
-                        }
-                        className={`text-base font-mono h-12 ${validationErrors.url ? 'border-red-500 focus:ring-red-500' : ''}`}
-                      />
+                          className={`text-base font-mono h-12 pr-10 ${validationErrors.url ? 'border-red-500 focus:ring-red-500' : ''}`}
+                        />
+                        {configDataSource.url && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600 dark:text-green-400">
+                            <svg className="h-5 w-5" fill="none" strokeWidth="2" stroke="currentColor" viewBox="0 0 24 24">
+                              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
                       {validationErrors.url && (
                         <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2.5 rounded-lg border border-red-200 dark:border-red-800">
                           <AlertCircle className="h-4 w-4 shrink-0" />
                           <span>{validationErrors.url}</span>
                         </div>
+                      )}
+                      {configDataSource.type === 'http' && (
+                        <p className="text-xs text-muted-foreground mt-2 flex items-start gap-2 bg-muted/30 px-3 py-2 rounded-lg">
+                          <span className="shrink-0">💡</span>
+                          <span>Supports REST APIs and webhooks. Authentication can be configured below.</span>
+                        </p>
                       )}
                     </div>
                   )}
@@ -684,15 +765,30 @@ export const Canvas: React.FC = () => {
               )}
 
               <div className="flex gap-4 pt-8 border-t-2 border-border sticky bottom-0 bg-card pb-2">
-                <Button onClick={saveNodeConfiguration} className="flex-1 font-bold shadow-lg hover:shadow-xl transition-all text-base h-14 rounded-xl bg-primary hover:bg-primary/90">
-                  💾 Save Configuration
+                <Button 
+                  onClick={saveNodeConfiguration} 
+                  className="flex-1 font-bold shadow-lg hover:shadow-xl transition-all text-base h-14 rounded-xl bg-primary hover:bg-primary/90 group"
+                  disabled={!!Object.keys(validationErrors).length}
+                >
+                  <div className="flex items-center gap-2">
+                    <svg className="h-5 w-5" fill="none" strokeWidth="2" stroke="currentColor" viewBox="0 0 24 24">
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Save Configuration</span>
+                    <kbd className="ml-2 px-2 py-0.5 bg-black/10 dark:bg-white/10 rounded text-xs font-mono opacity-60 group-hover:opacity-100 transition-opacity">
+                      ⌘S
+                    </kbd>
+                  </div>
                 </Button>
                 <Button
                   variant="outline"
                   onClick={closeConfigModal}
-                  className="font-bold shadow-sm hover:shadow-md transition-shadow text-base h-14 px-8 rounded-xl border-2"
+                  className="font-bold shadow-sm hover:shadow-md transition-shadow text-base h-14 px-8 rounded-xl border-2 group"
                 >
-                  Cancel
+                  <span>Cancel</span>
+                  <kbd className="ml-2 px-2 py-0.5 bg-muted rounded text-xs font-mono opacity-60 group-hover:opacity-100 transition-opacity">
+                    Esc
+                  </kbd>
                 </Button>
               </div>
             </CardContent>
