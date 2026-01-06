@@ -4,7 +4,7 @@ import { CanvasNodeComponent } from './CanvasNode';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, X, Folder, AlertCircle, Workflow, FileInput, Bot, Cog, FileOutput } from 'lucide-react';
+import { Plus, X, Folder, AlertCircle, Workflow, FileInput, Bot, Cog, FileOutput, Settings } from 'lucide-react';
 import { getDatabaseInstance } from '@/services/database';
 import { DataSourceService } from '@/services/dataSource';
 import { validators, sanitizers } from '@/lib/validation';
