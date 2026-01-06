@@ -274,44 +274,61 @@ export const Canvas: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 relative">
       {/* Canvas Toolbar */}
-      <div className="bg-card border-b border-border px-6 py-4 flex gap-3 items-center shadow-sm">
-        {/* Workflow Phase Indicator - Shows user progress */}
+      <div className="bg-card border-b-2 border-border px-6 py-4 flex gap-3 items-center shadow-md">
+        {/* Workflow Phase Indicator - Enhanced prominence */}
         {nodes.length > 0 && (
-          <div className="flex items-center gap-2 pr-4 border-r border-border">
-            <div className="flex items-center gap-2 bg-primary/10 px-3 py-2 rounded-lg border border-primary/20">
+          <div className="flex items-center gap-2 pr-4 border-r-2 border-border">
+            <div className="flex items-center gap-3 bg-primary/15 px-4 py-2.5 rounded-xl border-2 border-primary/30 shadow-sm">
               {workflowPhase === 'setup' && (
                 <>
-                  <Workflow className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-bold text-primary">Setup</span>
+                  <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                  <Workflow className="h-5 w-5 text-primary" />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-primary uppercase tracking-wider">Step 1</span>
+                    <span className="text-sm font-bold text-primary">Setup</span>
+                  </div>
                 </>
               )}
               {workflowPhase === 'explore' && (
                 <>
-                  <FileInput className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  <span className="text-sm font-bold text-blue-600 dark:text-blue-400">Explore</span>
+                  <div className="h-2 w-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse" />
+                  <FileInput className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Step 2</span>
+                    <span className="text-sm font-bold text-blue-600 dark:text-blue-400">Explore Data</span>
+                  </div>
                 </>
               )}
               {workflowPhase === 'analyze' && (
                 <>
-                  <Cog className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                  <span className="text-sm font-bold text-purple-600 dark:text-purple-400">Analyze</span>
+                  <div className="h-2 w-2 rounded-full bg-purple-600 dark:bg-purple-400 animate-pulse" />
+                  <Cog className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Step 3</span>
+                    <span className="text-sm font-bold text-purple-600 dark:text-purple-400">Analyze</span>
+                  </div>
                 </>
               )}
               {workflowPhase === 'export' && (
                 <>
-                  <FileOutput className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  <span className="text-sm font-bold text-green-600 dark:text-green-400">Export</span>
+                  <div className="h-2 w-2 rounded-full bg-green-600 dark:bg-green-400 animate-pulse" />
+                  <FileOutput className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider">Step 4</span>
+                    <span className="text-sm font-bold text-green-600 dark:text-green-400">Export Results</span>
+                  </div>
                 </>
               )}
             </div>
           </div>
         )}
         
-        <div className="flex items-center gap-3 pr-3 border-r border-border">
+        <div className="flex items-center gap-3 pr-4 border-r-2 border-border">
+          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Add Node</label>
           <select
             value={selectedNodeType}
             onChange={(e) => setSelectedNodeType(e.target.value as any)}
-            className="px-4 py-2.5 border border-input bg-background text-foreground rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent shadow-sm hover:bg-accent transition-colors cursor-pointer"
+            className="px-4 py-2.5 border-2 border-input bg-background text-foreground rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent shadow-sm hover:bg-accent transition-colors cursor-pointer"
             aria-label="Select node type"
           >
             <option value="data">📊 Data Source</option>
@@ -319,21 +336,24 @@ export const Canvas: React.FC = () => {
             <option value="transform">⚙️ Transform</option>
             <option value="output">📤 Output</option>
           </select>
-          <Button size="default" onClick={addNode} className="font-semibold shadow-sm hover:shadow-md transition-shadow">
-            <Plus className="h-4 w-4 mr-2" />
+          <Button size="default" onClick={addNode} className="font-bold shadow-md hover:shadow-lg transition-all h-11 px-6">
+            <Plus className="h-5 w-5 mr-2" />
             Add Node
           </Button>
-          <Button size="default" variant="outline" onClick={multiAddNodes} className="font-semibold shadow-sm hover:shadow-md transition-shadow" disabled={nodes.length === 0}>
-            Multi-Add
-          </Button>
         </div>
+        <Button size="default" variant="outline" onClick={multiAddNodes} className="font-semibold shadow-sm hover:shadow-md transition-shadow" disabled={nodes.length === 0}>
+          Duplicate All
+        </Button>
         <Button size="default" variant="destructive" onClick={batchDelete} className="font-semibold shadow-sm hover:shadow-md transition-shadow" disabled={nodes.length === 0}>
           Clear All
         </Button>
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-sm font-semibold text-muted-foreground bg-muted/50 px-4 py-2 rounded-lg border border-border">
-            {nodes.length} {nodes.length === 1 ? 'node' : 'nodes'}
-          </span>
+        <div className="ml-auto flex items-center gap-3">
+          <div className="flex flex-col items-end">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Canvas</span>
+            <span className="text-sm font-bold text-foreground">
+              {nodes.length} {nodes.length === 1 ? 'node' : 'nodes'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -341,27 +361,37 @@ export const Canvas: React.FC = () => {
       {nodes.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
           <div className="text-center pointer-events-auto animate-in fade-in zoom-in duration-500">
-            <div className="mb-6">
-              <div className="inline-block p-6 bg-primary/10 rounded-full mb-4">
-                <Plus className="h-16 w-16 text-primary" />
+            <div className="mb-8">
+              <div className="inline-block p-8 bg-gradient-to-br from-primary/20 to-primary/5 rounded-3xl mb-6 shadow-xl">
+                <Plus className="h-20 w-20 text-primary" strokeWidth={2.5} />
               </div>
-              <h3 className="text-2xl font-bold mb-2 text-foreground">Start Your Workflow</h3>
-              <p className="text-muted-foreground mb-6 max-w-md">
-                Add your first node to begin exploring data with AI agents
+              <h3 className="text-3xl font-black mb-3 text-foreground tracking-tight">Start Your Workflow</h3>
+              <p className="text-muted-foreground mb-2 max-w-md text-base leading-relaxed">
+                Choose how you want to begin your data exploration journey
+              </p>
+              <p className="text-sm text-muted-foreground/70 max-w-md">
+                Add a data source to connect your data, or start with an AI agent
               </p>
             </div>
-            <div className="flex gap-3 justify-center">
+            <div className="flex flex-col gap-4 items-center">
+              {/* Primary Action - Data Source (recommended first step) */}
               <Button 
                 size="lg" 
                 onClick={() => {
                   setSelectedNodeType('data');
                   addNode();
                 }}
-                className="font-bold shadow-xl hover:shadow-2xl transition-all text-base h-14 px-8"
+                className="font-bold shadow-2xl hover:shadow-3xl transition-all text-lg h-16 px-10 bg-primary hover:bg-primary/90 rounded-2xl group relative overflow-hidden"
               >
-                <Plus className="h-5 w-5 mr-2" />
-                Add Data Source
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000" />
+                <Plus className="h-6 w-6 mr-3" strokeWidth={3} />
+                <div className="flex flex-col items-start">
+                  <span>Add Data Source</span>
+                  <span className="text-xs font-medium opacity-90">Recommended first step</span>
+                </div>
               </Button>
+              
+              {/* Secondary Action - Agent */}
               <Button 
                 size="lg" 
                 variant="outline"
@@ -369,41 +399,43 @@ export const Canvas: React.FC = () => {
                   setSelectedNodeType('agent');
                   addNode();
                 }}
-                className="font-bold shadow-lg hover:shadow-xl transition-all text-base h-14 px-8"
+                className="font-bold shadow-lg hover:shadow-xl transition-all text-base h-14 px-8 border-2 rounded-xl"
               >
                 <Plus className="h-5 w-5 mr-2" />
-                Add Agent
+                Start with an Agent
               </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Next Steps Guide - Shows after first node added */}
+      {/* Next Steps Guide - Non-intrusive tooltip style */}
       {nodes.length > 0 && nodes.length <= 2 && !nodes.some(n => n.config?.source) && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-auto z-10 animate-in fade-in slide-in-from-top duration-300">
-          <Card className="shadow-lg border-2 border-primary/20 bg-card/95 backdrop-blur">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Settings className="h-5 w-5 text-primary" />
+        <div className="absolute top-4 right-4 pointer-events-auto z-10 animate-in fade-in slide-in-from-right duration-300 max-w-sm">
+          <Card className="shadow-xl border-2 border-primary/30 bg-card backdrop-blur-sm">
+            <CardContent className="p-5">
+              <div className="flex items-start gap-4">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 shadow-inner">
+                  <Settings className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold mb-2 text-foreground">💡 Next Step: Configure Your Node</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                    Hover over the node and click the <Settings className="h-3 w-3 inline mx-0.5" /> icon to set up your data source
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      // Close hint by configuring first node
+                      if (nodes[0]) configureNode(nodes[0]);
+                    }}
+                    className="text-xs h-8 px-3 font-semibold hover:bg-primary/10 rounded-lg"
+                  >
+                    Configure Now →
+                  </Button>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold mb-1">Configure your nodes</p>
-                <p className="text-xs text-muted-foreground">
-                  Click the <Settings className="h-3 w-3 inline" /> icon above a node to set up its data source
-                </p>
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  // Close hint by configuring first node
-                  if (nodes[0]) configureNode(nodes[0]);
-                }}
-                className="shrink-0"
-              >
-                Got it
-              </Button>
             </CardContent>
           </Card>
         </div>
@@ -435,31 +467,36 @@ export const Canvas: React.FC = () => {
         </div>
       </div>
 
-      {/* Configuration Sliding Panel - Keeps canvas context visible */}
+      {/* Configuration Sliding Panel - Enhanced workflow guidance */}
       {configuringNode && (
         <div className="fixed inset-0 z-50 animate-in fade-in duration-200">
           {/* Backdrop */}
           <div 
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm" 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
             onClick={closeConfigModal}
           />
           {/* Sliding Panel */}
-          <Card className="absolute top-0 right-0 bottom-0 w-full max-w-2xl shadow-2xl border-l-2 border-border animate-in slide-in-from-right duration-300 overflow-auto bg-card">
-            <CardHeader className="space-y-2 pb-6 border-b-2 border-border bg-muted/30">
+          <Card className="absolute top-0 right-0 bottom-0 w-full max-w-2xl shadow-2xl border-l-4 border-primary/50 animate-in slide-in-from-right duration-300 overflow-auto bg-card">
+            <CardHeader className="space-y-3 pb-6 border-b-2 border-border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent sticky top-0 z-10">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <CardTitle className="text-2xl font-bold">Configure {configuringNode.title}</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {configuringNode.type === 'data' && 'Set up your data source to start exploring'}
-                    {configuringNode.type === 'agent' && 'Configure AI agent to analyze your data'}
-                    {configuringNode.type === 'transform' && 'Define data transformation rules'}
-                    {configuringNode.type === 'output' && 'Choose output format and destination'}
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                      <Settings className="h-5 w-5 text-primary" />
+                    </div>
+                    <CardTitle className="text-2xl font-black">Configure Node</CardTitle>
+                  </div>
+                  <p className="text-sm text-muted-foreground font-medium pl-13">
+                    {configuringNode.type === 'data' && '📊 Set up your data source to start exploring'}
+                    {configuringNode.type === 'agent' && '🤖 Configure AI agent to analyze your data'}
+                    {configuringNode.type === 'transform' && '⚙️ Define data transformation rules'}
+                    {configuringNode.type === 'output' && '📤 Choose output format and destination'}
                   </p>
                 </div>
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-10 w-10 p-0 hover:bg-accent rounded-lg transition-colors"
+                  className="h-10 w-10 p-0 hover:bg-accent rounded-xl transition-colors"
                   onClick={closeConfigModal}
                   aria-label="Close"
                   title="Close"
@@ -468,57 +505,75 @@ export const Canvas: React.FC = () => {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6 pt-6 pb-6">
-              <div className="space-y-3">
-                <label className="text-sm font-bold leading-none block">Node Title</label>
-                <Input
-                  value={configuringNode.title}
-                  onChange={(e) => {
-                    setConfiguringNode({ ...configuringNode, title: e.target.value });
-                    if (validationErrors.title) {
-                      setValidationErrors({ ...validationErrors, title: '' });
-                    }
-                  }}
-                  placeholder="Enter node title"
-                  className={`text-base ${validationErrors.title ? 'border-red-500 focus:ring-red-500' : ''}`}
-                />
-                {validationErrors.title && (
-                  <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg border border-red-200 dark:border-red-800">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span>{validationErrors.title}</span>
+            <CardContent className="space-y-8 pt-8 pb-8 px-8">
+              {/* Step 1: Basic Info */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center font-bold text-primary">
+                    1
                   </div>
-                )}
+                  <h3 className="text-lg font-bold text-foreground">Basic Information</h3>
+                </div>
+                <div className="space-y-3 pl-11">
+                  <label className="text-sm font-bold leading-none block text-foreground">Node Title</label>
+                  <Input
+                    value={configuringNode.title}
+                    onChange={(e) => {
+                      setConfiguringNode({ ...configuringNode, title: e.target.value });
+                      if (validationErrors.title) {
+                        setValidationErrors({ ...validationErrors, title: '' });
+                      }
+                    }}
+                    placeholder="Enter a descriptive name"
+                    className={`text-base h-12 ${validationErrors.title ? 'border-red-500 focus:ring-red-500' : ''}`}
+                  />
+                  {validationErrors.title && (
+                    <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg border border-red-200 dark:border-red-800">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <span>{validationErrors.title}</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {configuringNode.type === 'data' && (
                 <>
-                  <div className="space-y-3">
-                    <label className="text-sm font-bold leading-none block">Data Source Type</label>
-                    <select
-                      value={configDataSource.type}
-                      onChange={(e) =>
-                        setConfigDataSource({
-                          ...configDataSource,
-                          type: e.target.value as DataSource['type'],
-                        })
-                      }
-                      className="w-full px-4 py-2.5 border border-input bg-background text-foreground rounded-lg text-base font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent shadow-sm cursor-pointer hover:bg-accent transition-colors"
-                    >
-                      <option value="fs">📁 Filesystem</option>
-                      <option value="http">🌐 HTTP/HTTPS</option>
-                      <option value="s3">☁️ Amazon S3</option>
-                      <option value="ftp">📡 FTP</option>
-                      <option value="gdrive">📂 Google Drive</option>
-                      <option value="smb">🖥️ SMB/CIFS</option>
-                      <option value="webdav">🔗 WebDAV</option>
-                      <option value="zip">📦 ZIP Archive</option>
-                    </select>
-                  </div>
+                  {/* Step 2: Data Source Configuration */}
+                  <div className="space-y-4 border-t-2 border-border pt-8">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center font-bold text-blue-600 dark:text-blue-400">
+                        2
+                      </div>
+                      <h3 className="text-lg font-bold text-foreground">Data Source Configuration</h3>
+                    </div>
+                    <div className="space-y-4 pl-11">
+                      <div className="space-y-3">
+                        <label className="text-sm font-bold leading-none block text-foreground">Source Type</label>
+                        <select
+                          value={configDataSource.type}
+                          onChange={(e) =>
+                            setConfigDataSource({
+                              ...configDataSource,
+                              type: e.target.value as DataSource['type'],
+                            })
+                          }
+                          className="w-full px-4 py-3 border-2 border-input bg-background text-foreground rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent shadow-sm cursor-pointer hover:bg-accent transition-colors"
+                        >
+                          <option value="fs">📁 Filesystem</option>
+                          <option value="http">🌐 HTTP/HTTPS</option>
+                          <option value="s3">☁️ Amazon S3</option>
+                          <option value="ftp">📡 FTP</option>
+                          <option value="gdrive">📂 Google Drive</option>
+                          <option value="smb">🖥️ SMB/CIFS</option>
+                          <option value="webdav">🔗 WebDAV</option>
+                          <option value="zip">📦 ZIP Archive</option>
+                        </select>
+                      </div>
 
                   {configDataSource.type === 'fs' && (
                     <div className="space-y-3">
-                      <label className="text-sm font-bold leading-none block">Folder Path</label>
-                      <div className="flex gap-2">
+                      <label className="text-sm font-bold leading-none block text-foreground">Folder Path</label>
+                      <div className="flex gap-3">
                         <Input
                           value={configDataSource.path || ''}
                           onChange={(e) => {
@@ -527,25 +582,31 @@ export const Canvas: React.FC = () => {
                               setValidationErrors({ ...validationErrors, path: '' });
                             }
                           }}
-                          placeholder="/path/to/folder"
-                          className={`text-base font-mono ${validationErrors.path ? 'border-red-500 focus:ring-red-500' : ''}`}
+                          placeholder="/path/to/your/data/folder"
+                          className={`text-base font-mono h-12 ${validationErrors.path ? 'border-red-500 focus:ring-red-500' : ''}`}
                         />
-                        <Button size="default" onClick={selectFolder} variant="outline" className="shrink-0 hover:bg-accent transition-colors">
-                          <Folder className="h-4 w-4" />
+                        <Button size="default" onClick={selectFolder} variant="outline" className="shrink-0 hover:bg-accent transition-colors h-12 w-12 p-0">
+                          <Folder className="h-5 w-5" />
                         </Button>
                       </div>
                       {validationErrors.path && (
-                        <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg border border-red-200 dark:border-red-800">
+                        <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2.5 rounded-lg border border-red-200 dark:border-red-800">
                           <AlertCircle className="h-4 w-4 shrink-0" />
                           <span>{validationErrors.path}</span>
                         </div>
                       )}
+                      <p className="text-xs text-muted-foreground mt-2 flex items-start gap-2">
+                        <span className="shrink-0">💡</span>
+                        <span>Click the folder icon to browse, or type the path directly</span>
+                      </p>
                     </div>
                   )}
 
                   {(configDataSource.type === 'http' || configDataSource.type === 's3') && (
                     <div className="space-y-3">
-                      <label className="text-sm font-bold leading-none block">URL</label>
+                      <label className="text-sm font-bold leading-none block text-foreground">
+                        {configDataSource.type === 'http' ? 'HTTP/HTTPS URL' : 'S3 Bucket URL'}
+                      </label>
                       <Input
                         value={configDataSource.url || ''}
                         onChange={(e) => {
@@ -557,12 +618,12 @@ export const Canvas: React.FC = () => {
                         placeholder={
                           configDataSource.type === 'http'
                             ? 'https://api.example.com/data'
-                            : 's3://bucket-name/key'
+                            : 's3://your-bucket-name/path/to/data'
                         }
-                        className={`text-base font-mono ${validationErrors.url ? 'border-red-500 focus:ring-red-500' : ''}`}
+                        className={`text-base font-mono h-12 ${validationErrors.url ? 'border-red-500 focus:ring-red-500' : ''}`}
                       />
                       {validationErrors.url && (
-                        <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg border border-red-200 dark:border-red-800">
+                        <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2.5 rounded-lg border border-red-200 dark:border-red-800">
                           <AlertCircle className="h-4 w-4 shrink-0" />
                           <span>{validationErrors.url}</span>
                         </div>
@@ -570,64 +631,66 @@ export const Canvas: React.FC = () => {
                     </div>
                   )}
 
-                  {configDataSource.type === 'ftp' && (
-                    <>
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold">FTP URL</label>
-                        <Input
-                          value={configDataSource.url || ''}
-                          onChange={(e) =>
-                            setConfigDataSource({ ...configDataSource, url: e.target.value })
-                          }
-                          placeholder="ftp://ftp.example.com"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold">Username</label>
-                          <Input
-                            value={configDataSource.credentials?.username || ''}
-                            onChange={(e) =>
-                              setConfigDataSource({
-                                ...configDataSource,
-                                credentials: {
-                                  ...configDataSource.credentials,
-                                  username: e.target.value,
-                                },
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold">Password</label>
-                          <Input
-                            type="password"
-                            value={configDataSource.credentials?.password || ''}
-                            onChange={(e) =>
-                              setConfigDataSource({
-                                ...configDataSource,
-                                credentials: {
-                                  ...configDataSource.credentials,
-                                  password: e.target.value,
-                                },
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
+                   {configDataSource.type === 'ftp' && (
+                     <>
+                       <div className="space-y-2">
+                         <label className="text-sm font-semibold">FTP URL</label>
+                         <Input
+                           value={configDataSource.url || ''}
+                           onChange={(e) =>
+                             setConfigDataSource({ ...configDataSource, url: e.target.value })
+                           }
+                           placeholder="ftp://ftp.example.com"
+                         />
+                       </div>
+                       <div className="grid grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                           <label className="text-sm font-semibold">Username</label>
+                           <Input
+                             value={configDataSource.credentials?.username || ''}
+                             onChange={(e) =>
+                               setConfigDataSource({
+                                 ...configDataSource,
+                                 credentials: {
+                                   ...configDataSource.credentials,
+                                   username: e.target.value,
+                                 },
+                               })
+                             }
+                           />
+                         </div>
+                         <div className="space-y-2">
+                           <label className="text-sm font-semibold">Password</label>
+                           <Input
+                             type="password"
+                             value={configDataSource.credentials?.password || ''}
+                             onChange={(e) =>
+                               setConfigDataSource({
+                                 ...configDataSource,
+                                 credentials: {
+                                   ...configDataSource.credentials,
+                                   password: e.target.value,
+                                 },
+                               })
+                             }
+                           />
+                         </div>
+                       </div>
+                     </>
+                   )}
+                    </div>
+                  </div>
                 </>
               )}
 
-              <div className="flex gap-3 pt-6 border-t-2 border-border">
-                <Button onClick={saveNodeConfiguration} className="flex-1 font-bold shadow-sm hover:shadow-md transition-shadow text-base h-11">
-                  Save Configuration
+              <div className="flex gap-4 pt-8 border-t-2 border-border sticky bottom-0 bg-card pb-2">
+                <Button onClick={saveNodeConfiguration} className="flex-1 font-bold shadow-lg hover:shadow-xl transition-all text-base h-14 rounded-xl bg-primary hover:bg-primary/90">
+                  💾 Save Configuration
                 </Button>
                 <Button
                   variant="outline"
                   onClick={closeConfigModal}
-                  className="font-bold shadow-sm hover:shadow-md transition-shadow text-base h-11 px-6"
+                  className="font-bold shadow-sm hover:shadow-md transition-shadow text-base h-14 px-8 rounded-xl border-2"
                 >
                   Cancel
                 </Button>

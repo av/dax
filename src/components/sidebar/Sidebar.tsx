@@ -373,13 +373,13 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className="w-80 bg-card border-l-2 border-border flex flex-col shadow-lg" aria-label="Sidebar">
-      {/* Sidebar Tabs */}
-      <nav className="border-b-2 border-border flex bg-muted/30" role="tablist" aria-label="Sidebar navigation">
+    <aside className="w-96 bg-card border-l-2 border-border flex flex-col shadow-lg" aria-label="Sidebar">
+      {/* Sidebar Tabs - Enhanced for workflow progression */}
+      <nav className="border-b-2 border-border flex bg-gradient-to-b from-muted/40 to-muted/20" role="tablist" aria-label="Sidebar navigation">
         <button
-          className={`flex-1 py-4 px-4 text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-4 px-4 text-sm font-bold transition-all flex flex-col items-center justify-center gap-1.5 relative ${
             activeTab === 'agents'
-              ? 'bg-background text-foreground border-b-2 border-primary -mb-0.5'
+              ? 'bg-background text-foreground border-b-4 border-primary -mb-0.5 shadow-sm'
               : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('agents')}
@@ -387,15 +387,20 @@ export const Sidebar: React.FC = () => {
           aria-selected={activeTab === 'agents'}
           aria-controls="agents-panel"
           aria-label="Agents"
-          title="Agents"
+          title="Configure and chat with AI agents"
         >
-          <Bot className="h-4 w-4" />
+          <Bot className={`h-5 w-5 ${activeTab === 'agents' ? 'text-primary' : ''}`} />
           <span>Agents</span>
+          {agents.length > 0 && (
+            <span className="absolute top-2 right-2 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+              {agents.length}
+            </span>
+          )}
         </button>
         <button
-          className={`flex-1 py-4 px-4 text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-4 px-4 text-sm font-bold transition-all flex flex-col items-center justify-center gap-1.5 ${
             activeTab === 'tools'
-              ? 'bg-background text-foreground border-b-2 border-primary -mb-0.5'
+              ? 'bg-background text-foreground border-b-4 border-primary -mb-0.5 shadow-sm'
               : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('tools')}
@@ -403,15 +408,15 @@ export const Sidebar: React.FC = () => {
           aria-selected={activeTab === 'tools'}
           aria-controls="tools-panel"
           aria-label="Tools"
-          title="Tools"
+          title="View and manage agent tools"
         >
-          <Settings className="h-4 w-4" />
+          <Settings className={`h-5 w-5 ${activeTab === 'tools' ? 'text-primary' : ''}`} />
           <span>Tools</span>
         </button>
         <button
-          className={`flex-1 py-4 px-4 text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-4 px-4 text-sm font-bold transition-all flex flex-col items-center justify-center gap-1.5 ${
             activeTab === 'history'
-              ? 'bg-background text-foreground border-b-2 border-primary -mb-0.5'
+              ? 'bg-background text-foreground border-b-4 border-primary -mb-0.5 shadow-sm'
               : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('history')}
@@ -419,14 +424,15 @@ export const Sidebar: React.FC = () => {
           aria-selected={activeTab === 'history'}
           aria-controls="history-panel"
           aria-label="History"
-          title="History"
+          title="View agent interaction history"
         >
-          <History className="h-4 w-4" />
+          <History className={`h-5 w-5 ${activeTab === 'history' ? 'text-primary' : ''}`} />
+          <span>History</span>
         </button>
         <button
-          className={`flex-1 py-4 px-4 text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-4 px-4 text-sm font-bold transition-all flex flex-col items-center justify-center gap-1.5 ${
             activeTab === 'log'
-              ? 'bg-background text-foreground border-b-2 border-primary -mb-0.5'
+              ? 'bg-background text-foreground border-b-4 border-primary -mb-0.5 shadow-sm'
               : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
           }`}
           onClick={() => setActiveTab('log')}
@@ -434,9 +440,10 @@ export const Sidebar: React.FC = () => {
           aria-selected={activeTab === 'log'}
           aria-controls="log-panel"
           aria-label="Activity Log"
-          title="Activity Log"
+          title="View system activity log"
         >
-          <FileText className="h-4 w-4" />
+          <FileText className={`h-5 w-5 ${activeTab === 'log' ? 'text-primary' : ''}`} />
+          <span>Log</span>
         </button>
       </nav>
 
@@ -455,10 +462,28 @@ export const Sidebar: React.FC = () => {
                 </div>
 
                 {agents.length === 0 ? (
-                  <div className="text-center text-muted-foreground text-sm py-16 px-4">
-                    <Bot className="h-20 w-20 mx-auto mb-4 opacity-30 text-primary" />
-                    <p className="font-bold text-base mb-2 text-foreground">No agents configured</p>
-                    <p className="text-sm">Create your first agent to get started</p>
+                  <div className="text-center text-muted-foreground text-sm py-20 px-6">
+                    <div className="inline-block p-6 bg-gradient-to-br from-primary/15 to-primary/5 rounded-3xl mb-6">
+                      <Bot className="h-16 w-16 mx-auto text-primary" />
+                    </div>
+                    <p className="font-bold text-lg mb-3 text-foreground">No AI Agents Yet</p>
+                    <p className="text-sm mb-6 leading-relaxed max-w-xs mx-auto">
+                      Create your first agent to start analyzing data with AI assistance
+                    </p>
+                    <div className="flex flex-col gap-2 text-xs text-muted-foreground/80 mb-6 max-w-xs mx-auto">
+                      <p className="flex items-start gap-2">
+                        <span>✓</span>
+                        <span>Connect to OpenAI, Anthropic, or custom APIs</span>
+                      </p>
+                      <p className="flex items-start gap-2">
+                        <span>✓</span>
+                        <span>Add tools and capabilities</span>
+                      </p>
+                      <p className="flex items-start gap-2">
+                        <span>✓</span>
+                        <span>Chat and get insights from your data</span>
+                      </p>
+                    </div>
                   </div>
                 ) : (
                   <>
