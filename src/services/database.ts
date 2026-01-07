@@ -79,6 +79,13 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Returns whether this database instance is using a mock in-memory database
+   */
+  public isMock(): boolean {
+    return this.isMockMode;
+  }
+
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
