@@ -4,6 +4,7 @@ import { Sidebar } from './components/sidebar/Sidebar';
 import { PreferencesModal } from './components/PreferencesModal';
 import { RDFViewer } from './components/RDFViewer';
 import { AboutDialog } from './components/AboutDialog';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Button } from './components/ui/button';
 import { preferencesService } from './services/preferences';
 import { initializeApp } from './services/init';
@@ -156,14 +157,15 @@ function App() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background text-foreground">
-      {/* Skip to main content for keyboard navigation */}
-      <a href="#main-content" className="skip-to-main">
-        Skip to main content
-      </a>
+    <ErrorBoundary>
+      <div className="h-screen flex flex-col bg-background text-foreground">
+        {/* Skip to main content for keyboard navigation */}
+        <a href="#main-content" className="skip-to-main">
+          Skip to main content
+        </a>
 
-      {/* Top Menu Bar */}
-      <div className="bg-card border-b-2 border-border px-6 py-4 flex items-center gap-4 shadow-sm">
+        {/* Top Menu Bar */}
+        <div className="bg-card border-b-2 border-border px-6 py-4 flex items-center gap-4 shadow-sm">
         <Button 
           ref={menuButtonRef}
           variant="ghost" 
@@ -302,6 +304,7 @@ function App() {
         onClose={() => setShowAbout(false)} 
       />
     </div>
+    </ErrorBoundary>
   );
 }
 
