@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CanvasNode, DataSource } from '@/types';
 import { CanvasNodeComponent } from './CanvasNode';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, X, Folder, AlertCircle, Workflow, FileInput, Bot, Cog, FileOutput, Settings, CheckCircle2 } from 'lucide-react';
+import { Plus, X, Folder, AlertCircle, Workflow, FileInput, Cog, FileOutput, Settings, CheckCircle2 } from 'lucide-react';
 import { getDatabaseInstance } from '@/services/database';
 import { DataSourceService } from '@/services/dataSource';
 import { validators, sanitizers } from '@/lib/validation';
@@ -76,6 +76,108 @@ export const Canvas: React.FC = () => {
 
   const workflowPhase = getWorkflowPhase();
 
+  const loadNodes = async () => {
+    try {
+      const db = getDatabaseInstance();
+      const loadedNodes = await db.getCanvasNodes(DEFAULT_USER_ID);
+      setNodes(loadedNodes);
+    } catch (error) {
+      console.error('Failed to load canvas nodes:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const closeConfigModal = useCallback(() => {
+    setConfiguringNode(null);
+    setValidationErrors({}); // Clear validation errors when closing
+  }, []);
+
+  const saveNodeConfiguration = useCallback(async () => {
+    if (!configuringNode) return;
+
+    // Validate configuration
+    const errors: Record<string, string> = {};
+
+    // Validate title
+    const titleError = validators.required(configuringNode.title);
+    if (titleError) {
+      errors.title = titleError;
+    }
+
+    // Validate data source configuration
+    if (configuringNode.type === 'data') {
+      if (configDataSource.type === 'fs') {
+        const pathError = validators.required(configDataSource.path);
+        if (pathError) {
+          errors.path = 'Folder path is required';
+        }
+      } else if (configDataSource.type === 'http') {
+        const urlError = validators.url(configDataSource.url || '');
+        if (urlError) {
+          errors.url = urlError;
+        }
+      } else if (configDataSource.type === 's3') {
+        const urlError = validators.required(configDataSource.url);
+        if (urlError) {
+          errors.url = 'S3 URL is required';
+        }
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      showToast('Please fix validation errors', 'error');
+      return;
+    }
+
+    setValidationErrors({});
+
+    const updatedNode: CanvasNode = {
+      ...configuringNode,
+      title: sanitizers.trim(configuringNode.title),
+      config: {
+        ...configuringNode.config,
+        source: configDataSource,
+      },
+    };
+
+    try {
+      const db = getDatabaseInstance();
+      await db.saveCanvasNode(updatedNode, DEFAULT_USER_ID);
+      setNodes(nodes.map((n) => (n.id === updatedNode.id ? updatedNode : n)));
+      closeConfigModal();
+      showToast('Configuration saved successfully', 'success');
+    } catch (error) {
+      console.error('Failed to save node configuration:', error);
+      showToast('Failed to save configuration', 'error');
+    }
+  }, [configuringNode, configDataSource, nodes, showToast, closeConfigModal]);
+
+  const addNode = useCallback(async () => {
+    const newNode: CanvasNode = {
+      id: `node-${generateUUID()}`,
+      type: selectedNodeType,
+      title: `${selectedNodeType.charAt(0).toUpperCase() + selectedNodeType.slice(1)} Node`,
+      x: Math.random() * 400 + 50,
+      y: Math.random() * 300 + 50,
+      width: 200,
+      height: 150,
+      data: {},
+      config: {},
+    };
+
+    try {
+      const db = getDatabaseInstance();
+      await db.saveCanvasNode(newNode, DEFAULT_USER_ID);
+      setNodes([...nodes, newNode]);
+      showToast(`${newNode.title} added`, 'success');
+    } catch (error) {
+      console.error('Failed to add node:', error);
+      showToast('Failed to add node', 'error');
+    }
+  }, [selectedNodeType, nodes, showToast]);
+
   // Load nodes from database on mount
   useEffect(() => {
     loadNodes();
@@ -127,43 +229,7 @@ export const Canvas: React.FC = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [configuringNode, previewingNode, addNode, saveNodeConfiguration, closeConfigModal, setPreviewingNode, setPreviewData]);
-
-  const loadNodes = async () => {
-    try {
-      const db = getDatabaseInstance();
-      const loadedNodes = await db.getCanvasNodes(DEFAULT_USER_ID);
-      setNodes(loadedNodes);
-    } catch (error) {
-      console.error('Failed to load canvas nodes:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const addNode = async () => {
-    const newNode: CanvasNode = {
-      id: `node-${generateUUID()}`,
-      type: selectedNodeType,
-      title: `${selectedNodeType.charAt(0).toUpperCase() + selectedNodeType.slice(1)} Node`,
-      x: Math.random() * 400 + 50,
-      y: Math.random() * 300 + 50,
-      width: 200,
-      height: 150,
-      data: {},
-      config: {},
-    };
-
-    try {
-      const db = getDatabaseInstance();
-      await db.saveCanvasNode(newNode, DEFAULT_USER_ID);
-      setNodes([...nodes, newNode]);
-      showToast(`${newNode.title} added`, 'success');
-    } catch (error) {
-      console.error('Failed to add node:', error);
-      showToast('Failed to add node', 'error');
-    }
-  };
+  }, [configuringNode, previewingNode, addNode, saveNodeConfiguration, closeConfigModal]);
 
   const updateNode = async (updatedNode: CanvasNode) => {
     try {
@@ -246,65 +312,6 @@ export const Canvas: React.FC = () => {
       path: '',
     });
     setValidationErrors({}); // Clear any previous validation errors
-  };
-
-  const closeConfigModal = () => {
-    setConfiguringNode(null);
-    setValidationErrors({}); // Clear validation errors when closing
-  };
-
-  const saveNodeConfiguration = async () => {
-    if (!configuringNode) return;
-
-    // Validate configuration
-    const errors: Record<string, string> = {};
-
-    // Validate title
-    const titleError = validators.required(configuringNode.title);
-    if (titleError) {
-      errors.title = titleError;
-    }
-
-    // Validate data source configuration
-    if (configuringNode.type === 'data') {
-      if (configDataSource.type === 'fs') {
-        const pathError = validators.required(configDataSource.path);
-        if (pathError) {
-          errors.path = 'Folder path is required';
-        }
-      } else if (configDataSource.type === 'http') {
-        const urlError = validators.url(configDataSource.url || '');
-        if (urlError) {
-          errors.url = urlError;
-        }
-      } else if (configDataSource.type === 's3') {
-        const urlError = validators.required(configDataSource.url);
-        if (urlError) {
-          errors.url = 'S3 URL is required';
-        }
-      }
-    }
-
-    if (Object.keys(errors).length > 0) {
-      setValidationErrors(errors);
-      showToast('Please fix validation errors', 'error');
-      return;
-    }
-
-    setValidationErrors({});
-
-    const updatedNode: CanvasNode = {
-      ...configuringNode,
-      title: sanitizers.trim(configuringNode.title),
-      config: {
-        ...configuringNode.config,
-        source: configDataSource,
-      },
-    };
-
-    await updateNode(updatedNode);
-    closeConfigModal();
-    showToast('Configuration saved successfully', 'success');
   };
 
   const previewNode = async (node: CanvasNode) => {
