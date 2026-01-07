@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -70,6 +70,40 @@ export const Sidebar: React.FC = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    if (activeTab === 'agents' && !showAgentForm) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatHistory, activeTab, showAgentForm]);
+
+  const loadAgents = useCallback(async (isMounted: () => boolean = () => true) => {
+    try {
+      const db = getDatabaseInstance();
+      const loadedAgents = await db.getAgentConfigs(DEFAULT_USER_ID);
+      if (isMounted()) {
+        setAgents(loadedAgents);
+        if (loadedAgents.length > 0 && !selectedAgent) {
+          setSelectedAgent(loadedAgents[0].id!);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load agents:', error);
+    }
+  }, [selectedAgent]);
+
+  const loadActivityLog = useCallback(async (isMounted: () => boolean = () => true) => {
+    try {
+      const db = getDatabaseInstance();
+      const logs = await db.getActivityLog(DEFAULT_USER_ID, 50);
+      if (isMounted()) {
+        setActivityLog(logs);
+      }
+    } catch (error) {
+      console.error('Failed to load activity log:', error);
+    }
+  }, []);
+
   // Load agents from database on mount
   useEffect(() => {
     let isMounted = true;
@@ -104,40 +138,6 @@ export const Sidebar: React.FC = () => {
       isMounted = false;
     };
   }, [activeTab, loadActivityLog]);
-
-  // Auto-scroll chat to bottom
-  useEffect(() => {
-    if (activeTab === 'agents' && !showAgentForm) {
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [chatHistory, activeTab, showAgentForm]);
-
-  const loadAgents = useCallback(async (isMounted: () => boolean = () => true) => {
-    try {
-      const db = getDatabaseInstance();
-      const loadedAgents = await db.getAgentConfigs(DEFAULT_USER_ID);
-      if (isMounted()) {
-        setAgents(loadedAgents);
-        if (loadedAgents.length > 0 && !selectedAgent) {
-          setSelectedAgent(loadedAgents[0].id!);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load agents:', error);
-    }
-  }, [selectedAgent]);
-
-  const loadActivityLog = useCallback(async (isMounted: () => boolean = () => true) => {
-    try {
-      const db = getDatabaseInstance();
-      const logs = await db.getActivityLog(DEFAULT_USER_ID, 50);
-      if (isMounted()) {
-        setActivityLog(logs);
-      }
-    } catch (error) {
-      console.error('Failed to load activity log:', error);
-    }
-  }, []);
 
   const createNewAgent = () => {
     setEditingAgent({
@@ -1109,7 +1109,7 @@ export const Sidebar: React.FC = () => {
           <div className="space-y-2">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold">Agent History</h3>
-              <Button size="sm" variant="ghost" onClick={loadActivityLog}>
+              <Button size="sm" variant="ghost" onClick={() => loadActivityLog()}>
                 <History className="h-4 w-4" />
               </Button>
             </div>
@@ -1135,7 +1135,7 @@ export const Sidebar: React.FC = () => {
           <div className="space-y-2">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold">Activity Log</h3>
-              <Button size="sm" variant="ghost" onClick={loadActivityLog}>
+              <Button size="sm" variant="ghost" onClick={() => loadActivityLog()}>
                 <History className="h-4 w-4" />
               </Button>
             </div>
