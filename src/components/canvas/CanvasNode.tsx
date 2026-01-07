@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Rnd } from 'react-rnd';
 import { CanvasNode } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Trash2, Settings, Copy, Eye, AlertCircle } from 'lucide-react';
+import { Trash2, Settings, Copy, Eye, AlertCircle, FileInput, Bot, Cog, FileOutput } from 'lucide-react';
 
 interface CanvasNodeComponentProps {
   node: CanvasNode;
@@ -67,98 +67,119 @@ export const CanvasNodeComponent: React.FC<CanvasNodeComponentProps> = ({
         });
       }}
       bounds="parent"
-      className={`rounded-xl border-2 ${getNodeColor(node.type)} shadow-md hover:shadow-xl transition-all duration-200 cursor-move backdrop-blur-sm`}
+      className={`group rounded-xl border-2 ${getNodeColor(node.type)} shadow-md hover:shadow-2xl transition-all duration-200 cursor-move backdrop-blur-sm hover:scale-[1.02]`}
       onMouseEnter={() => setShowToolbar(true)}
       onMouseLeave={() => setShowToolbar(false)}
     >
-      <div className="h-full flex flex-col p-4">
-        {/* Configuration Status Indicator */}
+      <div className="h-full flex flex-col p-4 relative">
+        {/* Drag Handle Indicator - Always visible for better affordance */}
+        <div className="absolute -top-1 left-1/2 -translate-x-1/2 flex gap-0.5 opacity-40 group-hover:opacity-70 transition-opacity pointer-events-none">
+          <div className="w-1 h-1 rounded-full bg-current" />
+          <div className="w-1 h-1 rounded-full bg-current" />
+          <div className="w-1 h-1 rounded-full bg-current" />
+        </div>
+
+        {/* Configuration Status Indicator - More prominent */}
         {!configured && (
-          <div className="absolute top-2 right-2 flex items-center gap-1 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-md text-xs font-bold border border-amber-300 dark:border-amber-700">
-            <AlertCircle className="h-3 w-3" />
-            <span>Not configured</span>
+          <div className="absolute top-2 right-2 flex items-center gap-1.5 bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200 px-2.5 py-1.5 rounded-lg text-xs font-bold border-2 border-amber-400 dark:border-amber-600 shadow-sm">
+            <AlertCircle className="h-3.5 w-3.5 animate-pulse" />
+            <span>Setup Needed</span>
           </div>
         )}
         {configured && (
-          <div className="absolute top-2 right-2 flex items-center gap-1 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2 py-1 rounded-md text-xs font-bold border border-green-300 dark:border-green-700">
+          <div className="absolute top-2 right-2 flex items-center gap-1.5 bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 px-2.5 py-1.5 rounded-lg text-xs font-bold border-2 border-green-400 dark:border-green-600 shadow-sm">
             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
             <span>Ready</span>
           </div>
         )}
         
-        {/* Toolbar */}
-        {showToolbar && (
-          <div className="absolute -top-14 left-0 right-0 flex justify-center gap-2 z-10 animate-in fade-in slide-in-from-top-2 duration-150">
-            <Button
-              size="sm"
-              variant="secondary"
-              className="bg-card hover:bg-accent shadow-lg hover:shadow-xl h-10 w-10 p-0 border border-border rounded-lg transition-all"
-              onClick={() => onDuplicate(node)}
-              aria-label="Duplicate node"
-              title="Duplicate node"
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="bg-card hover:bg-accent shadow-lg hover:shadow-xl h-10 w-10 p-0 border border-border rounded-lg transition-all"
-              onClick={() => onConfigure(node)}
-              aria-label="Configure node"
-              title="Configure node"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="bg-card hover:bg-accent shadow-lg hover:shadow-xl h-10 w-10 p-0 border border-border rounded-lg transition-all"
-              onClick={() => onPreview(node)}
-              aria-label="Preview node"
-              title="Preview node"
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              className="shadow-lg hover:shadow-xl h-10 w-10 p-0 rounded-lg transition-all"
-              onClick={() => onDelete(node.id)}
-              aria-label="Delete node"
-              title="Delete node"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+        {/* Quick Action Buttons - Always visible with subtle presence, prominent on hover */}
+        <div className="absolute -top-12 left-0 right-0 flex justify-center gap-1.5 z-10 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none group-hover:pointer-events-auto">
+          <Button
+            size="sm"
+            variant="secondary"
+            className="bg-card/95 hover:bg-primary hover:text-primary-foreground shadow-lg hover:shadow-xl h-9 w-9 p-0 border-2 border-border hover:border-primary rounded-lg transition-all backdrop-blur-sm"
+            onClick={() => onDuplicate(node)}
+            aria-label="Duplicate this node"
+            title="Duplicate (Ctrl+D)"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            className={`bg-card/95 hover:bg-primary hover:text-primary-foreground shadow-lg hover:shadow-xl h-9 w-9 p-0 border-2 ${!configured ? 'border-amber-400 animate-pulse' : 'border-border'} hover:border-primary rounded-lg transition-all backdrop-blur-sm`}
+            onClick={() => onConfigure(node)}
+            aria-label="Configure this node"
+            title="Configure (Double-click node)"
+          >
+            <Settings className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="bg-card/95 hover:bg-primary hover:text-primary-foreground shadow-lg hover:shadow-xl h-9 w-9 p-0 border-2 border-border hover:border-primary rounded-lg transition-all backdrop-blur-sm"
+            onClick={() => onPreview(node)}
+            aria-label="Preview node data"
+            title="Preview"
+            disabled={!configured}
+          >
+            <Eye className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="bg-destructive/90 hover:bg-destructive shadow-lg hover:shadow-xl h-9 w-9 p-0 rounded-lg transition-all backdrop-blur-sm border-2 border-destructive/50"
+            onClick={() => onDelete(node.id)}
+            aria-label="Delete this node"
+            title="Delete (Del)"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+
+        {/* Subtle action hint for unconfigured nodes */}
+        {!configured && !showToolbar && (
+          <div className="absolute bottom-2 left-2 right-2 text-center text-xs text-muted-foreground/60 opacity-0 group-hover:opacity-100 transition-opacity">
+            Click <Settings className="h-3 w-3 inline mx-0.5" /> to configure
           </div>
         )}
 
-        {/* Node Header */}
-        <div className="font-bold text-base mb-3 pb-3 border-b-2 border-current/30">
-          {node.title}
+        {/* Node Header with icon */}
+        <div className="flex items-center gap-2 font-bold text-base mb-3 pb-3 border-b-2 border-current/30">
+          {node.type === 'data' && <FileInput className="h-4 w-4 opacity-70" />}
+          {node.type === 'agent' && <Bot className="h-4 w-4 opacity-70" />}
+          {node.type === 'transform' && <Cog className="h-4 w-4 opacity-70" />}
+          {node.type === 'output' && <FileOutput className="h-4 w-4 opacity-70" />}
+          <span className="truncate">{node.title}</span>
         </div>
 
-        {/* Node Content */}
-        <div className="flex-1 overflow-auto text-sm space-y-2.5">
-          <div className="flex items-baseline gap-2">
-            <span className="font-semibold text-xs uppercase tracking-wide opacity-70">Type:</span>
-            <span className="font-medium capitalize">{node.type}</span>
+        {/* Node Content with better visual hierarchy */}
+        <div className="flex-1 overflow-auto text-sm space-y-3">
+          <div className="flex items-center gap-2 bg-current/5 px-2 py-1.5 rounded">
+            <span className="font-semibold text-xs uppercase tracking-wide opacity-60">Type:</span>
+            <span className="font-bold capitalize text-current">{node.type}</span>
           </div>
           {node.config?.source && (
-            <div className="flex items-baseline gap-2">
-              <span className="font-semibold text-xs uppercase tracking-wide opacity-70">Source:</span>
-              <span className="font-medium uppercase">{node.config.source.type}</span>
+            <div className="flex items-center gap-2 bg-current/5 px-2 py-1.5 rounded">
+              <span className="font-semibold text-xs uppercase tracking-wide opacity-60">Source:</span>
+              <span className="font-bold uppercase text-current">{node.config.source.type}</span>
             </div>
           )}
           {node.config?.source?.path && (
-            <div className="flex flex-col gap-1">
-              <span className="font-semibold text-xs uppercase tracking-wide opacity-70">Path:</span>
-              <span className="font-mono text-xs truncate bg-black/5 dark:bg-white/5 px-2 py-1 rounded">{node.config.source.path}</span>
+            <div className="space-y-1">
+              <span className="font-semibold text-xs uppercase tracking-wide opacity-60 block">Path:</span>
+              <div className="font-mono text-xs bg-black/10 dark:bg-white/10 px-2 py-1.5 rounded break-all">
+                {node.config.source.path}
+              </div>
             </div>
           )}
           {node.config?.source?.url && (
-            <div className="flex flex-col gap-1">
-              <span className="font-semibold text-xs uppercase tracking-wide opacity-70">URL:</span>
-              <span className="font-mono text-xs truncate bg-black/5 dark:bg-white/5 px-2 py-1 rounded">{node.config.source.url}</span>
+            <div className="space-y-1">
+              <span className="font-semibold text-xs uppercase tracking-wide opacity-60 block">URL:</span>
+              <div className="font-mono text-xs bg-black/10 dark:bg-white/10 px-2 py-1.5 rounded break-all">
+                {node.config.source.url}
+              </div>
             </div>
           )}
         </div>
