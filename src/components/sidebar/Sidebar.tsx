@@ -72,23 +72,38 @@ export const Sidebar: React.FC = () => {
 
   // Load agents from database on mount
   useEffect(() => {
-    loadAgents();
-  }, []);
+    let isMounted = true;
+    const checkMounted = () => isMounted;
+    loadAgents(checkMounted);
+    return () => {
+      isMounted = false;
+    };
+  }, [loadAgents]);
 
   // Load activity log when log tab is active and set up auto-refresh
   useEffect(() => {
+    let isMounted = true;
+    const checkMounted = () => isMounted;
+    
     if (activeTab === 'log') {
-      loadActivityLog();
+      loadActivityLog(checkMounted);
       
       // Auto-refresh activity log every 3 seconds when the tab is active
       const intervalId = setInterval(() => {
-        loadActivityLog();
+        loadActivityLog(checkMounted);
       }, 3000);
       
       // Clean up interval when tab changes or component unmounts
-      return () => clearInterval(intervalId);
+      return () => {
+        isMounted = false;
+        clearInterval(intervalId);
+      };
     }
-  }, [activeTab]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTab, loadActivityLog]);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -97,28 +112,32 @@ export const Sidebar: React.FC = () => {
     }
   }, [chatHistory, activeTab, showAgentForm]);
 
-  const loadAgents = async () => {
+  const loadAgents = useCallback(async (isMounted: () => boolean = () => true) => {
     try {
       const db = getDatabaseInstance();
       const loadedAgents = await db.getAgentConfigs(DEFAULT_USER_ID);
-      setAgents(loadedAgents);
-      if (loadedAgents.length > 0 && !selectedAgent) {
-        setSelectedAgent(loadedAgents[0].id!);
+      if (isMounted()) {
+        setAgents(loadedAgents);
+        if (loadedAgents.length > 0 && !selectedAgent) {
+          setSelectedAgent(loadedAgents[0].id!);
+        }
       }
     } catch (error) {
       console.error('Failed to load agents:', error);
     }
-  };
+  }, [selectedAgent]);
 
-  const loadActivityLog = async () => {
+  const loadActivityLog = useCallback(async (isMounted: () => boolean = () => true) => {
     try {
       const db = getDatabaseInstance();
       const logs = await db.getActivityLog(DEFAULT_USER_ID, 50);
-      setActivityLog(logs);
+      if (isMounted()) {
+        setActivityLog(logs);
+      }
     } catch (error) {
       console.error('Failed to load activity log:', error);
     }
-  };
+  }, []);
 
   const createNewAgent = () => {
     setEditingAgent({

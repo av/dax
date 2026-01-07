@@ -55,9 +55,9 @@ export const Canvas: React.FC = () => {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   // Show toast notification
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToast({ message, type });
-  };
+  }, []);
 
   // Calculate workflow phase based on nodes
   const getWorkflowPhase = () => {
@@ -76,17 +76,21 @@ export const Canvas: React.FC = () => {
 
   const workflowPhase = getWorkflowPhase();
 
-  const loadNodes = async () => {
+  const loadNodes = useCallback(async (isMounted: () => boolean = () => true) => {
     try {
       const db = getDatabaseInstance();
       const loadedNodes = await db.getCanvasNodes(DEFAULT_USER_ID);
-      setNodes(loadedNodes);
+      if (isMounted()) {
+        setNodes(loadedNodes);
+      }
     } catch (error) {
       console.error('Failed to load canvas nodes:', error);
     } finally {
-      setIsLoading(false);
+      if (isMounted()) {
+        setIsLoading(false);
+      }
     }
-  };
+  }, []);
 
   const closeConfigModal = useCallback(() => {
     setConfiguringNode(null);
@@ -180,20 +184,29 @@ export const Canvas: React.FC = () => {
 
   // Load nodes from database on mount
   useEffect(() => {
-    loadNodes();
-  }, []);
+    let isMounted = true;
+    const checkMounted = () => isMounted;
+    loadNodes(checkMounted);
+    return () => {
+      isMounted = false;
+    };
+  }, [loadNodes]);
 
   // Listen for canvas-cleared event to refresh nodes
   useEffect(() => {
+    let isMounted = true;
+    const checkMounted = () => isMounted;
+    
     const handleCanvasCleared = () => {
-      loadNodes();
+      loadNodes(checkMounted);
     };
 
     window.addEventListener('canvas-cleared', handleCanvasCleared);
     return () => {
+      isMounted = false;
       window.removeEventListener('canvas-cleared', handleCanvasCleared);
     };
-  }, []);
+  }, [loadNodes]);
 
   // Keyboard shortcuts for better accessibility and power user support
   useEffect(() => {

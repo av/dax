@@ -32,17 +32,26 @@ export const RDFViewer: React.FC<RDFViewerProps> = ({ isOpen, onClose }) => {
   const [newAttrValue, setNewAttrValue] = useState('');
 
   useEffect(() => {
+    let isMounted = true;
+    const checkMounted = () => isMounted;
+    
     if (isOpen) {
-      loadData();
+      loadData(checkMounted);
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [isOpen]);
 
-  const loadData = async () => {
+  const loadData = async (isMounted: () => boolean = () => true) => {
     try {
       const allEntities = await rdfService.getAllEntities();
       const allLinks = await rdfService.getAllLinks();
-      setEntities(allEntities);
-      setLinks(allLinks);
+      if (isMounted()) {
+        setEntities(allEntities);
+        setLinks(allLinks);
+      }
     } catch (error) {
       console.error('Failed to load RDF data:', error);
     }
