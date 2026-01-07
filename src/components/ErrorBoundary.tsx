@@ -97,7 +97,11 @@ export class ErrorBoundary extends Component<Props, State> {
                   Try Again
                 </Button>
                 <Button 
-                  onClick={() => window.location.reload()} 
+                  onClick={() => {
+                    if (confirm('Reloading will discard any unsaved changes. Continue?')) {
+                      window.location.reload();
+                    }
+                  }} 
                   variant="outline"
                 >
                   Reload Page

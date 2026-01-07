@@ -174,7 +174,6 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                   checked={preferences.autostart}
                   onChange={(e) => handleChange({ autostart: e.target.checked })}
                   className="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  aria-label="Launch on Startup"
                 />
               </div>
               <div className="space-y-2">
@@ -211,7 +210,6 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                     })
                   }
                   className="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  aria-label="Enable Automatic Backups"
                 />
               </div>
               
@@ -279,7 +277,6 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                     })
                   }
                   className="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  aria-label="Enable Cloud Sync"
                 />
               </div>
 

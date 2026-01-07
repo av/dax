@@ -45,7 +45,7 @@ export class MockDatabaseClient implements Client {
     return {
       rows,
       columns,
-      columnTypes: columns.map(() => ''), // Empty string for unknown types as per libSQL spec
+      columnTypes: columns.map(() => ''), // Empty strings for mock database (type info not available)
       rowsAffected,
       lastInsertRowid: undefined,
       toJSON() {
