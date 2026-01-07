@@ -20,7 +20,12 @@ export const validators = {
   url: (value: string): string | null => {
     if (!value) return null;
     try {
-      new URL(value);
+      const parsed = new URL(value);
+      // Only allow safe protocols for security
+      const allowedProtocols = ['http:', 'https:', 'ws:', 'wss:'];
+      if (!allowedProtocols.includes(parsed.protocol)) {
+        return `URL protocol must be one of: ${allowedProtocols.map(p => p.replace(':', '')).join(', ')}`;
+      }
       return null;
     } catch {
       return 'Invalid URL format';
@@ -62,7 +67,14 @@ export const validators = {
     if (!value) return null;
     // Basic check for invalid characters in paths
     const invalidChars = /[<>"|?*\x00-\x1F]/;
-    return invalidChars.test(value) ? 'Invalid path characters' : null;
+    if (invalidChars.test(value)) {
+      return 'Invalid path characters';
+    }
+    // Check for path traversal attempts
+    if (value.includes('..')) {
+      return 'Path traversal patterns (..) are not allowed';
+    }
+    return null;
   },
 
   // JSON validator
@@ -140,17 +152,22 @@ export const validators = {
     const key = parts[parts.length - 1];
     const modifiers = parts.slice(0, -1);
     
-    // Validate modifiers
+    // Validate modifiers (case-insensitive)
     const validModifiers = ['Ctrl', 'Alt', 'Shift', 'Meta'];
+    const normalizedModifiers: string[] = [];
+    
     for (const mod of modifiers) {
-      if (!validModifiers.includes(mod)) {
+      // Normalize to title case for comparison
+      const normalized = mod.charAt(0).toUpperCase() + mod.slice(1).toLowerCase();
+      if (!validModifiers.includes(normalized)) {
         return `Invalid modifier: ${mod}. Use Ctrl, Alt, Shift, or Meta`;
       }
+      normalizedModifiers.push(normalized);
     }
     
     // Check for duplicate modifiers
-    const uniqueModifiers = new Set(modifiers);
-    if (uniqueModifiers.size !== modifiers.length) {
+    const uniqueModifiers = new Set(normalizedModifiers);
+    if (uniqueModifiers.size !== normalizedModifiers.length) {
       return 'Duplicate modifiers are not allowed';
     }
     
@@ -263,8 +280,9 @@ export const sanitizers = {
       '"': '&quot;',
       "'": '&#39;',
       '/': '&#x2F;',
+      '`': '&#96;',
     };
-    return value.replace(/[&<>"'/]/g, (char) => htmlEscapeMap[char]);
+    return value.replace(/[&<>"'/`]/g, (char) => htmlEscapeMap[char]);
   },
 
   // Remove non-alphanumeric characters
