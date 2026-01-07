@@ -165,10 +165,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium leading-none">Launch on Startup</label>
+                  <label htmlFor="autostart-checkbox" className="text-sm font-medium leading-none cursor-pointer">Launch on Startup</label>
                   <p className="text-xs text-muted-foreground">Start DAX automatically when you log in</p>
                 </div>
                 <input
+                  id="autostart-checkbox"
                   type="checkbox"
                   checked={preferences.autostart}
                   onChange={(e) => handleChange({ autostart: e.target.checked })}
@@ -196,10 +197,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium leading-none">Enable Automatic Backups</label>
+                  <label htmlFor="backup-enabled-checkbox" className="text-sm font-medium leading-none cursor-pointer">Enable Automatic Backups</label>
                   <p className="text-xs text-muted-foreground">Automatically backup your data periodically</p>
                 </div>
                 <input
+                  id="backup-enabled-checkbox"
                   type="checkbox"
                   checked={preferences.backup.enabled}
                   onChange={(e) => 
@@ -207,7 +209,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                       backup: { ...preferences.backup, enabled: e.target.checked },
                     })
                   }
-                  className="h-4 w-4"
+                  className="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 />
               </div>
               
@@ -262,10 +264,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-sm font-medium">Enable Cloud Sync</label>
+                  <label htmlFor="sync-enabled-checkbox" className="text-sm font-medium cursor-pointer">Enable Cloud Sync</label>
                   <p className="text-xs text-muted-foreground">Sync your data across devices</p>
                 </div>
                 <input
+                  id="sync-enabled-checkbox"
                   type="checkbox"
                   checked={preferences.sync.enabled}
                   onChange={(e) =>
@@ -273,7 +276,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
                       sync: { ...preferences.sync, enabled: e.target.checked },
                     })
                   }
-                  className="h-4 w-4"
+                  className="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 />
               </div>
 

@@ -15,8 +15,7 @@
  * - For production use, always use a real Turso database or Electron mode
  */
 
-import { Client, ResultSet, Transaction } from '@libsql/client';
-import type { User, CanvasNode, RDFEntity, RDFLink, Preferences, AgentConfig } from '@/types';
+import { Client, ResultSet, Transaction, Row } from '@libsql/client';
 
 interface MockRow {
   [key: string]: any;
@@ -37,6 +36,44 @@ export class MockDatabaseClient implements Client {
 
   constructor() {
     this.initializeTables();
+  }
+
+  /**
+   * Helper to create a properly typed ResultSet object
+   */
+  private createResultSet(rows: Row[], columns: string[], rowsAffected: number): ResultSet {
+    return {
+      rows,
+      columns,
+      columnTypes: columns.map(() => ''), // Empty strings for mock database (type info not available)
+      rowsAffected,
+      lastInsertRowid: undefined,
+      toJSON() {
+        return { rows, columns, rowsAffected };
+      }
+    };
+  }
+
+  /**
+   * Convert a MockRow to a proper Row with length property and numeric indices
+   */
+  private toRow(mockRow: MockRow): Row {
+    const columns = Object.keys(mockRow);
+    const row: any = { ...mockRow, length: columns.length };
+    
+    // Add numeric indices to make it array-like
+    columns.forEach((col, index) => {
+      row[index] = mockRow[col];
+    });
+    
+    return row as Row;
+  }
+
+  /**
+   * Convert an array of MockRows to Rows
+   */
+  private toRows(mockRows: MockRow[]): Row[] {
+    return mockRows.map(row => this.toRow(row));
   }
 
   private initializeTables(): void {
@@ -66,26 +103,22 @@ export class MockDatabaseClient implements Client {
     
     // Handle migrations table queries
     if (sqlUpper.includes('CREATE TABLE IF NOT EXISTS MIGRATIONS')) {
-      return { rows: [], columns: [], rowsAffected: 0 };
+      return this.createResultSet([], [], 0);
     }
     
     if (sqlUpper.includes('FROM MIGRATIONS')) {
       const migrations = this.tables.get('migrations')!.rows;
-      return { 
-        rows: migrations, 
-        columns: ['version'], 
-        rowsAffected: 0 
-      };
+      return this.createResultSet(this.toRows(migrations), ['version'], 0);
     }
 
     // Handle other CREATE TABLE statements
     if (sqlUpper.startsWith('CREATE TABLE')) {
-      return { rows: [], columns: [], rowsAffected: 0 };
+      return this.createResultSet([], [], 0);
     }
 
     // Handle CREATE INDEX statements
     if (sqlUpper.startsWith('CREATE INDEX')) {
-      return { rows: [], columns: [], rowsAffected: 0 };
+      return this.createResultSet([], [], 0);
     }
 
     // Handle INSERT statements
@@ -109,7 +142,7 @@ export class MockDatabaseClient implements Client {
     }
 
     console.warn('Unhandled SQL statement:', sql);
-    return { rows: [], columns: [], rowsAffected: 0 };
+    return this.createResultSet([], [], 0);
   }
 
   private handleInsert(sql: string, args: any[]): ResultSet {
@@ -123,7 +156,7 @@ export class MockDatabaseClient implements Client {
     
     if (!table) {
       console.warn('Table not found:', tableName);
-      return { rows: [], columns: [], rowsAffected: 0 };
+      return this.createResultSet([], [], 0);
     }
 
     // Extract column names if specified
@@ -157,23 +190,23 @@ export class MockDatabaseClient implements Client {
         table.rows.push(row);
       }
 
-      return { rows: [], columns: [], rowsAffected: 1 };
+      return this.createResultSet([], [], 1);
     }
 
-    return { rows: [], columns: [], rowsAffected: 0 };
+    return this.createResultSet([], [], 0);
   }
 
   private handleSelect(sql: string, args: any[]): ResultSet {
     const match = sql.match(/FROM\s+(\w+)/i);
     if (!match) {
-      return { rows: [], columns: [], rowsAffected: 0 };
+      return this.createResultSet([], [], 0);
     }
 
     const tableName = match[1].toLowerCase();
     const table = this.tables.get(tableName);
     
     if (!table) {
-      return { rows: [], columns: [], rowsAffected: 0 };
+      return this.createResultSet([], [], 0);
     }
 
     let filteredRows = [...table.rows];
@@ -208,37 +241,35 @@ export class MockDatabaseClient implements Client {
 
     // Handle COUNT(*)
     if (sql.toUpperCase().includes('COUNT(*)')) {
-      return {
-        rows: [{ count: filteredRows.length }],
-        columns: ['count'],
-        rowsAffected: 0
-      };
+      const countRow: any = { count: filteredRows.length, length: 1 };
+      countRow[0] = filteredRows.length; // Make it array-like
+      return this.createResultSet([countRow as Row], ['count'], 0);
     }
 
-    return {
-      rows: filteredRows,
-      columns: filteredRows.length > 0 ? Object.keys(filteredRows[0]) : [],
-      rowsAffected: 0
-    };
+    return this.createResultSet(
+      this.toRows(filteredRows),
+      filteredRows.length > 0 ? Object.keys(filteredRows[0]) : [],
+      0
+    );
   }
 
   private handleUpdate(sql: string, args: any[]): ResultSet {
     const match = sql.match(/UPDATE\s+(\w+)/i);
     if (!match) {
-      return { rows: [], columns: [], rowsAffected: 0 };
+      return this.createResultSet([], [], 0);
     }
 
     const tableName = match[1].toLowerCase();
     const table = this.tables.get(tableName);
     
     if (!table) {
-      return { rows: [], columns: [], rowsAffected: 0 };
+      return this.createResultSet([], [], 0);
     }
 
     // Parse SET clause to get column updates
     const setMatch = sql.match(/SET\s+(.+?)\s+(?:WHERE|$)/i);
     if (!setMatch) {
-      return { rows: [], columns: [], rowsAffected: 0 };
+      return this.createResultSet([], [], 0);
     }
 
     // Extract column assignments (simplified parser)
@@ -272,27 +303,27 @@ export class MockDatabaseClient implements Client {
       row.updated_at = new Date().toISOString();
     });
 
-    return { rows: [], columns: [], rowsAffected: filteredRows.length };
+    return this.createResultSet([], [], filteredRows.length);
   }
 
   private handleDelete(sql: string, args: any[]): ResultSet {
     const match = sql.match(/FROM\s+(\w+)/i);
     if (!match) {
-      return { rows: [], columns: [], rowsAffected: 0 };
+      return this.createResultSet([], [], 0);
     }
 
     const tableName = match[1].toLowerCase();
     const table = this.tables.get(tableName);
     
     if (!table) {
-      return { rows: [], columns: [], rowsAffected: 0 };
+      return this.createResultSet([], [], 0);
     }
 
     const beforeLength = table.rows.length;
     table.rows = table.rows.filter(row => !this.matchesWhere(row, sql, args));
     const rowsAffected = beforeLength - table.rows.length;
 
-    return { rows: [], columns: [], rowsAffected };
+    return this.createResultSet([], [], rowsAffected);
   }
 
   private filterRows(rows: MockRow[], sql: string, args: any[]): MockRow[] {
