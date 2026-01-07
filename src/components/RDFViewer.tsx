@@ -174,11 +174,16 @@ export const RDFViewer: React.FC<RDFViewerProps> = ({ isOpen, onClose }) => {
     : entities;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="rdf-viewer-title"
+    >
       <Card className="w-[900px] max-h-[90vh] overflow-hidden flex flex-col">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>RDF Knowledge Graph</CardTitle>
+            <CardTitle id="rdf-viewer-title">RDF Knowledge Graph</CardTitle>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={() => setIsAddingEntity(true)}>
                 <Plus className="h-4 w-4 mr-1" />
@@ -192,7 +197,7 @@ export const RDFViewer: React.FC<RDFViewerProps> = ({ isOpen, onClose }) => {
                 <Trash2 className="h-4 w-4 mr-1" />
                 Clear All
               </Button>
-              <Button size="sm" variant="ghost" onClick={onClose}>
+              <Button size="sm" variant="ghost" onClick={onClose} aria-label="Close dialog">
                 <X className="h-4 w-4" />
               </Button>
             </div>
