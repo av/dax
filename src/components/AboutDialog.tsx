@@ -12,12 +12,17 @@ export const AboutDialog: React.FC<AboutDialogProps> = ({ isOpen, onClose }) => 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="about-dialog-title"
+    >
       <Card className="w-[500px]">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>About DAX</CardTitle>
-            <Button size="sm" variant="ghost" onClick={onClose}>
+            <CardTitle id="about-dialog-title">About DAX</CardTitle>
+            <Button size="sm" variant="ghost" onClick={onClose} aria-label="Close dialog">
               <X className="h-4 w-4" />
             </Button>
           </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -70,26 +70,6 @@ export const Sidebar: React.FC = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Load agents from database on mount
-  useEffect(() => {
-    loadAgents();
-  }, []);
-
-  // Load activity log when log tab is active and set up auto-refresh
-  useEffect(() => {
-    if (activeTab === 'log') {
-      loadActivityLog();
-      
-      // Auto-refresh activity log every 3 seconds when the tab is active
-      const intervalId = setInterval(() => {
-        loadActivityLog();
-      }, 3000);
-      
-      // Clean up interval when tab changes or component unmounts
-      return () => clearInterval(intervalId);
-    }
-  }, [activeTab]);
-
   // Auto-scroll chat to bottom
   useEffect(() => {
     if (activeTab === 'agents' && !showAgentForm) {
@@ -97,28 +77,67 @@ export const Sidebar: React.FC = () => {
     }
   }, [chatHistory, activeTab, showAgentForm]);
 
-  const loadAgents = async () => {
+  const loadAgents = useCallback(async (isMounted: () => boolean = () => true) => {
     try {
       const db = getDatabaseInstance();
       const loadedAgents = await db.getAgentConfigs(DEFAULT_USER_ID);
-      setAgents(loadedAgents);
-      if (loadedAgents.length > 0 && !selectedAgent) {
-        setSelectedAgent(loadedAgents[0].id!);
+      if (isMounted()) {
+        setAgents(loadedAgents);
+        if (loadedAgents.length > 0 && !selectedAgent) {
+          setSelectedAgent(loadedAgents[0].id!);
+        }
       }
     } catch (error) {
       console.error('Failed to load agents:', error);
     }
-  };
+  }, [selectedAgent]);
 
-  const loadActivityLog = async () => {
+  const loadActivityLog = useCallback(async (isMounted: () => boolean = () => true) => {
     try {
       const db = getDatabaseInstance();
       const logs = await db.getActivityLog(DEFAULT_USER_ID, 50);
-      setActivityLog(logs);
+      if (isMounted()) {
+        setActivityLog(logs);
+      }
     } catch (error) {
       console.error('Failed to load activity log:', error);
     }
-  };
+  }, []);
+
+  // Load agents from database on mount
+  useEffect(() => {
+    let isMounted = true;
+    const checkMounted = () => isMounted;
+    loadAgents(checkMounted);
+    return () => {
+      isMounted = false;
+    };
+  }, [loadAgents]);
+
+  // Load activity log when log tab is active and set up auto-refresh
+  useEffect(() => {
+    let isMounted = true;
+    const checkMounted = () => isMounted;
+    
+    if (activeTab === 'log') {
+      loadActivityLog(checkMounted);
+      
+      // Auto-refresh activity log every 3 seconds when the tab is active
+      const intervalId = setInterval(() => {
+        loadActivityLog(checkMounted);
+      }, 3000);
+      
+      // Clean up interval when tab changes or component unmounts
+      return () => {
+        isMounted = false;
+        clearInterval(intervalId);
+      };
+    }
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTab, loadActivityLog]);
 
   const createNewAgent = () => {
     setEditingAgent({
@@ -1090,7 +1109,7 @@ export const Sidebar: React.FC = () => {
           <div className="space-y-2">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold">Agent History</h3>
-              <Button size="sm" variant="ghost" onClick={loadActivityLog}>
+              <Button size="sm" variant="ghost" onClick={() => loadActivityLog()}>
                 <History className="h-4 w-4" />
               </Button>
             </div>
@@ -1116,7 +1135,7 @@ export const Sidebar: React.FC = () => {
           <div className="space-y-2">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold">Activity Log</h3>
-              <Button size="sm" variant="ghost" onClick={loadActivityLog}>
+              <Button size="sm" variant="ghost" onClick={() => loadActivityLog()}>
                 <History className="h-4 w-4" />
               </Button>
             </div>

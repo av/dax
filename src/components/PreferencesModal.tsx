@@ -103,17 +103,22 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onCl
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="preferences-dialog-title"
+    >
       <Card className="w-full max-w-2xl max-h-[90vh] overflow-auto shadow-2xl animate-in zoom-in-95 duration-200">
         <CardHeader className="space-y-1 pb-4 border-b">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl font-semibold">Preferences</CardTitle>
+            <CardTitle id="preferences-dialog-title" className="text-2xl font-semibold">Preferences</CardTitle>
             <Button 
               size="sm" 
               variant="ghost" 
               onClick={onClose}
               className="h-8 w-8 p-0 hover:bg-accent"
-              aria-label="Close"
+              aria-label="Close dialog"
             >
               <X className="h-4 w-4" />
             </Button>
