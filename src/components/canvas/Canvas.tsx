@@ -378,9 +378,9 @@ export const Canvas: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 relative">
+    <div className="flex-1 flex flex-col bg-background relative">
       {/* Canvas Toolbar */}
-      <div className="bg-card border-b-2 border-border px-6 py-4 flex gap-3 items-center shadow-md">
+      <div className="bg-card border-b-2 border-border px-6 py-4 flex gap-3 items-center shadow-md z-10">
         {/* Workflow Phase Indicator - Enhanced prominence */}
         {nodes.length > 0 && (
           <div className="flex items-center gap-2 pr-4 border-r-2 border-border">

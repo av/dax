@@ -175,12 +175,12 @@ export const RDFViewer: React.FC<RDFViewerProps> = ({ isOpen, onClose }) => {
 
   return (
     <div 
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-background/95 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby="rdf-viewer-title"
     >
-      <Card className="w-[900px] max-h-[90vh] overflow-hidden flex flex-col">
+      <Card className="w-[900px] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border-2">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle id="rdf-viewer-title">RDF Knowledge Graph</CardTitle>
