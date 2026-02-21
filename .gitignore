@@ -1,0 +1,6 @@
+node_modules/
+dist-renderer/
+dist-electron/
+release/
+*.js.map
+.DS_Store
