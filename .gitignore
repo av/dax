@@ -47,3 +47,6 @@ coverage/
 
 # Testing
 *.test.ts.snap
+
+crates/
+target/
