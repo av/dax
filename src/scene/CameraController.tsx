@@ -239,6 +239,10 @@ export default function CameraController() {
       // Animate the look-at goal toward the focus target on XZ, keep Y=0
       lookAtGoal.set(focusTarget.x, 0, focusTarget.z);
 
+      // Kill any residual drag velocity so inertia doesn't fight the
+      // focus animation or push the camera away after it completes.
+      dragVelocityRef.current.set(0, 0);
+
       // When close enough, snap and clear
       if (lookAt.distanceTo(lookAtGoal) < 0.1) {
         lookAt.copy(lookAtGoal);
@@ -257,7 +261,9 @@ export default function CameraController() {
     }
 
     // ── Apply drag inertia when not actively dragging ──
-    if (!isDraggingRef.current) {
+    // Guard with controlsEnabled so inertia doesn't drift the camera
+    // during selection-box drags or file-drag operations.
+    if (!isDraggingRef.current && controlsEnabledRef.current) {
       const vel = dragVelocityRef.current;
       if (vel.lengthSq() > 0.0001) {
         // Decay the velocity
@@ -270,12 +276,23 @@ export default function CameraController() {
     }
 
     // ── Damped interpolation ────────────────────────
-    lookAt.lerp(lookAtGoal, DAMPING);
-    heightRef.current = THREE.MathUtils.lerp(
-      heightRef.current,
-      heightGoalRef.current,
-      DAMPING,
-    );
+    // When controls are disabled (selection/drag in progress) and no
+    // focus animation is running, freeze the camera to prevent drift
+    // from residual damping. This keeps the projected file positions
+    // stable so the selection rectangle matches what the user sees.
+    if (controlsEnabledRef.current || focusTarget) {
+      lookAt.lerp(lookAtGoal, DAMPING);
+      heightRef.current = THREE.MathUtils.lerp(
+        heightRef.current,
+        heightGoalRef.current,
+        DAMPING,
+      );
+    } else {
+      // Keep goal in sync with frozen position to avoid a camera jump
+      // when controls are re-enabled.
+      lookAtGoal.copy(lookAt);
+      heightGoalRef.current = heightRef.current;
+    }
 
     // ── Position the camera ─────────────────────────
     cameraPositionFromLookAt(lookAt, heightRef.current, camera.position);

@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Html } from '@react-three/drei';
+import { useCallback, useEffect, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useSelectionStore } from '@/stores/selectionStore';
+import { useSelectionStore, type ScreenRect } from '@/stores/selectionStore';
 import { useFileTreeStore } from '@/stores/fileTreeStore';
 import { useCameraFocusStore } from '@/scene/CameraController';
 import type { LayoutEntry } from '@/scene/layout/spatialLayout';
@@ -11,13 +10,6 @@ import type { LayoutEntry } from '@/scene/layout/spatialLayout';
 
 interface SelectionBoxProps {
   layoutMap: Map<string, LayoutEntry>;
-}
-
-interface ScreenRect {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
 }
 
 interface Point2D {
@@ -82,12 +74,12 @@ export default function SelectionBox({ layoutMap }: SelectionBoxProps) {
   const { camera, gl, scene, raycaster } = useThree();
   const selectMultiple = useSelectionStore((s) => s.selectMultiple);
   const clearSelection = useSelectionStore((s) => s.clearSelection);
+  const setSelectionRect = useSelectionStore((s) => s.setSelectionRect);
   const nodes = useFileTreeStore((s) => s.nodes);
 
   const isDragging = useRef(false);
   const passedThreshold = useRef(false);
   const startPoint = useRef<Point2D>({ x: 0, y: 0 });
-  const [rect, setRect] = useState<ScreenRect | null>(null);
 
   const finishSelection = useCallback(
     (endPoint: Point2D) => {
@@ -153,7 +145,7 @@ export default function SelectionBox({ layoutMap }: SelectionBoxProps) {
       passedThreshold.current = false;
       const cr = canvas.getBoundingClientRect();
       startPoint.current = { x: e.clientX - cr.left, y: e.clientY - cr.top };
-      setRect(null);
+      setSelectionRect(null);
     };
 
     const onPointerMove = (e: PointerEvent) => {
@@ -172,7 +164,18 @@ export default function SelectionBox({ layoutMap }: SelectionBoxProps) {
         useCameraFocusStore.getState().setOrbitEnabled(false);
       }
 
-      setRect(rectFromPoints(startPoint.current, current));
+      // The visual rectangle needs to be positioned relative to the viewport,
+      // not the canvas, because it's rendered in the HUD layer.
+      // So we compute the rect using clientX/clientY directly.
+      const viewportStart = {
+        x: startPoint.current.x + cr.left,
+        y: startPoint.current.y + cr.top,
+      };
+      const viewportCurrent = {
+        x: e.clientX,
+        y: e.clientY,
+      };
+      setSelectionRect(rectFromPoints(viewportStart, viewportCurrent));
     };
 
     const onPointerUp = (e: PointerEvent) => {
@@ -188,7 +191,7 @@ export default function SelectionBox({ layoutMap }: SelectionBoxProps) {
       }
 
       passedThreshold.current = false;
-      setRect(null);
+      setSelectionRect(null);
     };
 
     canvas.addEventListener('pointerdown', onPointerDown);
@@ -200,27 +203,7 @@ export default function SelectionBox({ layoutMap }: SelectionBoxProps) {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
     };
-  }, [gl, camera, scene, raycaster, finishSelection]);
+  }, [gl, camera, scene, raycaster, finishSelection, setSelectionRect]);
 
-  // Don't render anything if no drag is active
-  if (!rect) return null;
-
-  return (
-    <Html fullscreen>
-      <div
-        style={{
-          position: 'absolute',
-          left: rect.left,
-          top: rect.top,
-          width: rect.width,
-          height: rect.height,
-          border: '1.5px dashed rgba(122, 162, 247, 0.8)',
-          backgroundColor: 'rgba(122, 162, 247, 0.12)',
-          borderRadius: 2,
-          pointerEvents: 'none',
-          zIndex: 1000,
-        }}
-      />
-    </Html>
-  );
+  return null;
 }

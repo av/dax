@@ -5,6 +5,13 @@ interface ContextMenuPosition {
   y: number;
 }
 
+export interface ScreenRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
 interface SelectionState {
   selectedIds: Set<string>;
   hoveredId: string | null;
@@ -15,6 +22,7 @@ interface SelectionState {
   contextMenuTargetId: string | null;
   renameTarget: string | null;
   moveTargets: string[];
+  selectionRect: ScreenRect | null;
 
   select: (id: string) => void;
   toggleSelect: (id: string) => void;
@@ -32,6 +40,7 @@ interface SelectionState {
   closeRenameDialog: () => void;
   openMoveDialog: (paths: string[]) => void;
   closeMoveDialog: () => void;
+  setSelectionRect: (rect: ScreenRect | null) => void;
 }
 
 export const useSelectionStore = create<SelectionState>((set) => ({
@@ -44,6 +53,7 @@ export const useSelectionStore = create<SelectionState>((set) => ({
   contextMenuTargetId: null,
   renameTarget: null,
   moveTargets: [],
+  selectionRect: null,
 
   select: (id: string) =>
     set({
@@ -137,4 +147,7 @@ export const useSelectionStore = create<SelectionState>((set) => ({
 
   closeMoveDialog: () =>
     set({ moveTargets: [] }),
+
+  setSelectionRect: (rect: ScreenRect | null) =>
+    set({ selectionRect: rect }),
 }));

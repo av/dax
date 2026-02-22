@@ -309,6 +309,7 @@ export default function HUD() {
   const onboardingStep = useOnboardingStore((s) => s.currentStep);
   const toggleCommandBar = useAgentStore((s) => s.toggleCommandBar);
   const isDetailPanelOpen = useSelectionStore((s) => s.isDetailPanelOpen);
+  const selectionRect = useSelectionStore((s) => s.selectionRect);
 
   useKeyboard();
 
@@ -499,6 +500,22 @@ export default function HUD() {
       )}
 
       {/* ── Selection UI overlays ──────────────────── */}
+      {selectionRect && (
+        <div
+          style={{
+            position: 'fixed',
+            left: selectionRect.left,
+            top: selectionRect.top,
+            width: selectionRect.width,
+            height: selectionRect.height,
+            border: '1.5px dashed rgba(122, 162, 247, 0.8)',
+            backgroundColor: 'rgba(122, 162, 247, 0.12)',
+            borderRadius: 2,
+            pointerEvents: 'none',
+            zIndex: 1000,
+          }}
+        />
+      )}
       <BulkActionsBar />
       <DetailPanel />
       <ContextMenu />

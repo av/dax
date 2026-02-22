@@ -39,6 +39,8 @@ function createCardGeometry(): THREE.BufferGeometry {
   // Centre the geometry so the origin is in the middle
   geo.center();
   geo.computeVertexNormals();
+  geo.computeBoundingSphere();
+  geo.computeBoundingBox();
   return geo;
 }
 
@@ -216,7 +218,7 @@ function FileInstanceGroup({ files, layoutMap }: FileInstanceGroupProps) {
     });
 
     mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    mesh.computeBoundingSphere();
   });
 
   const handlePointerMove = useCallback(
@@ -228,13 +230,9 @@ function FileInstanceGroup({ files, layoutMap }: FileInstanceGroupProps) {
         setHoveredId(null);
         return;
       }
-      if (!meshRef.current) return;
-      // Use raycaster to find which instance
-      const intersects = raycaster.intersectObject(meshRef.current);
-      if (intersects.length > 0 && intersects[0].instanceId !== undefined) {
-        const idx = intersects[0].instanceId;
-        setHoveredIndex(idx);
-        setHoveredId(files[idx].id);
+      if (e.instanceId !== undefined) {
+        setHoveredIndex(e.instanceId);
+        setHoveredId(files[e.instanceId].id);
         document.body.style.cursor = 'pointer';
       } else {
         setHoveredIndex(null);
@@ -242,7 +240,7 @@ function FileInstanceGroup({ files, layoutMap }: FileInstanceGroupProps) {
         document.body.style.cursor = 'auto';
       }
     },
-    [raycaster, files, setHoveredId],
+    [files, setHoveredId],
   );
 
   const handlePointerOut = useCallback(
@@ -260,11 +258,8 @@ function FileInstanceGroup({ files, layoutMap }: FileInstanceGroupProps) {
       e.stopPropagation();
       // Ignore clicks that are actually the end of a drag
       if (useDragStore.getState().dragEndTime > Date.now() - 100) return;
-      if (!meshRef.current) return;
-      const intersects = raycaster.intersectObject(meshRef.current);
-      if (intersects.length > 0 && intersects[0].instanceId !== undefined) {
-        const idx = intersects[0].instanceId;
-        const id = files[idx].id;
+      if (e.instanceId !== undefined) {
+        const id = files[e.instanceId].id;
         if (e.nativeEvent.shiftKey) {
           toggleSelect(id);
         } else {
@@ -272,41 +267,35 @@ function FileInstanceGroup({ files, layoutMap }: FileInstanceGroupProps) {
         }
       }
     },
-    [raycaster, files, select, toggleSelect],
+    [files, select, toggleSelect],
   );
 
   const handleDoubleClick = useCallback(
     (e: ThreeEvent<MouseEvent>) => {
       e.stopPropagation();
       if (useDragStore.getState().dragEndTime > Date.now() - 100) return;
-      if (!meshRef.current) return;
-      const intersects = raycaster.intersectObject(meshRef.current);
-      if (intersects.length > 0 && intersects[0].instanceId !== undefined) {
-        const idx = intersects[0].instanceId;
-        window.electronAPI.openExternal(files[idx].path).catch((err: unknown) => {
+      if (e.instanceId !== undefined) {
+        window.electronAPI.openExternal(files[e.instanceId].path).catch((err: unknown) => {
           console.error('Failed to open externally:', err);
         });
       }
     },
-    [raycaster, files],
+    [files],
   );
 
   const handleContextMenu = useCallback(
     (e: ThreeEvent<MouseEvent>) => {
       e.stopPropagation();
       e.nativeEvent.preventDefault();
-      if (!meshRef.current) return;
-      const intersects = raycaster.intersectObject(meshRef.current);
-      if (intersects.length > 0 && intersects[0].instanceId !== undefined) {
-        const idx = intersects[0].instanceId;
+      if (e.instanceId !== undefined) {
         openContextMenu(
           e.nativeEvent.clientX,
           e.nativeEvent.clientY,
-          files[idx].id,
+          files[e.instanceId].id,
         );
       }
     },
-    [raycaster, files, openContextMenu],
+    [files, openContextMenu],
   );
 
   // Get hovered file data for label
@@ -346,7 +335,7 @@ function FileInstanceGroup({ files, layoutMap }: FileInstanceGroupProps) {
       <instancedMesh
         ref={meshRef}
         args={[geometry, material, files.length]}
-        frustumCulled={true}
+        frustumCulled={false}
         onPointerMove={handlePointerMove}
         onPointerOut={handlePointerOut}
         onClick={handleClick}
