@@ -202,13 +202,17 @@ export default function SelectionBox({ layoutMap }: SelectionBoxProps) {
   // Don't render anything if no drag is active
   if (!rect) return null;
 
+  // Convert viewport-space rect to canvas-relative coords for <Html fullscreen>,
+  // whose container is positioned at the canvas origin.
+  const canvasRect = gl.domElement.getBoundingClientRect();
+
   return (
     <Html fullscreen>
       <div
         style={{
-          position: 'fixed',
-          left: rect.left,
-          top: rect.top,
+          position: 'absolute',
+          left: rect.left - canvasRect.left,
+          top: rect.top - canvasRect.top,
           width: rect.width,
           height: rect.height,
           border: '1.5px dashed rgba(122, 162, 247, 0.8)',

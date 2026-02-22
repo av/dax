@@ -3,7 +3,7 @@ import { useRef, useMemo, useCallback, useState, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { getFileShape, getFileColor, getFileScale, formatFileSize, formatModifiedDate, } from '@/utils/fileClassification';
+import { getFileColor, getFileScale, formatFileSize, formatModifiedDate, } from '@/utils/fileClassification';
 import { useSelectionStore } from '@/stores/selectionStore';
 import { useFileTreeStore } from '@/stores/fileTreeStore';
 import { useDragStore } from '@/scene/FileDragger';
@@ -15,13 +15,22 @@ const LOD_MIN_SCALE = 0.3;
 const LOD_BILLBOARD = 200;
 // Selection lift height (world units)
 const SELECTION_LIFT = 0.5;
-// ── Shared geometries ──────────────────────────────────
-const SHARED_GEOMETRIES = {
-    box: new THREE.BoxGeometry(1, 1, 1),
-    sphere: new THREE.SphereGeometry(0.5, 16, 16),
-    cylinder: new THREE.CylinderGeometry(0.4, 0.4, 1, 16),
-    torus: new THREE.TorusGeometry(0.4, 0.15, 12, 24),
-};
+// ── Shared card geometry (dog-eared page) ──────────────
+function createCardGeometry() {
+    const shape = new THREE.Shape();
+    shape.moveTo(-0.4, -0.55); // bottom-left
+    shape.lineTo(0.4, -0.55); // bottom-right
+    shape.lineTo(0.4, 0.35); // right side up to fold start
+    shape.lineTo(0.2, 0.55); // fold diagonal
+    shape.lineTo(-0.4, 0.55); // top-left
+    shape.closePath();
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.03, bevelEnabled: false });
+    // Centre the geometry so the origin is in the middle
+    geo.center();
+    geo.computeVertexNormals();
+    return geo;
+}
+const CARD_GEOMETRY = createCardGeometry();
 // ── Hover label component ──────────────────────────────
 function HoverLabel({ node, position }) {
     const color = getFileColor(node.extension);
@@ -40,7 +49,7 @@ function HoverLabel({ node, position }) {
 // ── Instance group for a single shape type ─────────────
 const _tempObject = new THREE.Object3D();
 const _tempColor = new THREE.Color();
-function FileInstanceGroup({ shape, files, layoutMap }) {
+function FileInstanceGroup({ files, layoutMap }) {
     const meshRef = useRef(null);
     const { raycaster, camera } = useThree();
     const [hoveredIndex, setHoveredIndex] = useState(null);
@@ -56,10 +65,11 @@ function FileInstanceGroup({ shape, files, layoutMap }) {
         files.forEach((file, i) => {
             const layout = layoutMap.get(file.id);
             const pos = layout?.position ?? [0, 0, 0];
+            const rotY = layout?.rotationY ?? 0;
             const scale = getFileScale(file.sizeBytes);
             _tempObject.position.set(pos[0], pos[1], pos[2]);
             _tempObject.scale.set(scale, scale, scale);
-            _tempObject.rotation.set(0, 0, 0);
+            _tempObject.rotation.set(0, rotY, 0);
             _tempObject.updateMatrix();
             _tempColor.set(getFileColor(file.extension));
             colors[i * 3] = _tempColor.r;
@@ -122,9 +132,10 @@ function FileInstanceGroup({ shape, files, layoutMap }) {
             // Smooth lift animation for selected instances
             const targetLift = isSelected ? SELECTION_LIFT : 0;
             lifts[i] += (targetLift - lifts[i]) * 0.12;
+            const rotY = layout?.rotationY ?? 0;
             _tempObject.position.set(pos[0], pos[1] + lifts[i], pos[2]);
             _tempObject.scale.set(targetScale, targetScale, targetScale);
-            _tempObject.rotation.set(0, 0, 0);
+            _tempObject.rotation.set(0, rotY, 0);
             _tempObject.updateMatrix();
             mesh.setMatrixAt(i, _tempObject.matrix);
             // Color: selected gets brighter, hovered gets a smaller boost
@@ -228,8 +239,8 @@ function FileInstanceGroup({ shape, files, layoutMap }) {
         ? layoutMap.get(hoveredFile.id)?.position ?? null
         : null;
     // Memoize a stable material so it's not re-created on every render
-    const material = useMemo(() => new THREE.MeshStandardMaterial({ roughness: 0.4, metalness: 0.1, vertexColors: true }), []);
-    const geometry = SHARED_GEOMETRIES[shape];
+    const material = useMemo(() => new THREE.MeshStandardMaterial({ roughness: 0.4, metalness: 0.1 }), []);
+    const geometry = CARD_GEOMETRY;
     // Dispose instanced mesh GPU resources (instanceMatrix, instanceColor) when
     // the file count changes (args forces a new InstancedMesh) or on unmount.
     useEffect(() => {
@@ -319,22 +330,7 @@ function BillboardPoints({ files, layoutMap }) {
     });
     return _jsx("points", { ref: pointsRef, args: [geometry, material], frustumCulled: false });
 }
-// ── Main component: groups files by shape, renders InstancedMesh per group ──
+// ── Main component: single InstancedMesh for all files ─────────────────────
 export default function FileInstances({ files, layoutMap }) {
-    // Group files by shape
-    const groups = useMemo(() => {
-        const map = new Map();
-        for (const file of files) {
-            const shape = getFileShape(file.extension);
-            const list = map.get(shape);
-            if (list) {
-                list.push(file);
-            }
-            else {
-                map.set(shape, [file]);
-            }
-        }
-        return map;
-    }, [files]);
-    return (_jsxs(_Fragment, { children: [Array.from(groups.entries()).map(([shape, shapeFiles]) => (_jsx(FileInstanceGroup, { shape: shape, files: shapeFiles, layoutMap: layoutMap }, shape))), _jsx(BillboardPoints, { files: files, layoutMap: layoutMap })] }));
+    return (_jsxs(_Fragment, { children: [files.length > 0 && (_jsx(FileInstanceGroup, { files: files, layoutMap: layoutMap })), _jsx(BillboardPoints, { files: files, layoutMap: layoutMap })] }));
 }

@@ -3,9 +3,7 @@ import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import type { FileNode } from '@/types';
-import type { FileShape } from '@/utils/fileClassification';
 import {
-  getFileShape,
   getFileColor,
   getFileScale,
   formatFileSize,
@@ -26,19 +24,29 @@ const LOD_BILLBOARD = 200;
 // Selection lift height (world units)
 const SELECTION_LIFT = 0.5;
 
-// ── Shared geometries ──────────────────────────────────
+// ── Shared card geometry (dog-eared page) ──────────────
 
-const SHARED_GEOMETRIES: Record<FileShape, THREE.BufferGeometry> = {
-  box: new THREE.BoxGeometry(1, 1, 1),
-  sphere: new THREE.SphereGeometry(0.5, 16, 16),
-  cylinder: new THREE.CylinderGeometry(0.4, 0.4, 1, 16),
-  torus: new THREE.TorusGeometry(0.4, 0.15, 12, 24),
-};
+function createCardGeometry(): THREE.BufferGeometry {
+  const shape = new THREE.Shape();
+  shape.moveTo(-0.4, -0.55);  // bottom-left
+  shape.lineTo(0.4, -0.55);   // bottom-right
+  shape.lineTo(0.4, 0.35);    // right side up to fold start
+  shape.lineTo(0.2, 0.55);    // fold diagonal
+  shape.lineTo(-0.4, 0.55);   // top-left
+  shape.closePath();
+
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.03, bevelEnabled: false });
+  // Centre the geometry so the origin is in the middle
+  geo.center();
+  geo.computeVertexNormals();
+  return geo;
+}
+
+const CARD_GEOMETRY = createCardGeometry();
 
 // ── Types ──────────────────────────────────────────────
 
 interface FileInstanceGroupProps {
-  shape: FileShape;
   files: FileNode[];
   layoutMap: Map<string, LayoutEntry>;
 }
@@ -86,7 +94,7 @@ function HoverLabel({ node, position }: { node: FileNode; position: [number, num
 const _tempObject = new THREE.Object3D();
 const _tempColor = new THREE.Color();
 
-function FileInstanceGroup({ shape, files, layoutMap }: FileInstanceGroupProps) {
+function FileInstanceGroup({ files, layoutMap }: FileInstanceGroupProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const { raycaster, camera } = useThree();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -105,11 +113,12 @@ function FileInstanceGroup({ shape, files, layoutMap }: FileInstanceGroupProps) 
     files.forEach((file, i) => {
       const layout = layoutMap.get(file.id);
       const pos = layout?.position ?? [0, 0, 0];
+      const rotY = layout?.rotationY ?? 0;
       const scale = getFileScale(file.sizeBytes);
 
       _tempObject.position.set(pos[0], pos[1], pos[2]);
       _tempObject.scale.set(scale, scale, scale);
-      _tempObject.rotation.set(0, 0, 0);
+      _tempObject.rotation.set(0, rotY, 0);
       _tempObject.updateMatrix();
 
       _tempColor.set(getFileColor(file.extension));
@@ -182,9 +191,10 @@ function FileInstanceGroup({ shape, files, layoutMap }: FileInstanceGroupProps) 
       const targetLift = isSelected ? SELECTION_LIFT : 0;
       lifts[i] += (targetLift - lifts[i]) * 0.12;
 
+      const rotY = layout?.rotationY ?? 0;
       _tempObject.position.set(pos[0], pos[1] + lifts[i], pos[2]);
       _tempObject.scale.set(targetScale, targetScale, targetScale);
-      _tempObject.rotation.set(0, 0, 0);
+      _tempObject.rotation.set(0, rotY, 0);
       _tempObject.updateMatrix();
 
       mesh.setMatrixAt(i, _tempObject.matrix);
@@ -306,11 +316,11 @@ function FileInstanceGroup({ shape, files, layoutMap }: FileInstanceGroupProps) 
 
   // Memoize a stable material so it's not re-created on every render
   const material = useMemo(
-    () => new THREE.MeshStandardMaterial({ roughness: 0.4, metalness: 0.1, vertexColors: true }),
+    () => new THREE.MeshStandardMaterial({ roughness: 0.4, metalness: 0.1 }),
     [],
   );
 
-  const geometry = SHARED_GEOMETRIES[shape];
+  const geometry = CARD_GEOMETRY;
 
   // Dispose instanced mesh GPU resources (instanceMatrix, instanceColor) when
   // the file count changes (args forces a new InstancedMesh) or on unmount.
@@ -441,34 +451,17 @@ function BillboardPoints({ files, layoutMap }: FileInstancesProps) {
   return <points ref={pointsRef} args={[geometry, material]} frustumCulled={false} />;
 }
 
-// ── Main component: groups files by shape, renders InstancedMesh per group ──
+// ── Main component: single InstancedMesh for all files ─────────────────────
 
 export default function FileInstances({ files, layoutMap }: FileInstancesProps) {
-  // Group files by shape
-  const groups = useMemo(() => {
-    const map = new Map<FileShape, FileNode[]>();
-    for (const file of files) {
-      const shape = getFileShape(file.extension);
-      const list = map.get(shape);
-      if (list) {
-        list.push(file);
-      } else {
-        map.set(shape, [file]);
-      }
-    }
-    return map;
-  }, [files]);
-
   return (
     <>
-      {Array.from(groups.entries()).map(([shape, shapeFiles]) => (
+      {files.length > 0 && (
         <FileInstanceGroup
-          key={shape}
-          shape={shape}
-          files={shapeFiles}
+          files={files}
           layoutMap={layoutMap}
         />
-      ))}
+      )}
       <BillboardPoints files={files} layoutMap={layoutMap} />
     </>
   );

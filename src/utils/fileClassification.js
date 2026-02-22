@@ -24,19 +24,9 @@ const DATA_EXTENSIONS = new Set([
     'json', 'xml', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf', 'env',
     'graphql', 'gql', 'proto', 'sql',
 ]);
-/** Determine 3D shape from file extension */
-export function getFileShape(extension) {
-    if (!extension)
-        return 'box';
-    const ext = extension.replace(/^\./, '').toLowerCase();
-    if (CODE_EXTENSIONS.has(ext))
-        return 'cylinder';
-    if (IMAGE_EXTENSIONS.has(ext))
-        return 'sphere';
-    if (ARCHIVE_EXTENSIONS.has(ext))
-        return 'torus';
-    // Documents, spreadsheets, data, and unknown all get box
-    return 'box';
+/** Determine 3D shape from file extension – all files are cards now */
+export function getFileShape(_extension) {
+    return 'card';
 }
 /** Color hex string by extension group */
 export function getFileColor(extension) {
