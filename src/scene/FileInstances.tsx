@@ -15,11 +15,11 @@ import type { LayoutEntry } from '@/scene/layout/spatialLayout';
 import { useDragStore } from '@/scene/FileDragger';
 
 // LOD: instances farther than this from the camera start scaling down
-const LOD_NEAR = 40;
-const LOD_FAR = 120;
-const LOD_MIN_SCALE = 0.3;
+const LOD_NEAR = 60;
+const LOD_FAR = 200;
+const LOD_MIN_SCALE = 0.5;
 // Beyond this distance, files are rendered as simple colored points instead of 3D geometry
-const LOD_BILLBOARD = 200;
+const LOD_BILLBOARD = 500;
 
 // Selection lift height (world units)
 const SELECTION_LIFT = 0.5;
@@ -171,8 +171,9 @@ function FileInstanceGroup({ files, layoutMap }: FileInstanceGroupProps) {
 
       // LOD: scale down distant instances; hide beyond billboard threshold
       const dx = pos[0] - camera.position.x;
+      const dy = pos[1] - camera.position.y;
       const dz = pos[2] - camera.position.z;
-      const dist = Math.sqrt(dx * dx + dz * dz);
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
       let targetScale: number;
       if (dist > LOD_BILLBOARD) {
@@ -367,6 +368,89 @@ function FileInstanceGroup({ files, layoutMap }: FileInstanceGroupProps) {
   );
 }
 
+// ── Always-visible filename labels for nearby files ────
+
+const LABEL_DISTANCE = 35;
+const MAX_LABELS = 50;
+const LABEL_UPDATE_INTERVAL = 10; // frames between recalculations
+
+interface LabelEntry {
+  id: string;
+  name: string;
+  position: [number, number, number];
+}
+
+function truncateName(name: string, max = 20): string {
+  return name.length > max ? name.slice(0, max) + '…' : name;
+}
+
+function NearbyLabels({ files, layoutMap }: FileInstancesProps) {
+  const { camera } = useThree();
+  const [visibleLabels, setVisibleLabels] = useState<LabelEntry[]>([]);
+  const frameCount = useRef(0);
+
+  useFrame(() => {
+    frameCount.current++;
+    if (frameCount.current % LABEL_UPDATE_INTERVAL !== 0) return;
+
+    const posOverrides = useFileTreeStore.getState().positionOverrides;
+    const { isDragging: dragging, dragPositions } = useDragStore.getState();
+
+    const candidates: { id: string; name: string; position: [number, number, number]; dist: number }[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const layout = layoutMap.get(file.id);
+      const autoPos = layout?.position ?? [0, 0, 0];
+      const dragPos = dragging ? dragPositions.get(file.id) : undefined;
+      const overridePos = posOverrides.get(file.id);
+      const pos = dragPos ?? overridePos ?? autoPos;
+
+      const dx = pos[0] - camera.position.x;
+      const dy = pos[1] - camera.position.y;
+      const dz = pos[2] - camera.position.z;
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+      if (dist <= LABEL_DISTANCE) {
+        candidates.push({ id: file.id, name: file.name, position: pos as [number, number, number], dist });
+      }
+    }
+
+    // Sort by distance, take closest MAX_LABELS
+    candidates.sort((a, b) => a.dist - b.dist);
+    const closest = candidates.slice(0, MAX_LABELS);
+
+    setVisibleLabels(
+      closest.map((c) => ({ id: c.id, name: c.name, position: c.position })),
+    );
+  });
+
+  return (
+    <>
+      {visibleLabels.map((label) => (
+        <Html
+          key={label.id}
+          position={[label.position[0], label.position[1] - 0.3, label.position[2]]}
+          distanceFactor={12}
+          style={{ pointerEvents: 'none' }}
+          center
+        >
+          <div style={{
+            color: 'rgba(192, 202, 245, 0.7)',
+            fontSize: '10px',
+            fontFamily: 'monospace',
+            whiteSpace: 'nowrap',
+            textShadow: '0 0 4px rgba(0,0,0,0.8)',
+            userSelect: 'none',
+          }}>
+            {truncateName(label.name)}
+          </div>
+        </Html>
+      ))}
+    </>
+  );
+}
+
 // ── Billboard points for very distant files ───────────
 
 function BillboardPoints({ files, layoutMap }: FileInstancesProps) {
@@ -420,8 +504,9 @@ function BillboardPoints({ files, layoutMap }: FileInstancesProps) {
       const pos = dragPos ?? overridePos ?? autoPos;
 
       const dx = pos[0] - camera.position.x;
+      const dy = pos[1] - camera.position.y;
       const dz = pos[2] - camera.position.z;
-      const dist = Math.sqrt(dx * dx + dz * dz);
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
       if (dist > LOD_BILLBOARD) {
         positions[count * 3] = pos[0];
@@ -463,6 +548,7 @@ export default function FileInstances({ files, layoutMap }: FileInstancesProps) 
         />
       )}
       <BillboardPoints files={files} layoutMap={layoutMap} />
+      <NearbyLabels files={files} layoutMap={layoutMap} />
     </>
   );
 }

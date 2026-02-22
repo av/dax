@@ -45,8 +45,8 @@ function projectToScreen(
   _projVec.project(camera);
 
   return {
-    x: (((_projVec.x + 1) / 2) * canvasRect.width) + canvasRect.left,
-    y: (((-_projVec.y + 1) / 2) * canvasRect.height) + canvasRect.top,
+    x: ((_projVec.x + 1) / 2) * canvasRect.width,
+    y: ((-_projVec.y + 1) / 2) * canvasRect.height,
   };
 }
 
@@ -151,14 +151,16 @@ export default function SelectionBox({ layoutMap }: SelectionBoxProps) {
       // Start drag-select
       isDragging.current = true;
       passedThreshold.current = false;
-      startPoint.current = { x: e.clientX, y: e.clientY };
+      const cr = canvas.getBoundingClientRect();
+      startPoint.current = { x: e.clientX - cr.left, y: e.clientY - cr.top };
       setRect(null);
     };
 
     const onPointerMove = (e: PointerEvent) => {
       if (!isDragging.current) return;
 
-      const current: Point2D = { x: e.clientX, y: e.clientY };
+      const cr = canvas.getBoundingClientRect();
+      const current: Point2D = { x: e.clientX - cr.left, y: e.clientY - cr.top };
       const dx = current.x - startPoint.current.x;
       const dy = current.y - startPoint.current.y;
 
@@ -181,7 +183,8 @@ export default function SelectionBox({ layoutMap }: SelectionBoxProps) {
       useCameraFocusStore.getState().setOrbitEnabled(true);
 
       if (passedThreshold.current) {
-        finishSelection({ x: e.clientX, y: e.clientY });
+        const cr = canvas.getBoundingClientRect();
+        finishSelection({ x: e.clientX - cr.left, y: e.clientY - cr.top });
       }
 
       passedThreshold.current = false;
@@ -202,17 +205,13 @@ export default function SelectionBox({ layoutMap }: SelectionBoxProps) {
   // Don't render anything if no drag is active
   if (!rect) return null;
 
-  // Convert viewport-space rect to canvas-relative coords for <Html fullscreen>,
-  // whose container is positioned at the canvas origin.
-  const canvasRect = gl.domElement.getBoundingClientRect();
-
   return (
     <Html fullscreen>
       <div
         style={{
           position: 'absolute',
-          left: rect.left - canvasRect.left,
-          top: rect.top - canvasRect.top,
+          left: rect.left,
+          top: rect.top,
           width: rect.width,
           height: rect.height,
           border: '1.5px dashed rgba(122, 162, 247, 0.8)',

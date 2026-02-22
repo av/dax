@@ -3,4 +3,5 @@ dist-renderer/
 dist-electron/
 release/
 *.js.map
+electron/**/*.js
 .DS_Store

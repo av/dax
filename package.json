@@ -2,10 +2,10 @@
   "name": "dax",
   "version": "0.1.0",
   "description": "3D File Workspace with AI Agent",
-  "main": "dist-electron/electron/main.js",
+  "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "concurrently -n vite,electron \"vite\" \"wait-on tcp:5173 && electron .\"",
-    "build": "tsc && vite build && tsc -p tsconfig.node.json",
+    "dev": "vite",
+    "build": "vite build",
     "package": "npm run build && electron-builder",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.node.json --noEmit"
   },
@@ -37,6 +37,8 @@
     "electron-builder": "^25.1.8",
     "typescript": "^5.7.3",
     "vite": "^6.1.0",
+    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron-renderer": "^0.14.6",
     "wait-on": "^8.0.3"
   }
 }

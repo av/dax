@@ -308,6 +308,7 @@ export default function HUD() {
   const openSettings = useSettingsStore((s) => s.openSettings);
   const onboardingStep = useOnboardingStore((s) => s.currentStep);
   const toggleCommandBar = useAgentStore((s) => s.toggleCommandBar);
+  const isDetailPanelOpen = useSelectionStore((s) => s.isDetailPanelOpen);
 
   useKeyboard();
 
@@ -338,6 +339,8 @@ export default function HUD() {
           left: 0,
           right: 0,
           padding: '12px 16px',
+          paddingRight: isDetailPanelOpen ? '336px' : '16px',
+          transition: 'padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',

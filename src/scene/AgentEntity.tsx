@@ -34,7 +34,7 @@ const outerGeo = new THREE.IcosahedronGeometry(0.35, 0);
 const _targetVec = new THREE.Vector3();
 const _currentVec = new THREE.Vector3();
 const IDLE_ORBIT_RADIUS = 3;
-const BOB_AMPLITUDE = 0.2;
+const BOB_AMPLITUDE = 0.08;
 const BOB_SPEED = 1.8;
 const FLY_LERP_SPEED = 2.5;
 const ROTATION_SPEED = 0.6;
@@ -226,7 +226,7 @@ export default function AgentEntity() {
       orbitAngle.current += 0.3 * clampedDelta;
       const ox = center.x + Math.cos(orbitAngle.current) * IDLE_ORBIT_RADIUS;
       const oz = center.z + Math.sin(orbitAngle.current) * IDLE_ORBIT_RADIUS;
-      const baseY = center.y + 3;
+      const baseY = center.y + 1.5;
 
       _targetVec.set(ox, baseY, oz);
       _currentVec.set(group.position.x, group.position.y, group.position.z);
@@ -236,6 +236,9 @@ export default function AgentEntity() {
 
     // Bob
     group.position.y += Math.sin(elapsed * BOB_SPEED) * BOB_AMPLITUDE;
+
+    // Clamp to minimum height above ground
+    group.position.y = Math.max(group.position.y, 1.0);
 
     // Push position back to store (deterministic — every 3rd frame)
     frameCount.current += 1;
