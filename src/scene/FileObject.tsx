@@ -12,6 +12,7 @@ import {
   formatModifiedDate,
 } from '@/utils/fileClassification';
 import { useSelectionStore } from '@/stores/selectionStore';
+import { theme } from '@/theme';
 
 interface FileObjectProps {
   node: FileNode;
@@ -155,8 +156,8 @@ export default function FileObject({ node, position }: FileObjectProps) {
         >
           <div
             style={{
-              background: 'rgba(10, 10, 15, 0.92)',
-              color: '#e0e0e0',
+              background: theme.colors.bgSurface,
+              color: theme.colors.textPrimary,
               padding: '8px 12px',
               borderRadius: '6px',
               fontSize: '12px',

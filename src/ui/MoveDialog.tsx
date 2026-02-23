@@ -3,6 +3,7 @@ import { useSelectionStore } from '@/stores/selectionStore';
 import { useFileTreeStore } from '@/stores/fileTreeStore';
 import { useToast } from '@/ui/Toast';
 import type { FileNode } from '@/types';
+import { theme } from '@/theme';
 
 // ── Helpers ────────────────────────────────────────────
 
@@ -72,8 +73,8 @@ function DirTreeItem({ node, depth, selectedPath, onSelect }: DirTreeItemProps) 
           paddingLeft: `${8 + depth * 16}px`,
           cursor: 'pointer',
           borderRadius: '4px',
-          background: isSelected ? 'rgba(122, 162, 247, 0.2)' : 'transparent',
-          color: isSelected ? '#7aa2f7' : '#a9b1d6',
+          background: isSelected ? `${theme.colors.accentPrimary}33` : 'transparent',
+          color: isSelected ? theme.colors.accentPrimary : theme.colors.textSecondary,
           fontSize: '13px',
           fontFamily: 'monospace',
           userSelect: 'none',
@@ -81,7 +82,7 @@ function DirTreeItem({ node, depth, selectedPath, onSelect }: DirTreeItemProps) 
         onMouseEnter={(e) => {
           if (!isSelected)
             (e.currentTarget as HTMLDivElement).style.background =
-              'rgba(122, 162, 247, 0.08)';
+              `${theme.colors.accentPrimary}14`;
         }}
         onMouseLeave={(e) => {
           if (!isSelected)
@@ -96,7 +97,7 @@ function DirTreeItem({ node, depth, selectedPath, onSelect }: DirTreeItemProps) 
             width: '16px',
             textAlign: 'center',
             fontSize: '10px',
-            color: '#565f89',
+            color: theme.colors.textSecondary,
             cursor: hasChildren ? 'pointer' : 'default',
             flexShrink: 0,
           }}
@@ -252,25 +253,25 @@ export default function MoveDialog() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0, 0, 0, 0.6)',
+        background: `${theme.colors.textPrimary}66`,
         backdropFilter: 'blur(4px)',
         pointerEvents: 'auto',
       }}
     >
       <div
         style={{
-          background: '#1a1b26',
-          border: '1px solid #292e42',
+          background: theme.colors.bgBase,
+          border: `1px solid ${theme.colors.borderDefault}`,
           borderRadius: '12px',
           width: '480px',
           maxHeight: '70vh',
           display: 'flex',
           flexDirection: 'column',
           padding: '24px',
-          color: '#c0caf5',
+          color: theme.colors.textPrimary,
           fontFamily:
             '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+          boxShadow: theme.shadows.lg,
         }}
       >
         {/* Header */}
@@ -288,7 +289,7 @@ export default function MoveDialog() {
               margin: 0,
               fontSize: '18px',
               fontWeight: 600,
-              color: '#7aa2f7',
+              color: theme.colors.accentPrimary,
             }}
           >
             Move
@@ -302,12 +303,12 @@ export default function MoveDialog() {
         <div
           style={{
             fontSize: '13px',
-            color: '#565f89',
+            color: theme.colors.textSecondary,
             marginBottom: '12px',
             flexShrink: 0,
           }}
         >
-          Moving: <span style={{ color: '#a9b1d6' }}>{fileLabel}</span>
+          Moving: <span style={{ color: theme.colors.textSecondary }}>{fileLabel}</span>
         </div>
 
         {/* Selected destination */}
@@ -315,7 +316,7 @@ export default function MoveDialog() {
           style={{
             display: 'block',
             fontSize: '13px',
-            color: '#a9b1d6',
+            color: theme.colors.textSecondary,
             marginBottom: '4px',
             fontWeight: 500,
             flexShrink: 0,
@@ -328,9 +329,9 @@ export default function MoveDialog() {
             padding: '8px 10px',
             fontSize: '12px',
             fontFamily: 'monospace',
-            background: '#16161e',
-            color: selectedDir ? '#c0caf5' : '#565f89',
-            border: '1px solid #292e42',
+            background: theme.colors.bgSurface,
+            color: selectedDir ? theme.colors.textPrimary : theme.colors.textSecondary,
+            border: `1px solid ${theme.colors.borderDefault}`,
             borderRadius: '6px',
             marginBottom: '12px',
             overflow: 'hidden',
@@ -348,8 +349,8 @@ export default function MoveDialog() {
             flex: 1,
             minHeight: 0,
             overflowY: 'auto',
-            background: '#16161e',
-            border: '1px solid #292e42',
+            background: theme.colors.bgSurface,
+            border: `1px solid ${theme.colors.borderDefault}`,
             borderRadius: '6px',
             padding: '6px 0',
             marginBottom: '16px',
@@ -367,9 +368,9 @@ export default function MoveDialog() {
               borderRadius: '4px',
               background:
                 selectedDir === rootPath
-                  ? 'rgba(122, 162, 247, 0.2)'
+                  ? `${theme.colors.accentPrimary}33`
                   : 'transparent',
-              color: selectedDir === rootPath ? '#7aa2f7' : '#a9b1d6',
+              color: selectedDir === rootPath ? theme.colors.accentPrimary : theme.colors.textSecondary,
               fontSize: '13px',
               fontFamily: 'monospace',
               fontWeight: 600,
@@ -378,7 +379,7 @@ export default function MoveDialog() {
             onMouseEnter={(e) => {
               if (selectedDir !== rootPath)
                 (e.currentTarget as HTMLDivElement).style.background =
-                  'rgba(122, 162, 247, 0.08)';
+                  `${theme.colors.accentPrimary}14`;
             }}
             onMouseLeave={(e) => {
               if (selectedDir !== rootPath)
@@ -406,7 +407,7 @@ export default function MoveDialog() {
               style={{
                 padding: '16px',
                 textAlign: 'center',
-                color: '#565f89',
+                color: theme.colors.textSecondary,
                 fontSize: '13px',
               }}
             >
@@ -422,7 +423,7 @@ export default function MoveDialog() {
             justifyContent: 'flex-end',
             gap: '8px',
             paddingTop: '16px',
-            borderTop: '1px solid #292e42',
+            borderTop: `1px solid ${theme.colors.borderDefault}`,
             flexShrink: 0,
           }}
         >
@@ -455,7 +456,7 @@ export default function MoveDialog() {
 const closeButtonStyle: React.CSSProperties = {
   background: 'none',
   border: 'none',
-  color: '#565f89',
+  color: theme.colors.textSecondary,
   fontSize: '18px',
   cursor: 'pointer',
   padding: '4px 8px',
@@ -467,8 +468,8 @@ const cancelButtonStyle: React.CSSProperties = {
   padding: '8px 20px',
   fontSize: '13px',
   background: 'transparent',
-  color: '#565f89',
-  border: '1px solid #292e42',
+  color: theme.colors.textSecondary,
+  border: `1px solid ${theme.colors.borderDefault}`,
   borderRadius: '6px',
   cursor: 'pointer',
   fontFamily: 'inherit',
@@ -477,8 +478,8 @@ const cancelButtonStyle: React.CSSProperties = {
 const moveButtonStyle: React.CSSProperties = {
   padding: '8px 24px',
   fontSize: '13px',
-  background: '#7aa2f7',
-  color: '#1a1b26',
+  background: theme.colors.accentPrimary,
+  color: theme.colors.bgBase,
   border: 'none',
   borderRadius: '6px',
   cursor: 'pointer',

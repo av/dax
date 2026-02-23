@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { theme } from '@/theme';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -50,10 +51,10 @@ export function useToast() {
 // ── Single Toast ───────────────────────────────────────
 
 const TYPE_COLORS: Record<ToastType, string> = {
-  info: '#7aa2f7',
-  success: '#9ece6a',
-  warning: '#e0af68',
-  error: '#f7768e',
+  info: theme.colors.accentPrimary,
+  success: theme.colors.statusSuccess,
+  warning: theme.colors.statusWarning,
+  error: theme.colors.statusError,
 };
 
 function SingleToast({ toast, index }: { toast: ToastItem; index: number }) {
@@ -79,14 +80,14 @@ function SingleToast({ toast, index }: { toast: ToastItem; index: number }) {
     <div
       style={{
         padding: '10px 20px',
-        background: 'rgba(26, 27, 38, 0.95)',
-        color: '#c0caf5',
+        background: `${theme.colors.bgSurface}F2`,
+        color: theme.colors.textPrimary,
         border: `1px solid ${color}`,
         borderRadius: '8px',
         fontSize: '13px',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        boxShadow: `0 4px 20px rgba(0,0,0,0.4), 0 0 8px ${color}33`,
-        cursor: 'pointer',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          boxShadow: `0 4px 20px ${theme.colors.textPrimary}33, 0 0 8px ${color}33`,
+          cursor: 'pointer',
         maxWidth: '420px',
         textAlign: 'center',
         animation: exiting

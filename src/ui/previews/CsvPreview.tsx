@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import Papa from 'papaparse';
+import { theme } from '@/theme';
 
 interface CsvPreviewProps {
   content: string;
@@ -41,7 +42,7 @@ export default function CsvPreview({ content }: CsvPreviewProps) {
 
   if (error) {
     return (
-      <div style={{ color: '#f7768e', fontSize: '13px', padding: '12px 0' }}>
+      <div style={{ color: theme.colors.statusError, fontSize: '13px', padding: '12px 0' }}>
         {error}
       </div>
     );
@@ -49,7 +50,7 @@ export default function CsvPreview({ content }: CsvPreviewProps) {
 
   if (fields.length === 0) {
     return (
-      <div style={{ color: '#565f89', fontSize: '13px', padding: '12px 0' }}>
+      <div style={{ color: theme.colors.textSecondary, fontSize: '13px', padding: '12px 0' }}>
         No data found
       </div>
     );
@@ -59,7 +60,7 @@ export default function CsvPreview({ content }: CsvPreviewProps) {
     <div
       style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
     >
-      <div style={{ color: '#565f89', fontSize: '12px' }}>
+      <div style={{ color: theme.colors.textSecondary, fontSize: '12px' }}>
         {fields.length} columns · {rows.length} of ~{totalRowEstimate} rows
       </div>
 
@@ -74,26 +75,26 @@ export default function CsvPreview({ content }: CsvPreviewProps) {
         .dax-csv-table th {
           position: sticky;
           top: 0;
-          background: #1a1b2e;
-          color: #c0caf5;
+          background: ${theme.colors.bgBase};
+          color: ${theme.colors.textPrimary};
           padding: 6px 10px;
           text-align: left;
-          border-bottom: 2px solid #292e42;
+          border-bottom: 2px solid ${theme.colors.borderDefault};
           font-weight: 600;
           white-space: nowrap;
           z-index: 1;
         }
         .dax-csv-table td {
           padding: 4px 10px;
-          color: #a9b1d6;
-          border-bottom: 1px solid #1a1b2e;
+          color: ${theme.colors.textPrimary};
+          border-bottom: 1px solid ${theme.colors.bgBase};
           white-space: nowrap;
           max-width: 200px;
           overflow: hidden;
           text-overflow: ellipsis;
         }
         .dax-csv-table tr:hover td {
-          background: rgba(122, 162, 247, 0.05);
+          background: ${theme.colors.accentPrimary}0D;
         }
       `}</style>
 
@@ -102,7 +103,7 @@ export default function CsvPreview({ content }: CsvPreviewProps) {
           overflow: 'auto',
           maxHeight: '400px',
           borderRadius: '6px',
-          border: '1px solid #292e42',
+          border: `1px solid ${theme.colors.borderDefault}`,
         }}
       >
         <table className="dax-csv-table">
@@ -128,7 +129,7 @@ export default function CsvPreview({ content }: CsvPreviewProps) {
       {rows.length >= MAX_ROWS && (
         <div
           style={{
-            color: '#565f89',
+            color: theme.colors.textSecondary,
             fontSize: '11px',
             textAlign: 'center',
           }}

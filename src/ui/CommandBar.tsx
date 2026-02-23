@@ -5,6 +5,7 @@ import { useFileTreeStore } from '@/stores/fileTreeStore';
 import { AgentState } from '@/types';
 import type { FileNode } from '@/types';
 import { createPlan } from '@/agent/planner';
+import { theme } from '@/theme';
 
 function collectRootNodes(): FileNode[] {
   const state = useFileTreeStore.getState();
@@ -109,7 +110,7 @@ export default function CommandBar() {
         alignItems: 'flex-start',
         justifyContent: 'center',
         paddingTop: '20vh',
-        background: 'rgba(0, 0, 0, 0.5)',
+        background: `${theme.colors.textPrimary}4D`,
         zIndex: 100,
         pointerEvents: 'auto',
         animation: 'commandBarFadeIn 0.15s ease-out',
@@ -121,11 +122,11 @@ export default function CommandBar() {
         style={{
           width: '100%',
           maxWidth: '560px',
-          background: 'rgba(26, 27, 38, 0.98)',
-          border: '1px solid #292e42',
+          background: `${theme.colors.bgSurface}FA`,
+          border: `1px solid ${theme.colors.borderDefault}`,
           borderRadius: '12px',
           overflow: 'hidden',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.4)',
+          boxShadow: `0 20px 60px ${theme.colors.textPrimary}33`,
           animation: 'commandBarScaleIn 0.15s ease-out',
         }}
       >
@@ -136,10 +137,10 @@ export default function CommandBar() {
               alignItems: 'center',
               padding: '12px 16px',
               gap: '10px',
-              borderBottom: '1px solid #292e42',
+              borderBottom: `1px solid ${theme.colors.borderDefault}`,
             }}
           >
-            <span style={{ color: '#7aa2f7', fontSize: '16px', flexShrink: 0 }}>
+            <span style={{ color: theme.colors.accentPrimary, fontSize: '16px', flexShrink: 0 }}>
               ✦
             </span>
             <input
@@ -154,7 +155,7 @@ export default function CommandBar() {
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                color: '#c0caf5',
+                color: theme.colors.textPrimary,
                 fontSize: '15px',
                 fontFamily:
                   '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -163,7 +164,7 @@ export default function CommandBar() {
             {isLoading && (
               <span
                 style={{
-                  color: '#e0af68',
+                  color: theme.colors.statusWarning,
                   fontSize: '12px',
                   fontFamily: 'monospace',
                   animation: 'commandBarPulse 1s ease-in-out infinite',
@@ -181,7 +182,7 @@ export default function CommandBar() {
               style={{
                 padding: '4px 16px',
                 fontSize: '11px',
-                color: '#565f89',
+                color: theme.colors.textSecondary,
                 fontFamily: 'monospace',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
@@ -196,14 +197,14 @@ export default function CommandBar() {
                 style={{
                   padding: '6px 16px 6px 42px',
                   fontSize: '13px',
-                  color: '#9aa5ce',
+                  color: theme.colors.textSecondary,
                   cursor: 'pointer',
                   fontFamily:
                     '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                 }}
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLDivElement).style.background =
-                    'rgba(122, 162, 247, 0.08)';
+                    `${theme.colors.accentPrimary}14`;
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLDivElement).style.background = 'transparent';
@@ -218,16 +219,16 @@ export default function CommandBar() {
         <div
           style={{
             padding: '8px 16px',
-            borderTop: '1px solid #292e42',
+            borderTop: `1px solid ${theme.colors.borderDefault}`,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
           }}
         >
-          <span style={{ fontSize: '11px', color: '#565f89', fontFamily: 'monospace' }}>
+          <span style={{ fontSize: '11px', color: theme.colors.textSecondary, fontFamily: 'monospace' }}>
             ⌘K to toggle · Esc to dismiss
           </span>
-          <span style={{ fontSize: '11px', color: '#565f89', fontFamily: 'monospace' }}>
+          <span style={{ fontSize: '11px', color: theme.colors.textSecondary, fontFamily: 'monospace' }}>
             ↵ Submit
           </span>
         </div>

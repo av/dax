@@ -5,12 +5,13 @@ import { getFileColor } from '@/utils/fileClassification';
 import { calculateLayout } from '@/scene/layout/spatialLayout';
 import { useCameraFocusStore, getCameraLookAt } from '@/scene/CameraController';
 import type { FileNode } from '@/types';
+import { theme } from '@/theme';
 
 const MINIMAP_SIZE = 200;
 const DOT_RADIUS = 3;
-const VIEWPORT_COLOR = 'rgba(122, 162, 247, 0.5)';
-const BG_COLOR = 'rgba(10, 10, 15, 0.75)';
-const BORDER_COLOR = 'rgba(41, 46, 66, 0.8)';
+const VIEWPORT_COLOR = `${theme.colors.accentPrimary}80`;
+const BG_COLOR = `${theme.colors.bgBase}BF`;
+const BORDER_COLOR = `${theme.colors.borderDefault}CC`;
 
 function buildRootTree(
   rootChildren: string[],
@@ -122,7 +123,7 @@ export default function Minimap() {
       const isDir = node.type === 'directory';
       ctx.beginPath();
       ctx.arc(cx, cy, isDir ? DOT_RADIUS + 1 : DOT_RADIUS, 0, Math.PI * 2);
-      ctx.fillStyle = isDir ? 'rgba(86, 95, 137, 0.6)' : (getFileColor(node.extension) ?? '#565f89');
+      ctx.fillStyle = isDir ? `${theme.colors.textSecondary}99` : (getFileColor(node.extension) ?? theme.colors.textSecondary);
       ctx.fill();
     }
 
@@ -130,7 +131,7 @@ export default function Minimap() {
     const [ax, ay] = worldToCanvas(agentPos[0], agentPos[2], bounds);
     ctx.beginPath();
     ctx.arc(ax, ay, 4, 0, Math.PI * 2);
-    ctx.fillStyle = '#9ece6a';
+    ctx.fillStyle = theme.colors.statusSuccess;
     ctx.fill();
 
     // Draw viewport indicator centered on camera look-at position

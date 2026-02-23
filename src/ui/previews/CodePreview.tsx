@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { codeToHtml } from 'shiki';
+import { codeToHtml, bundledThemes } from 'shiki';
+import { theme } from '@/theme';
 
 interface CodePreviewProps {
   content: string;
@@ -45,7 +46,7 @@ function addLineNumbers(html: string): string {
   let lineNum = 0;
   return html.replace(/<span class="line[^"]*">/g, (match) => {
     lineNum++;
-    return `${match}<span style="display:inline-block;width:3ch;margin-right:1.5ch;text-align:right;color:#565f89;user-select:none;pointer-events:none;flex-shrink:0">${lineNum}</span>`;
+    return `${match}<span style="display:inline-block;width:3ch;margin-right:1.5ch;text-align:right;color:${theme.colors.textSecondary};user-select:none;pointer-events:none;flex-shrink:0">${lineNum}</span>`;
   });
 }
 
@@ -69,15 +70,28 @@ export default function CodePreview({ content, extension }: CodePreviewProps) {
     const highlight = async (): Promise<void> => {
       let highlighted: string;
       try {
-        highlighted = await codeToHtml(code, { lang, theme: 'github-dark' });
-      } catch {
+        const themeModule = await bundledThemes['vitesse-light']();
+        const baseTheme = themeModule.default;
+
+        const customTheme = {
+          ...baseTheme,
+          name: 'dax-light',
+          colors: {
+            ...baseTheme.colors,
+            'editor.background': theme.colors.bgSurface,
+            'editor.foreground': theme.colors.textPrimary,
+          }
+        };
+
         try {
-          highlighted = await codeToHtml(code, { lang: 'plaintext', theme: 'github-dark' });
-        } catch (e: unknown) {
-          throw new Error(
-            `Highlight failed: ${e instanceof Error ? e.message : String(e)}`,
-          );
+          highlighted = await codeToHtml(code, { lang, theme: customTheme });
+        } catch {
+          highlighted = await codeToHtml(code, { lang: 'plaintext', theme: customTheme });
         }
+      } catch (e: unknown) {
+        throw new Error(
+          `Highlight failed: ${e instanceof Error ? e.message : String(e)}`,
+        );
       }
       if (!cancelled) {
         setHtml(addLineNumbers(highlighted));
@@ -99,7 +113,7 @@ export default function CodePreview({ content, extension }: CodePreviewProps) {
 
   if (loading) {
     return (
-      <div style={{ color: '#565f89', fontSize: '13px', padding: '12px 0' }}>
+      <div style={{ color: theme.colors.textSecondary, fontSize: '13px', padding: '12px 0' }}>
         Highlighting…
       </div>
     );
@@ -107,7 +121,7 @@ export default function CodePreview({ content, extension }: CodePreviewProps) {
 
   if (error) {
     return (
-      <div style={{ color: '#f7768e', fontSize: '13px', padding: '12px 0' }}>
+      <div style={{ color: theme.colors.statusError, fontSize: '13px', padding: '12px 0' }}>
         {error}
       </div>
     );
@@ -136,7 +150,7 @@ export default function CodePreview({ content, extension }: CodePreviewProps) {
       {truncated && (
         <div
           style={{
-            color: '#565f89',
+            color: theme.colors.textSecondary,
             fontSize: '11px',
             padding: '8px 0 0',
             textAlign: 'center',

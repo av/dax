@@ -18,34 +18,34 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
-        background: #0a0a0f;
-        color: #e0e0e0;
+        background: var(--color-bg-base);
+        color: var(--color-text-primary);
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
       @keyframes dax-spin {
         to { transform: rotate(360deg); }
       }
 
-      /* Dark scrollbar styling */
+      /* Scrollbar styling */
       ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
       }
       ::-webkit-scrollbar-track {
-        background: #0a0a0f;
+        background: var(--color-bg-surface);
       }
       ::-webkit-scrollbar-thumb {
-        background: #292e42;
+        background: var(--color-border-default);
         border-radius: 4px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #3b4261;
+        background: var(--color-text-secondary);
       }
 
       /* Selection / hover consistency */
       ::selection {
-        background: rgba(122, 162, 247, 0.3);
-        color: #e0e0e0;
+        background: var(--color-accent-primary);
+        color: var(--color-bg-surface);
       }
       a, button {
         transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;

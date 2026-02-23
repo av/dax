@@ -1,13 +1,14 @@
 import type { CSSProperties } from 'react';
 import { useSelectionStore } from '@/stores/selectionStore';
 import { useFileTreeStore } from '@/stores/fileTreeStore';
+import { theme } from '@/theme';
 
 const buttonBase: CSSProperties = {
   padding: '6px 14px',
   fontSize: '12px',
-  background: 'rgba(122, 162, 247, 0.15)',
-  color: '#7aa2f7',
-  border: '1px solid #7aa2f733',
+  background: `${theme.colors.accentPrimary}26`,
+  color: theme.colors.accentPrimary,
+  border: `1px solid ${theme.colors.accentPrimary}33`,
   borderRadius: '4px',
   cursor: 'pointer',
   fontFamily: 'inherit',
@@ -15,9 +16,9 @@ const buttonBase: CSSProperties = {
 
 const dangerButton: CSSProperties = {
   ...buttonBase,
-  background: 'rgba(247, 118, 142, 0.15)',
-  color: '#f7768e',
-  border: '1px solid #f7768e33',
+  background: `${theme.colors.statusError}26`,
+  color: theme.colors.statusError,
+  border: `1px solid ${theme.colors.statusError}33`,
 };
 
 export default function BulkActionsBar() {
@@ -60,11 +61,11 @@ export default function BulkActionsBar() {
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
-        background: 'rgba(20, 20, 32, 0.95)',
-        border: '1px solid #292e42',
+        background: `${theme.colors.bgSurface}F2`,
+        border: `1px solid ${theme.colors.borderDefault}`,
         borderRadius: '8px',
         padding: '8px 16px',
-        boxShadow: '0 4px 24px rgba(0, 0, 0, 0.5)',
+        boxShadow: `0 4px 24px ${theme.colors.textPrimary}4D`,
         zIndex: 150,
         pointerEvents: 'auto',
         fontFamily:
@@ -72,7 +73,7 @@ export default function BulkActionsBar() {
       }}
     >
       <span
-        style={{ fontSize: '13px', color: '#a9b1d6', fontWeight: 500 }}
+        style={{ fontSize: '13px', color: theme.colors.textSecondary, fontWeight: 500 }}
       >
         {selectedIds.size} files selected
       </span>

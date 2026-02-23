@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useFileTreeStore } from '@/stores/fileTreeStore';
 import { useOnboardingStore } from '@/stores/onboardingStore';
+import { theme } from '@/theme';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -105,8 +106,8 @@ export default function Onboarding() {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#0a0a0f',
-            color: '#e0e0e0',
+            background: theme.colors.bgBase,
+            color: theme.colors.textPrimary,
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             zIndex: 500,
             opacity: overlayState === 'exiting' ? 0 : overlayState === 'entering' ? 0 : 1,
@@ -121,10 +122,10 @@ export default function Onboarding() {
               fontWeight: 200,
               letterSpacing: '0.3em',
               margin: 0,
-              color: '#7aa2f7',
+              color: theme.colors.accentPrimary,
               animation: 'daxOnboardTitleIn 0.8s ease-out both',
               animationDelay: '0.2s',
-              textShadow: '0 0 40px rgba(122, 162, 247, 0.3)',
+              textShadow: `0 0 40px ${theme.colors.accentPrimary}4D`,
             }}
           >
             Dax
@@ -134,7 +135,7 @@ export default function Onboarding() {
           <p
             style={{
               fontSize: '1.1rem',
-              color: '#565f89',
+              color: theme.colors.textSecondary,
               marginTop: '12px',
               marginBottom: '48px',
               letterSpacing: '0.08em',
@@ -153,9 +154,9 @@ export default function Onboarding() {
               padding: '14px 44px',
               fontSize: '16px',
               fontWeight: 500,
-              background: isLoading ? '#1a1b26' : 'transparent',
-              color: '#7aa2f7',
-              border: '1px solid #7aa2f7',
+              background: isLoading ? theme.colors.bgBase : 'transparent',
+              color: theme.colors.accentPrimary,
+              border: `1px solid ${theme.colors.accentPrimary}`,
               borderRadius: '10px',
               cursor: isLoading ? 'wait' : 'pointer',
               fontFamily: 'inherit',
@@ -163,18 +164,18 @@ export default function Onboarding() {
               animation: 'daxOnboardButtonIn 0.6s ease-out both',
               animationDelay: '0.8s',
               transition: 'background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease',
-              boxShadow: '0 0 20px rgba(122, 162, 247, 0.15)',
+              boxShadow: `0 0 20px ${theme.colors.accentPrimary}26`,
             }}
             onMouseEnter={(e) => {
               if (!isLoading) {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(122, 162, 247, 0.1)';
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 30px rgba(122, 162, 247, 0.3)';
+                (e.currentTarget as HTMLButtonElement).style.background = `${theme.colors.accentPrimary}1A`;
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 30px ${theme.colors.accentPrimary}4D`;
                 (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.03)';
               }
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = isLoading ? '#1a1b26' : 'transparent';
-              (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 20px rgba(122, 162, 247, 0.15)';
+              (e.currentTarget as HTMLButtonElement).style.background = isLoading ? theme.colors.bgBase : 'transparent';
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 20px ${theme.colors.accentPrimary}26`;
               (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
             }}
           >
@@ -182,7 +183,7 @@ export default function Onboarding() {
           </button>
 
           {error && (
-            <p style={{ color: '#f7768e', fontSize: '14px', marginTop: '20px' }}>{error}</p>
+            <p style={{ color: theme.colors.statusError, fontSize: '14px', marginTop: '20px' }}>{error}</p>
           )}
 
           {/* Skip link */}
@@ -194,17 +195,17 @@ export default function Onboarding() {
               right: '32px',
               background: 'none',
               border: 'none',
-              color: '#3b3f52',
+              color: theme.colors.bgBase,
               fontSize: '12px',
               cursor: 'pointer',
               fontFamily: 'monospace',
               padding: '4px 8px',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = '#565f89';
+              (e.currentTarget as HTMLButtonElement).style.color = theme.colors.textSecondary;
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = '#3b3f52';
+              (e.currentTarget as HTMLButtonElement).style.color = theme.colors.bgBase;
             }}
           >
             Skip
@@ -242,14 +243,14 @@ export default function Onboarding() {
         >
           <div
             style={{
-              background: 'rgba(26, 27, 38, 0.95)',
-              border: '1px solid #4A90D9',
+              background: `${theme.colors.bgSurface}F2`,
+              border: `1px solid ${theme.colors.accentPrimary}`,
               borderRadius: '10px',
               padding: '14px 22px',
-              color: '#c0caf5',
+              color: theme.colors.textPrimary,
               fontSize: '14px',
               fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 12px rgba(74,144,217,0.2)',
+              boxShadow: `0 8px 32px ${theme.colors.textPrimary}33, 0 0 12px ${theme.colors.accentPrimary}33`,
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
@@ -263,7 +264,7 @@ export default function Onboarding() {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#565f89',
+                color: theme.colors.textSecondary,
                 cursor: 'pointer',
                 fontSize: '16px',
                 padding: '0 0 0 8px',
@@ -271,10 +272,10 @@ export default function Onboarding() {
                 flexShrink: 0,
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = '#9aa5ce';
+                (e.currentTarget as HTMLButtonElement).style.color = theme.colors.textSecondary;
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = '#565f89';
+                (e.currentTarget as HTMLButtonElement).style.color = theme.colors.textSecondary;
               }}
             >
               ×
@@ -288,7 +289,7 @@ export default function Onboarding() {
               height: 0,
               borderLeft: '8px solid transparent',
               borderRight: '8px solid transparent',
-              borderBottom: '8px solid #4A90D9',
+              borderBottom: `8px solid ${theme.colors.accentPrimary}`,
               margin: '0 auto',
               transform: 'rotate(180deg)',
               marginTop: '-1px',

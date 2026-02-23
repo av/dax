@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import type { LayoutEntry } from '@/scene/layout/spatialLayout';
+import { theme } from '@/theme';
 
 interface DirectoryPlatformProps {
   name: string;
@@ -10,12 +11,9 @@ interface DirectoryPlatformProps {
 }
 
 const DEPTH_COLORS = [
-  '#1a1b26',
-  '#1e2030',
-  '#222436',
-  '#262840',
-  '#2a2c4a',
-  '#2e3054',
+  theme.colors.bgSurface,
+  theme.colors.bgBase,
+  theme.colors.borderDefault,
 ];
 
 /**
@@ -38,7 +36,8 @@ export default function DirectoryPlatform({ name, entry, depth }: DirectoryPlatf
       ctx.fillStyle = baseColor;
       ctx.fillRect(0, 0, size, size);
 
-      ctx.strokeStyle = 'rgba(122, 162, 247, 0.08)';
+      ctx.strokeStyle = theme.colors.borderDefault;
+      ctx.globalAlpha = 0.5;
       ctx.lineWidth = 1;
       const step = size / 16;
       for (let i = 0; i <= 16; i++) {
@@ -52,6 +51,7 @@ export default function DirectoryPlatform({ name, entry, depth }: DirectoryPlatf
         ctx.lineTo(size, p);
         ctx.stroke();
       }
+      ctx.globalAlpha = 1.0;
     }
     const tex = new THREE.CanvasTexture(canvas);
     tex.wrapS = THREE.RepeatWrapping;
@@ -79,10 +79,10 @@ export default function DirectoryPlatform({ name, entry, depth }: DirectoryPlatf
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
         <planeGeometry args={[width, platformDepth]} />
         <meshBasicMaterial
-          color="#7aa2f7"
+          color={theme.colors.borderDefault}
           wireframe
           transparent
-          opacity={0.06}
+          opacity={0.3}
         />
       </mesh>
 
@@ -90,7 +90,7 @@ export default function DirectoryPlatform({ name, entry, depth }: DirectoryPlatf
       <Text
         position={[0, 0.3, -platformDepth / 2 - 0.5]}
         fontSize={0.6}
-        color="#7aa2f7"
+        color={theme.colors.textSecondary}
         anchorX="center"
         anchorY="bottom"
         font="/fonts/inter-regular.ttf"

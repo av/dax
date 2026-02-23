@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useSelectionStore } from '@/stores/selectionStore';
 import { useFileTreeStore } from '@/stores/fileTreeStore';
 import { useAgentStore } from '@/stores/agentStore';
+import { theme } from '@/theme';
 
 // ── Menu item component ─────────────────────────────────
 
@@ -22,7 +23,7 @@ function MenuItem({ label, onClick, variant = 'default' }: MenuItemProps) {
         padding: '8px 16px',
         fontSize: '13px',
         background: 'transparent',
-        color: isDanger ? '#f7768e' : '#e0e0e0',
+        color: isDanger ? theme.colors.statusError : theme.colors.textPrimary,
         border: 'none',
         cursor: 'pointer',
         textAlign: 'left',
@@ -30,7 +31,7 @@ function MenuItem({ label, onClick, variant = 'default' }: MenuItemProps) {
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLButtonElement).style.background =
-          'rgba(122, 162, 247, 0.15)';
+          `${theme.colors.accentPrimary}26`;
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLButtonElement).style.background =
@@ -45,7 +46,7 @@ function MenuItem({ label, onClick, variant = 'default' }: MenuItemProps) {
 function Separator() {
   return (
     <div
-      style={{ height: '1px', background: '#292e42', margin: '4px 0' }}
+      style={{ height: '1px', background: theme.colors.borderDefault, margin: '4px 0' }}
     />
   );
 }
@@ -140,10 +141,10 @@ export default function ContextMenu() {
         top: Math.max(8, adjustedY),
         left: Math.max(8, adjustedX),
         minWidth: '180px',
-        background: 'rgba(20, 20, 32, 0.98)',
-        border: '1px solid #292e42',
+        background: `${theme.colors.bgSurface}FA`,
+        border: `1px solid ${theme.colors.borderDefault}`,
         borderRadius: '8px',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
+        boxShadow: `0 8px 32px ${theme.colors.textPrimary}66`,
         padding: '4px 0',
         zIndex: 200,
         pointerEvents: 'auto',

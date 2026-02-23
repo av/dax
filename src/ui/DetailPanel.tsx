@@ -8,6 +8,7 @@ import {
 } from '@/utils/fileClassification';
 import FilePreview from '@/ui/previews/FilePreview';
 import type { FileNode } from '@/types';
+import { theme } from '@/theme';
 
 const PANEL_WIDTH = 320;
 
@@ -27,10 +28,10 @@ function InfoRow({ label, value }: { label: string; value: string }) {
         gap: '12px',
       }}
     >
-      <span style={{ color: '#565f89', flexShrink: 0 }}>{label}</span>
+      <span style={{ color: theme.colors.textSecondary, flexShrink: 0 }}>{label}</span>
       <span
         style={{
-          color: '#a9b1d6',
+          color: theme.colors.textSecondary,
           textAlign: 'right',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -60,10 +61,10 @@ function ActionButton({
         padding: '8px 16px',
         fontSize: '13px',
         background: isDanger
-          ? 'rgba(247, 118, 142, 0.1)'
-          : 'rgba(122, 162, 247, 0.1)',
-        color: isDanger ? '#f7768e' : '#7aa2f7',
-        border: `1px solid ${isDanger ? '#f7768e33' : '#7aa2f733'}`,
+          ? `${theme.colors.statusError}1A`
+          : `${theme.colors.accentPrimary}1A`,
+        color: isDanger ? theme.colors.statusError : theme.colors.accentPrimary,
+        border: `1px solid ${isDanger ? `${theme.colors.statusError}33` : `${theme.colors.accentPrimary}33`}`,
         borderRadius: '6px',
         cursor: 'pointer',
         fontFamily: 'inherit',
@@ -111,7 +112,7 @@ function SingleFileDetail({ node }: { node: FileNode }) {
         style={{
           fontSize: '16px',
           fontWeight: 600,
-          color: '#e0e0e0',
+          color: theme.colors.textPrimary,
           wordBreak: 'break-word',
         }}
       >
@@ -186,7 +187,7 @@ function MultiFileDetail({ nodes }: { nodes: FileNode[] }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div
-        style={{ fontSize: '16px', fontWeight: 600, color: '#e0e0e0' }}
+        style={{ fontSize: '16px', fontWeight: 600, color: theme.colors.textPrimary }}
       >
         {nodes.length} files selected
       </div>
@@ -216,9 +217,9 @@ function MultiFileDetail({ nodes }: { nodes: FileNode[] }) {
           <div
             key={n.id}
             style={{
-              color: '#a9b1d6',
+              color: theme.colors.textSecondary,
               padding: '4px 0',
-              borderBottom: '1px solid #1a1b2e',
+              borderBottom: `1px solid ${theme.colors.bgSurface}`,
             }}
           >
             {n.name}
@@ -274,8 +275,8 @@ export default function DetailPanel() {
         right: 0,
         width: `${PANEL_WIDTH}px`,
         height: '100vh',
-        background: 'rgba(15, 15, 25, 0.95)',
-        borderLeft: '1px solid #292e42',
+        background: `${theme.colors.bgSurface}F2`,
+        borderLeft: `1px solid ${theme.colors.borderDefault}`,
         transform:
           isOpen && selectedNodes.length > 0
             ? 'translateX(0)'
@@ -287,7 +288,7 @@ export default function DetailPanel() {
         pointerEvents: 'auto',
         fontFamily:
           '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.5)',
+        boxShadow: `-4px 0 24px ${theme.colors.textPrimary}4D`,
       }}
     >
       {/* Header */}
@@ -297,11 +298,11 @@ export default function DetailPanel() {
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '16px',
-          borderBottom: '1px solid #292e42',
+          borderBottom: `1px solid ${theme.colors.borderDefault}`,
         }}
       >
         <span
-          style={{ fontSize: '14px', fontWeight: 600, color: '#7aa2f7' }}
+          style={{ fontSize: '14px', fontWeight: 600, color: theme.colors.accentPrimary }}
         >
           Details
         </span>
@@ -310,7 +311,7 @@ export default function DetailPanel() {
           style={{
             background: 'none',
             border: 'none',
-            color: '#565f89',
+            color: theme.colors.textSecondary,
             fontSize: '18px',
             cursor: 'pointer',
             padding: '4px 8px',
@@ -326,7 +327,7 @@ export default function DetailPanel() {
         <div
           style={{
             display: 'flex',
-            borderBottom: '1px solid #292e42',
+            borderBottom: `1px solid ${theme.colors.borderDefault}`,
             padding: '0 16px',
           }}
         >
@@ -339,8 +340,8 @@ export default function DetailPanel() {
                 padding: '10px',
                 background: 'none',
                 border: 'none',
-                borderBottom: `2px solid ${activeTab === tab ? '#7aa2f7' : 'transparent'}`,
-                color: activeTab === tab ? '#7aa2f7' : '#565f89',
+                borderBottom: `2px solid ${activeTab === tab ? theme.colors.accentPrimary : 'transparent'}`,
+                color: activeTab === tab ? theme.colors.accentPrimary : theme.colors.textSecondary,
                 fontSize: '13px',
                 fontWeight: 500,
                 cursor: 'pointer',

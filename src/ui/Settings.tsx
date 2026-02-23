@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSettingsStore } from '@/stores/settingsStore';
 import type { AppSettings, LLMConfig } from '@/types';
+import { theme } from '@/theme';
 
 export default function Settings() {
   const isOpen = useSettingsStore((s) => s.isSettingsOpen);
@@ -66,21 +67,21 @@ export default function Settings() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0, 0, 0, 0.6)',
+        background: `${theme.colors.textPrimary}66`,
         backdropFilter: 'blur(4px)',
         pointerEvents: 'auto',
       }}
     >
       <div
         style={{
-          background: '#1a1b26',
-          border: '1px solid #292e42',
+          background: theme.colors.bgBase,
+          border: `1px solid ${theme.colors.borderDefault}`,
           borderRadius: '12px',
           width: '520px',
           maxHeight: '85vh',
           overflowY: 'auto',
           padding: '24px',
-          color: '#c0caf5',
+          color: theme.colors.textPrimary,
           fontFamily:
             '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         }}
@@ -94,7 +95,7 @@ export default function Settings() {
             marginBottom: '20px',
           }}
         >
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#7aa2f7' }}>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: theme.colors.accentPrimary }}>
             Settings
           </h2>
           <button onClick={handleCancel} style={closeButtonStyle}>
@@ -143,7 +144,7 @@ export default function Settings() {
           onChange={(e) => updateDraftLLM({ temperature: parseFloat(e.target.value) })}
           style={rangeStyle}
         />
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#565f89', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '12px' }}>
           <span>0.0 (deterministic)</span>
           <span>2.0 (creative)</span>
         </div>
@@ -198,12 +199,12 @@ export default function Settings() {
           </button>
 
           {connectionTestResult === 'success' && (
-            <span style={{ color: '#9ece6a', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ color: theme.colors.statusSuccess, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span style={{ fontSize: '16px' }}>✓</span> Connection successful
             </span>
           )}
           {connectionTestResult === 'error' && (
-            <span style={{ color: '#f7768e', fontSize: '13px', maxWidth: '300px' }}>
+            <span style={{ color: theme.colors.statusError, fontSize: '13px', maxWidth: '300px' }}>
               <span style={{ fontSize: '16px' }}>✗</span>{' '}
               {connectionTestError ?? 'Connection failed'}
             </span>
@@ -218,7 +219,7 @@ export default function Settings() {
             gap: '8px',
             marginTop: '20px',
             paddingTop: '16px',
-            borderTop: '1px solid #292e42',
+            borderTop: `1px solid ${theme.colors.borderDefault}`,
           }}
         >
           <button onClick={handleCancel} style={cancelButtonStyle}>
@@ -241,7 +242,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
       style={{
         fontSize: '13px',
         fontWeight: 600,
-        color: '#565f89',
+        color: theme.colors.textSecondary,
         textTransform: 'uppercase',
         letterSpacing: '0.08em',
         marginTop: '20px',
@@ -259,7 +260,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
       style={{
         display: 'block',
         fontSize: '13px',
-        color: '#a9b1d6',
+        color: theme.colors.textSecondary,
         marginBottom: '4px',
         fontWeight: 500,
       }}
@@ -276,8 +277,8 @@ function Spinner() {
         display: 'inline-block',
         width: '14px',
         height: '14px',
-        border: '2px solid #565f89',
-        borderTopColor: '#7aa2f7',
+        border: `2px solid ${theme.colors.textSecondary}`,
+        borderTopColor: theme.colors.accentPrimary,
         borderRadius: '50%',
         animation: 'dax-spin 0.6s linear infinite',
       }}
@@ -292,9 +293,9 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
   padding: '8px 10px',
   fontSize: '13px',
-  background: '#16161e',
-  color: '#c0caf5',
-  border: '1px solid #292e42',
+  background: theme.colors.bgSurface,
+  color: theme.colors.textPrimary,
+  border: `1px solid ${theme.colors.borderDefault}`,
   borderRadius: '6px',
   outline: 'none',
   marginBottom: '12px',
@@ -311,13 +312,13 @@ const textareaStyle: React.CSSProperties = {
 const rangeStyle: React.CSSProperties = {
   width: '100%',
   marginBottom: '2px',
-  accentColor: '#7aa2f7',
+  accentColor: theme.colors.accentPrimary,
 };
 
 const closeButtonStyle: React.CSSProperties = {
   background: 'none',
   border: 'none',
-  color: '#565f89',
+  color: theme.colors.textSecondary,
   fontSize: '18px',
   cursor: 'pointer',
   padding: '4px 8px',
@@ -328,9 +329,9 @@ const closeButtonStyle: React.CSSProperties = {
 const actionButtonStyle: React.CSSProperties = {
   padding: '8px 16px',
   fontSize: '13px',
-  background: '#292e42',
-  color: '#7aa2f7',
-  border: '1px solid #3b4261',
+  background: theme.colors.borderDefault,
+  color: theme.colors.accentPrimary,
+  border: `1px solid ${theme.colors.bgBase}`,
   borderRadius: '6px',
   cursor: 'pointer',
   fontFamily: 'inherit',
@@ -340,8 +341,8 @@ const cancelButtonStyle: React.CSSProperties = {
   padding: '8px 20px',
   fontSize: '13px',
   background: 'transparent',
-  color: '#565f89',
-  border: '1px solid #292e42',
+  color: theme.colors.textSecondary,
+  border: `1px solid ${theme.colors.borderDefault}`,
   borderRadius: '6px',
   cursor: 'pointer',
   fontFamily: 'inherit',
@@ -350,8 +351,8 @@ const cancelButtonStyle: React.CSSProperties = {
 const saveButtonStyle: React.CSSProperties = {
   padding: '8px 24px',
   fontSize: '13px',
-  background: '#7aa2f7',
-  color: '#1a1b26',
+  background: theme.colors.accentPrimary,
+  color: theme.colors.bgBase,
   border: 'none',
   borderRadius: '6px',
   cursor: 'pointer',

@@ -3,17 +3,18 @@ import { useAgentStore } from '@/stores/agentStore';
 import type { ActivityLogEntry } from '@/stores/agentStore';
 import type { AgentStep } from '@/types';
 import { executeApprovedPlan } from '@/agent/executor';
+import { theme } from '@/theme';
 
 // ── Status indicator ──────────────────────────────────
 
 function StepStatusIcon({ status }: { status: AgentStep['status'] }) {
   const configs: Record<AgentStep['status'], { color: string; symbol: string }> = {
-    pending: { color: '#565f89', symbol: '○' },
-    approved: { color: '#7aa2f7', symbol: '✓' },
-    running: { color: '#e0af68', symbol: '◎' },
-    done: { color: '#9ece6a', symbol: '✓' },
-    failed: { color: '#f7768e', symbol: '✗' },
-    rejected: { color: '#565f89', symbol: '—' },
+    pending: { color: theme.colors.textSecondary, symbol: '○' },
+    approved: { color: theme.colors.accentPrimary, symbol: '✓' },
+    running: { color: theme.colors.statusWarning, symbol: '◎' },
+    done: { color: theme.colors.statusSuccess, symbol: '✓' },
+    failed: { color: theme.colors.statusError, symbol: '✗' },
+    rejected: { color: theme.colors.textSecondary, symbol: '—' },
   };
 
   const cfg = configs[status];
@@ -60,7 +61,7 @@ function StepRow({
         display: 'flex',
         gap: '8px',
         padding: '8px 12px',
-        borderBottom: '1px solid #1a1b26',
+        borderBottom: `1px solid ${theme.colors.bgBase}`,
         alignItems: 'flex-start',
       }}
     >
@@ -69,7 +70,7 @@ function StepRow({
         <div
           style={{
             fontSize: '13px',
-            color: step.status === 'rejected' ? '#565f89' : '#c0caf5',
+            color: step.status === 'rejected' ? theme.colors.textSecondary : theme.colors.textPrimary,
             textDecoration: step.status === 'rejected' ? 'line-through' : 'none',
           }}
         >
@@ -78,7 +79,7 @@ function StepRow({
         <div
           style={{
             fontSize: '11px',
-            color: '#565f89',
+            color: theme.colors.textSecondary,
             fontFamily: 'monospace',
             marginTop: '2px',
           }}
@@ -89,7 +90,7 @@ function StepRow({
           <div
             style={{
               fontSize: '11px',
-              color: '#9ece6a',
+              color: theme.colors.statusSuccess,
               fontFamily: 'monospace',
               marginTop: '4px',
               maxHeight: '60px',
@@ -104,7 +105,7 @@ function StepRow({
           <div
             style={{
               fontSize: '11px',
-              color: '#f7768e',
+              color: theme.colors.statusError,
               fontFamily: 'monospace',
               marginTop: '4px',
             }}
@@ -121,9 +122,9 @@ function StepRow({
             style={{
               padding: '2px 8px',
               fontSize: '11px',
-              background: 'rgba(158, 206, 106, 0.15)',
-              color: '#9ece6a',
-              border: '1px solid rgba(158, 206, 106, 0.3)',
+              background: `${theme.colors.statusSuccess}26`,
+              color: theme.colors.statusSuccess,
+              border: `1px solid ${theme.colors.statusSuccess}4D`,
               borderRadius: '4px',
               cursor: 'pointer',
             }}
@@ -136,9 +137,9 @@ function StepRow({
             style={{
               padding: '2px 8px',
               fontSize: '11px',
-              background: 'rgba(247, 118, 142, 0.15)',
-              color: '#f7768e',
-              border: '1px solid rgba(247, 118, 142, 0.3)',
+              background: `${theme.colors.statusError}26`,
+              color: theme.colors.statusError,
+              border: `1px solid ${theme.colors.statusError}4D`,
               borderRadius: '4px',
               cursor: 'pointer',
             }}
@@ -155,9 +156,9 @@ function StepRow({
 
 function LogEntry({ entry }: { entry: ActivityLogEntry }) {
   const colorMap: Record<ActivityLogEntry['type'], string> = {
-    info: '#9aa5ce',
-    success: '#9ece6a',
-    error: '#f7768e',
+    info: theme.colors.textSecondary,
+    success: theme.colors.statusSuccess,
+    error: theme.colors.statusError,
   };
 
   const time = new Date(entry.timestamp);
@@ -174,7 +175,7 @@ function LogEntry({ entry }: { entry: ActivityLogEntry }) {
         alignItems: 'baseline',
       }}
     >
-      <span style={{ color: '#565f89', flexShrink: 0 }}>{timeStr}</span>
+      <span style={{ color: theme.colors.textSecondary, flexShrink: 0 }}>{timeStr}</span>
       <span style={{ color: colorMap[entry.type] }}>{entry.message}</span>
     </div>
   );
@@ -243,8 +244,8 @@ export default function AgentPlanPanel() {
         right: '16px',
         bottom: '60px',
         width: '340px',
-        background: 'rgba(22, 22, 30, 0.95)',
-        border: '1px solid #292e42',
+        background: `${theme.colors.bgSurface}F2`,
+        border: `1px solid ${theme.colors.borderDefault}`,
         borderRadius: '8px',
         display: 'flex',
         flexDirection: 'column',
@@ -257,7 +258,7 @@ export default function AgentPlanPanel() {
       <div
         style={{
           padding: '10px 12px',
-          borderBottom: '1px solid #292e42',
+          borderBottom: `1px solid ${theme.colors.borderDefault}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -268,7 +269,7 @@ export default function AgentPlanPanel() {
             style={{
               fontSize: '12px',
               fontWeight: 600,
-              color: '#7aa2f7',
+              color: theme.colors.accentPrimary,
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
             }}
@@ -279,7 +280,7 @@ export default function AgentPlanPanel() {
             <div
               style={{
                 fontSize: '12px',
-                color: '#9aa5ce',
+                color: theme.colors.textSecondary,
                 marginTop: '2px',
                 maxWidth: '240px',
                 overflow: 'hidden',
@@ -299,7 +300,7 @@ export default function AgentPlanPanel() {
             padding: '2px 8px',
             fontSize: '14px',
             background: 'transparent',
-            color: '#565f89',
+            color: theme.colors.textSecondary,
             border: 'none',
             cursor: 'pointer',
             lineHeight: 1,
@@ -328,7 +329,7 @@ export default function AgentPlanPanel() {
         <div
           style={{
             padding: '8px 12px',
-            borderTop: '1px solid #292e42',
+            borderTop: `1px solid ${theme.colors.borderDefault}`,
             display: 'flex',
             gap: '8px',
           }}
@@ -342,10 +343,10 @@ export default function AgentPlanPanel() {
                 padding: '6px 12px',
                 fontSize: '12px',
                 background: isExecuting
-                  ? 'rgba(86, 95, 137, 0.3)'
-                  : 'rgba(122, 162, 247, 0.15)',
-                color: isExecuting ? '#565f89' : '#7aa2f7',
-                border: `1px solid ${isExecuting ? '#292e42' : 'rgba(122, 162, 247, 0.3)'}`,
+                  ? `${theme.colors.textSecondary}4D`
+                  : `${theme.colors.accentPrimary}26`,
+                color: isExecuting ? theme.colors.textSecondary : theme.colors.accentPrimary,
+                border: `1px solid ${isExecuting ? theme.colors.borderDefault : `${theme.colors.accentPrimary}4D`}`,
                 borderRadius: '6px',
                 cursor: isExecuting ? 'not-allowed' : 'pointer',
                 fontFamily:
@@ -364,10 +365,10 @@ export default function AgentPlanPanel() {
                 padding: '6px 12px',
                 fontSize: '12px',
                 background: isExecuting
-                  ? 'rgba(86, 95, 137, 0.3)'
-                  : 'rgba(158, 206, 106, 0.15)',
-                color: isExecuting ? '#565f89' : '#9ece6a',
-                border: `1px solid ${isExecuting ? '#292e42' : 'rgba(158, 206, 106, 0.3)'}`,
+                  ? `${theme.colors.textSecondary}4D`
+                  : `${theme.colors.statusSuccess}26`,
+                color: isExecuting ? theme.colors.textSecondary : theme.colors.statusSuccess,
+                border: `1px solid ${isExecuting ? theme.colors.borderDefault : `${theme.colors.statusSuccess}4D`}`,
                 borderRadius: '6px',
                 cursor: isExecuting ? 'not-allowed' : 'pointer',
                 fontFamily:
@@ -384,7 +385,7 @@ export default function AgentPlanPanel() {
       {activityLog.length > 0 && (
         <div
           style={{
-            borderTop: '1px solid #292e42',
+            borderTop: `1px solid ${theme.colors.borderDefault}`,
             maxHeight: '160px',
             overflow: 'auto',
           }}
@@ -393,13 +394,13 @@ export default function AgentPlanPanel() {
             style={{
               padding: '6px 12px 2px',
               fontSize: '10px',
-              color: '#565f89',
+              color: theme.colors.textSecondary,
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               fontFamily: 'monospace',
               position: 'sticky',
               top: 0,
-              background: 'rgba(22, 22, 30, 0.98)',
+              background: `${theme.colors.bgSurface}FA`,
             }}
           >
             Activity Log

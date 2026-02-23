@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { theme } from '@/theme';
 
 interface ImagePreviewProps {
   base64: string;
@@ -56,7 +57,7 @@ export default function ImagePreview({
     >
       {loading && !error && (
         <div
-          style={{ color: '#565f89', fontSize: '13px', padding: '12px 0' }}
+          style={{ color: theme.colors.textSecondary, fontSize: '13px', padding: '12px 0' }}
         >
           Loading image…
         </div>
@@ -64,7 +65,7 @@ export default function ImagePreview({
 
       {error && (
         <div
-          style={{ color: '#f7768e', fontSize: '13px', padding: '12px 0' }}
+          style={{ color: theme.colors.statusError, fontSize: '13px', padding: '12px 0' }}
         >
           {error}
         </div>
@@ -80,7 +81,7 @@ export default function ImagePreview({
           maxHeight: '400px',
           objectFit: 'contain',
           borderRadius: '6px',
-          background: '#1a1b2e',
+          background: theme.colors.bgBase,
           display: error ? 'none' : 'block',
         }}
       />
@@ -92,7 +93,7 @@ export default function ImagePreview({
             flexDirection: 'column',
             gap: '4px',
             fontSize: '12px',
-            color: '#565f89',
+            color: theme.colors.textSecondary,
           }}
         >
           <span>

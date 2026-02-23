@@ -5,6 +5,7 @@ import MarkdownPreview from './MarkdownPreview';
 import ImagePreview from './ImagePreview';
 import PdfPreview from './PdfPreview';
 import CsvPreview from './CsvPreview';
+import { theme } from '@/theme';
 
 // ── Extension category maps ─────────────────────────────
 
@@ -59,7 +60,7 @@ function NoPreview({ node }: { node: FileNode }) {
       }}
     >
       <div style={{ fontSize: '40px', opacity: 0.4 }}>📄</div>
-      <div style={{ color: '#565f89', fontSize: '13px', textAlign: 'center' }}>
+      <div style={{ color: theme.colors.textSecondary, fontSize: '13px', textAlign: 'center' }}>
         No preview available for this file type
       </div>
       <button
@@ -67,9 +68,9 @@ function NoPreview({ node }: { node: FileNode }) {
         style={{
           padding: '8px 16px',
           fontSize: '13px',
-          background: 'rgba(122, 162, 247, 0.1)',
-          color: '#7aa2f7',
-          border: '1px solid #7aa2f733',
+          background: `${theme.colors.accentPrimary}1A`,
+          color: theme.colors.accentPrimary,
+          border: `1px solid ${theme.colors.accentPrimary}33`,
           borderRadius: '6px',
           cursor: 'pointer',
           fontFamily: 'inherit',
@@ -144,7 +145,7 @@ export default function FilePreview({ node }: { node: FileNode }) {
 
   if (loading) {
     return (
-      <div style={{ color: '#565f89', fontSize: '13px', padding: '12px 0' }}>
+      <div style={{ color: theme.colors.textSecondary, fontSize: '13px', padding: '12px 0' }}>
         Loading preview…
       </div>
     );
@@ -152,7 +153,7 @@ export default function FilePreview({ node }: { node: FileNode }) {
 
   if (error || content === null) {
     return (
-      <div style={{ color: '#f7768e', fontSize: '13px', padding: '12px 0' }}>
+      <div style={{ color: theme.colors.statusError, fontSize: '13px', padding: '12px 0' }}>
         {error ?? 'Failed to load file'}
       </div>
     );

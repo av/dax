@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSelectionStore } from '@/stores/selectionStore';
 import { useFileTreeStore } from '@/stores/fileTreeStore';
 import { useToast } from '@/ui/Toast';
+import { theme } from '@/theme';
 
 // Characters forbidden in file/directory names across platforms
 const ILLEGAL_CHARS = /[/\\:*?"<>|]/;
@@ -159,22 +160,22 @@ export default function RenameDialog() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0, 0, 0, 0.6)',
+        background: `${theme.colors.textPrimary}66`,
         backdropFilter: 'blur(4px)',
         pointerEvents: 'auto',
       }}
     >
       <div
         style={{
-          background: '#1a1b26',
-          border: '1px solid #292e42',
+          background: theme.colors.bgBase,
+          border: `1px solid ${theme.colors.borderDefault}`,
           borderRadius: '12px',
           width: '420px',
           padding: '24px',
-          color: '#c0caf5',
+          color: theme.colors.textPrimary,
           fontFamily:
             '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+          boxShadow: theme.shadows.lg,
         }}
       >
         {/* Header */}
@@ -191,7 +192,7 @@ export default function RenameDialog() {
               margin: 0,
               fontSize: '18px',
               fontWeight: 600,
-              color: '#7aa2f7',
+              color: theme.colors.accentPrimary,
             }}
           >
             Rename
@@ -205,11 +206,11 @@ export default function RenameDialog() {
         <div
           style={{
             fontSize: '13px',
-            color: '#565f89',
+            color: theme.colors.textSecondary,
             marginBottom: '12px',
           }}
         >
-          Renaming: <span style={{ color: '#a9b1d6' }}>{nodeLabel}</span>
+          Renaming: <span style={{ color: theme.colors.textSecondary }}>{nodeLabel}</span>
         </div>
 
         {/* Input field */}
@@ -217,7 +218,7 @@ export default function RenameDialog() {
           style={{
             display: 'block',
             fontSize: '13px',
-            color: '#a9b1d6',
+            color: theme.colors.textSecondary,
             marginBottom: '4px',
             fontWeight: 500,
           }}
@@ -233,7 +234,7 @@ export default function RenameDialog() {
           disabled={isSaving}
           style={{
             ...inputStyle,
-            borderColor: error ? '#f7768e' : '#292e42',
+            borderColor: error ? theme.colors.statusError : theme.colors.borderDefault,
           }}
         />
 
@@ -241,7 +242,7 @@ export default function RenameDialog() {
         {error && (
           <div
             style={{
-              color: '#f7768e',
+              color: theme.colors.statusError,
               fontSize: '12px',
               marginTop: '-8px',
               marginBottom: '12px',
@@ -259,7 +260,7 @@ export default function RenameDialog() {
             gap: '8px',
             marginTop: '8px',
             paddingTop: '16px',
-            borderTop: '1px solid #292e42',
+            borderTop: `1px solid ${theme.colors.borderDefault}`,
           }}
         >
           <button
@@ -293,9 +294,9 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
   padding: '8px 10px',
   fontSize: '13px',
-  background: '#16161e',
-  color: '#c0caf5',
-  border: '1px solid #292e42',
+  background: theme.colors.bgSurface,
+  color: theme.colors.textPrimary,
+  border: `1px solid ${theme.colors.borderDefault}`,
   borderRadius: '6px',
   outline: 'none',
   marginBottom: '12px',
@@ -305,7 +306,7 @@ const inputStyle: React.CSSProperties = {
 const closeButtonStyle: React.CSSProperties = {
   background: 'none',
   border: 'none',
-  color: '#565f89',
+  color: theme.colors.textSecondary,
   fontSize: '18px',
   cursor: 'pointer',
   padding: '4px 8px',
@@ -317,8 +318,8 @@ const cancelButtonStyle: React.CSSProperties = {
   padding: '8px 20px',
   fontSize: '13px',
   background: 'transparent',
-  color: '#565f89',
-  border: '1px solid #292e42',
+  color: theme.colors.textSecondary,
+  border: `1px solid ${theme.colors.borderDefault}`,
   borderRadius: '6px',
   cursor: 'pointer',
   fontFamily: 'inherit',
@@ -327,8 +328,8 @@ const cancelButtonStyle: React.CSSProperties = {
 const saveButtonStyle: React.CSSProperties = {
   padding: '8px 24px',
   fontSize: '13px',
-  background: '#7aa2f7',
-  color: '#1a1b26',
+  background: theme.colors.accentPrimary,
+  color: theme.colors.bgBase,
   border: 'none',
   borderRadius: '6px',
   cursor: 'pointer',

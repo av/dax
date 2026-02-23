@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
+import { theme } from '../theme';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -42,8 +43,8 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#0a0a0f',
-            color: '#e0e0e0',
+            background: theme.colors.bgBase,
+            color: theme.colors.textPrimary,
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             gap: '20px',
             padding: '32px',
@@ -64,7 +65,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
               fontSize: '1.5rem',
               fontWeight: 500,
               margin: 0,
-              color: '#f7768e',
+              color: theme.colors.statusError,
             }}
           >
             Something went wrong
@@ -72,7 +73,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
           <p
             style={{
               fontSize: '14px',
-              color: '#565f89',
+              color: theme.colors.textSecondary,
               maxWidth: '400px',
               lineHeight: 1.6,
               margin: 0,
@@ -87,8 +88,8 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
               padding: '10px 28px',
               fontSize: '14px',
               background: 'transparent',
-              color: '#7aa2f7',
-              border: '1px solid #7aa2f7',
+              color: theme.colors.accentPrimary,
+              border: `1px solid ${theme.colors.accentPrimary}`,
               borderRadius: '8px',
               cursor: 'pointer',
               fontFamily: 'inherit',

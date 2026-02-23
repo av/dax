@@ -1,3 +1,5 @@
+import { theme } from '../theme';
+
 // ── File Classification Utilities ───────────────────────
 
 export type FileShape = 'card';
@@ -40,16 +42,16 @@ export function getFileShape(_extension: string | null): FileShape {
 
 /** Color hex string by extension group */
 export function getFileColor(extension: string | null): string {
-  if (!extension) return '#888888';
+  if (!extension) return theme.colors.fileUnknown;
   const ext = extension.replace(/^\./, '').toLowerCase();
 
-  if (CODE_EXTENSIONS.has(ext)) return '#4A90D9';      // Blue
-  if (SPREADSHEET_EXTENSIONS.has(ext)) return '#4AD97A'; // Green
-  if (DOCUMENT_EXTENSIONS.has(ext)) return '#D9944A';    // Orange
-  if (IMAGE_EXTENSIONS.has(ext)) return '#9A4AD9';       // Purple
-  if (ARCHIVE_EXTENSIONS.has(ext)) return '#D94A4A';     // Red
-  if (DATA_EXTENSIONS.has(ext)) return '#4AD9D9';        // Cyan
-  return '#888888';                                       // Gray
+  if (CODE_EXTENSIONS.has(ext)) return theme.colors.fileCode;
+  if (SPREADSHEET_EXTENSIONS.has(ext)) return theme.colors.fileDocument;
+  if (DOCUMENT_EXTENSIONS.has(ext)) return theme.colors.fileDocument;
+  if (IMAGE_EXTENSIONS.has(ext)) return theme.colors.fileImage;
+  if (ARCHIVE_EXTENSIONS.has(ext)) return theme.colors.fileArchive;
+  if (DATA_EXTENSIONS.has(ext)) return theme.colors.fileCode;
+  return theme.colors.fileUnknown;
 }
 
 /** Logarithmic scale for file size → object scale, clamped [0.3, 2.0] */

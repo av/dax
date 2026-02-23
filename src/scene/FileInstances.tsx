@@ -13,6 +13,7 @@ import { useSelectionStore } from '@/stores/selectionStore';
 import { useFileTreeStore } from '@/stores/fileTreeStore';
 import type { LayoutEntry } from '@/scene/layout/spatialLayout';
 import { useDragStore } from '@/scene/FileDragger';
+import { theme } from '@/theme';
 
 // LOD: instances farther than this from the camera start scaling down
 const LOD_NEAR = 60;
@@ -70,8 +71,8 @@ function HoverLabel({ node, position }: { node: FileNode; position: [number, num
     >
       <div
         style={{
-          background: 'rgba(10, 10, 15, 0.92)',
-          color: '#e0e0e0',
+          background: theme.colors.bgSurface,
+          color: theme.colors.textPrimary,
           padding: '8px 12px',
           borderRadius: '6px',
           fontSize: '12px',
@@ -98,7 +99,7 @@ const _tempColor = new THREE.Color();
 
 function FileInstanceGroup({ files, layoutMap }: FileInstanceGroupProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
-  const { raycaster, camera } = useThree();
+  const { camera } = useThree();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const select = useSelectionStore((s) => s.select);
   const toggleSelect = useSelectionStore((s) => s.toggleSelect);
@@ -425,11 +426,11 @@ function NearbyLabels({ files, layoutMap }: FileInstancesProps) {
           center
         >
           <div style={{
-            color: 'rgba(192, 202, 245, 0.7)',
+            color: theme.colors.textSecondary,
             fontSize: '10px',
             fontFamily: 'monospace',
             whiteSpace: 'nowrap',
-            textShadow: '0 0 4px rgba(0,0,0,0.8)',
+            textShadow: `0 0 4px ${theme.colors.bgBase}`,
             userSelect: 'none',
           }}>
             {truncateName(label.name)}

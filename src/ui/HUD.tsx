@@ -17,6 +17,7 @@ import AgentPlanPanel from '@/ui/AgentPlanPanel';
 import Minimap from '@/ui/Minimap';
 import { useKeyboard } from '@/hooks/useKeyboard';
 import { usePerformanceStore } from '@/scene/PerformanceMonitor';
+import { theme } from '@/theme';
 
 // ── SearchBar ──────────────────────────────────────────
 
@@ -113,15 +114,15 @@ function SearchBar() {
         style={{
           display: 'flex',
           alignItems: 'center',
-          background: 'rgba(26, 27, 38, 0.9)',
-          border: '1px solid #292e42',
+          background: `${theme.colors.bgSurface}E6`,
+          border: `1px solid ${theme.colors.borderDefault}`,
           borderRadius: '4px',
           padding: '0 8px',
           gap: '6px',
           height: '28px',
         }}
       >
-        <span style={{ fontSize: '13px', lineHeight: 1, color: '#565f89', flexShrink: 0 }}>
+        <span style={{ fontSize: '13px', lineHeight: 1, color: theme.colors.textSecondary, flexShrink: 0 }}>
           🔍
         </span>
         <input
@@ -136,7 +137,7 @@ function SearchBar() {
             background: 'transparent',
             border: 'none',
             outline: 'none',
-            color: '#c0caf5',
+            color: theme.colors.textPrimary,
             fontSize: '12px',
             fontFamily: 'monospace',
             width: '160px',
@@ -148,7 +149,7 @@ function SearchBar() {
             <span
               style={{
                 fontSize: '11px',
-                color: '#565f89',
+                color: theme.colors.textSecondary,
                 fontFamily: 'monospace',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
@@ -161,7 +162,7 @@ function SearchBar() {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#565f89',
+                color: theme.colors.textSecondary,
                 cursor: 'pointer',
                 fontSize: '14px',
                 lineHeight: 1,
@@ -183,13 +184,13 @@ function SearchBar() {
             left: 0,
             right: 0,
             minWidth: '260px',
-            background: 'rgba(26, 27, 38, 0.96)',
-            border: '1px solid #292e42',
+            background: `${theme.colors.bgSurface}F5`,
+            border: `1px solid ${theme.colors.borderDefault}`,
             borderRadius: '4px',
             maxHeight: '320px',
             overflowY: 'auto',
             zIndex: 100,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+            boxShadow: theme.shadows.md,
           }}
         >
           {visibleResults.map((id) => {
@@ -205,15 +206,15 @@ function SearchBar() {
                   textAlign: 'left',
                   background: 'transparent',
                   border: 'none',
-                  borderBottom: '1px solid #1a1b26',
+                  borderBottom: `1px solid ${theme.colors.bgBase}`,
                   padding: '6px 10px',
                   cursor: 'pointer',
-                  color: '#c0caf5',
+                  color: theme.colors.textPrimary,
                   fontFamily: 'monospace',
                   fontSize: '12px',
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(122, 162, 247, 0.12)';
+                  (e.currentTarget as HTMLButtonElement).style.background = `${theme.colors.accentPrimary}1F`;
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
@@ -223,7 +224,7 @@ function SearchBar() {
                 <div
                   style={{
                     fontSize: '10px',
-                    color: '#565f89',
+                    color: theme.colors.textSecondary,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -239,7 +240,7 @@ function SearchBar() {
               style={{
                 padding: '4px 10px',
                 fontSize: '11px',
-                color: '#565f89',
+                color: theme.colors.textSecondary,
                 fontFamily: 'monospace',
                 textAlign: 'center',
               }}
@@ -285,9 +286,9 @@ function PerformanceStats() {
     <span
       style={{
         fontSize: '11px',
-        color: '#444b6a',
+        color: theme.colors.textSecondary,
         fontFamily: 'monospace',
-        background: 'rgba(10, 10, 15, 0.7)',
+        background: `${theme.colors.bgBase}B3`,
         padding: '4px 10px',
         borderRadius: '4px',
         whiteSpace: 'nowrap',
@@ -360,9 +361,9 @@ export default function HUD() {
             style={{
               fontSize: '14px',
               fontWeight: 600,
-              color: '#7aa2f7',
+              color: theme.colors.accentPrimary,
               fontFamily: 'monospace',
-              background: 'rgba(10, 10, 15, 0.7)',
+              background: `${theme.colors.bgBase}B3`,
               padding: '4px 10px',
               borderRadius: '4px',
             }}
@@ -372,9 +373,9 @@ export default function HUD() {
           <span
             style={{
               fontSize: '12px',
-              color: '#565f89',
+              color: theme.colors.textSecondary,
               fontFamily: 'monospace',
-              background: 'rgba(10, 10, 15, 0.7)',
+              background: `${theme.colors.bgBase}B3`,
               padding: '4px 10px',
               borderRadius: '4px',
             }}
@@ -389,9 +390,9 @@ export default function HUD() {
             style={{
               padding: '4px 12px',
               fontSize: '12px',
-              background: 'rgba(26, 27, 38, 0.9)',
-              color: '#7aa2f7',
-              border: '1px solid #292e42',
+              background: `${theme.colors.bgSurface}E6`,
+              color: theme.colors.accentPrimary,
+              border: `1px solid ${theme.colors.borderDefault}`,
               borderRadius: '4px',
               cursor: 'pointer',
               fontFamily:
@@ -407,9 +408,9 @@ export default function HUD() {
             style={{
               padding: '4px 10px',
               fontSize: '16px',
-              background: 'rgba(26, 27, 38, 0.9)',
-              color: '#565f89',
-              border: '1px solid #292e42',
+              background: `${theme.colors.bgSurface}E6`,
+              color: theme.colors.textSecondary,
+              border: `1px solid ${theme.colors.borderDefault}`,
               borderRadius: '4px',
               cursor: 'pointer',
               pointerEvents: 'auto',
@@ -438,9 +439,9 @@ export default function HUD() {
         <span
           style={{
             fontSize: '12px',
-            color: '#565f89',
+            color: theme.colors.textSecondary,
             fontFamily: 'monospace',
-            background: 'rgba(10, 10, 15, 0.7)',
+            background: `${theme.colors.bgBase}B3`,
             padding: '4px 10px',
             borderRadius: '4px',
           }}
@@ -452,9 +453,9 @@ export default function HUD() {
           style={{
             fontSize: '12px',
             color:
-              agentState === AgentState.Error ? '#f7768e' : '#565f89',
+              agentState === AgentState.Error ? theme.colors.statusError : theme.colors.textSecondary,
             fontFamily: 'monospace',
-            background: 'rgba(10, 10, 15, 0.7)',
+            background: `${theme.colors.bgBase}B3`,
             padding: '4px 10px',
             borderRadius: '4px',
           }}
@@ -470,10 +471,10 @@ export default function HUD() {
             position: 'absolute',
             bottom: 40,
             left: 16,
-            color: '#565f89',
+            color: theme.colors.textSecondary,
             fontSize: '13px',
             fontFamily: 'monospace',
-            background: 'rgba(10, 10, 15, 0.7)',
+            background: `${theme.colors.bgBase}B3`,
             padding: '4px 10px',
             borderRadius: '4px',
           }}
@@ -487,10 +488,10 @@ export default function HUD() {
             position: 'absolute',
             bottom: 40,
             left: 16,
-            color: '#f7768e',
+            color: theme.colors.statusError,
             fontSize: '13px',
             fontFamily: 'monospace',
-            background: 'rgba(10, 10, 15, 0.7)',
+            background: `${theme.colors.bgBase}B3`,
             padding: '4px 10px',
             borderRadius: '4px',
           }}
@@ -508,8 +509,8 @@ export default function HUD() {
             top: selectionRect.top,
             width: selectionRect.width,
             height: selectionRect.height,
-            border: '1.5px dashed rgba(122, 162, 247, 0.8)',
-            backgroundColor: 'rgba(122, 162, 247, 0.12)',
+            border: `1.5px dashed ${theme.colors.accentPrimary}CC`,
+            backgroundColor: `${theme.colors.accentPrimary}1F`,
             borderRadius: 2,
             pointerEvents: 'none',
             zIndex: 1000,
@@ -556,24 +557,24 @@ export default function HUD() {
               alignItems: 'center',
               gap: '10px',
               padding: '12px 24px',
-              background: 'rgba(26, 27, 38, 0.95)',
-              border: '1px solid #7aa2f7',
+              background: `${theme.colors.bgSurface}F2`,
+              border: `1px solid ${theme.colors.accentPrimary}`,
               borderRadius: '10px',
-              color: '#9aa5ce',
+              color: theme.colors.textSecondary,
               fontSize: '14px',
               fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
               cursor: 'pointer',
               animation: 'daxCmdHintPulse 2s ease-in-out infinite',
-              boxShadow: '0 0 20px rgba(122, 162, 247, 0.15)',
+              boxShadow: `0 0 20px ${theme.colors.accentPrimary}26`,
             }}
           >
-            <span style={{ color: '#565f89', fontSize: '12px', fontFamily: 'monospace' }}>⌘K</span>
-            <span style={{ color: '#565f89' }}>Try: &quot;Summarize the largest files&quot;</span>
+            <span style={{ color: theme.colors.textSecondary, fontSize: '12px', fontFamily: 'monospace' }}>⌘K</span>
+            <span style={{ color: theme.colors.textSecondary }}>Try: &quot;Summarize the largest files&quot;</span>
           </button>
           <style>{`
             @keyframes daxCmdHintPulse {
-              0%, 100% { border-color: #7aa2f7; box-shadow: 0 0 20px rgba(122, 162, 247, 0.15); }
-              50% { border-color: #9aa5ce; box-shadow: 0 0 30px rgba(122, 162, 247, 0.3); }
+              0%, 100% { border-color: ${theme.colors.accentPrimary}; box-shadow: 0 0 20px ${theme.colors.accentPrimary}26; }
+              50% { border-color: ${theme.colors.textSecondary}; box-shadow: 0 0 30px ${theme.colors.accentPrimary}4D; }
             }
             @keyframes daxCmdHintIn {
               from { opacity: 0; transform: translateX(-50%) translateY(8px); }

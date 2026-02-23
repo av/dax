@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import { theme } from '@/theme';
 
 GlobalWorkerOptions.workerSrc = workerSrc;
 
@@ -89,7 +90,7 @@ export default function PdfPreview({ base64 }: PdfPreviewProps) {
     >
       {loading && !error && (
         <div
-          style={{ color: '#565f89', fontSize: '13px', padding: '12px 0' }}
+          style={{ color: theme.colors.textSecondary, fontSize: '13px', padding: '12px 0' }}
         >
           Rendering PDF…
         </div>
@@ -97,7 +98,7 @@ export default function PdfPreview({ base64 }: PdfPreviewProps) {
 
       {error && (
         <div
-          style={{ color: '#f7768e', fontSize: '13px', padding: '12px 0' }}
+          style={{ color: theme.colors.statusError, fontSize: '13px', padding: '12px 0' }}
         >
           {error}
         </div>
@@ -108,13 +109,13 @@ export default function PdfPreview({ base64 }: PdfPreviewProps) {
         style={{
           maxWidth: '100%',
           borderRadius: '6px',
-          background: '#fff',
+          background: theme.colors.bgSurface,
           display: error ? 'none' : 'block',
         }}
       />
 
       {pageCount > 0 && !error && (
-        <div style={{ color: '#565f89', fontSize: '12px' }}>
+        <div style={{ color: theme.colors.textSecondary, fontSize: '12px' }}>
           Page 1 of {pageCount}
         </div>
       )}

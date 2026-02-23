@@ -11,6 +11,7 @@ import AgentEntity from '@/scene/AgentEntity';
 import SelectionBox from '@/scene/SelectionBox';
 import FileDragger from '@/scene/FileDragger';
 import PerformanceMonitor from '@/scene/PerformanceMonitor';
+import { theme } from '@/theme';
 
 /**
  * Collect all file nodes (type === 'file') from the flat map.
@@ -126,10 +127,12 @@ export default function Workspace() {
   return (
     <Canvas
       camera={{ position: [0, 15, 25], fov: 55, near: 0.1, far: 500 }}
-      style={{ width: '100vw', height: '100vh', background: '#07070d' }}
+      style={{ width: '100vw', height: '100vh', background: theme.colors.sceneBackground }}
       gl={{ antialias: true, alpha: false }}
       dpr={[1, 2]}
     >
+      <color attach="background" args={[theme.colors.sceneBackground]} />
+
       {/* Lighting */}
       <ambientLight intensity={0.4} />
       <directionalLight
@@ -143,16 +146,16 @@ export default function Workspace() {
       />
 
       {/* Fog for depth cue */}
-      <fog attach="fog" args={['#07070d', 50, 250]} />
+      <fog attach="fog" args={[theme.colors.sceneBackground, 50, 250]} />
 
       {/* Subtle environment lighting (self-contained, no external fetch) */}
       <hemisphereLight
-        args={['#1a1a3e', '#07070d', 0.4]}
+        args={[theme.colors.bgSurface, theme.colors.bgBase, 0.4]}
       />
       <pointLight
         position={[-20, 40, -20]}
         intensity={0.15}
-        color="#6366f1"
+        color={theme.colors.accentPrimary}
         decay={2}
       />
 

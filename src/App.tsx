@@ -7,6 +7,7 @@ import HUD from './ui/HUD';
 import Onboarding from './ui/Onboarding';
 import ToastContainer, { useToastStore } from './ui/Toast';
 import ErrorBoundary from './utils/errorBoundary';
+import { theme } from './theme';
 
 function SkippedOpenFolder() {
   const openFolder = useFileTreeStore((s) => s.openFolder);
@@ -18,9 +19,9 @@ function SkippedOpenFolder() {
       style={{
         padding: '12px 32px',
         fontSize: '16px',
-        background: isLoading ? '#333' : 'transparent',
-        color: '#7aa2f7',
-        border: '1px solid #7aa2f7',
+        background: isLoading ? theme.colors.bgBase : 'transparent',
+        color: theme.colors.accentPrimary,
+        border: `1px solid ${theme.colors.accentPrimary}`,
         borderRadius: '8px',
         cursor: isLoading ? 'wait' : 'pointer',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -78,8 +79,8 @@ function App() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#0a0a0f',
-          color: '#e0e0e0',
+          background: theme.colors.bgBase,
+          color: theme.colors.textPrimary,
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           gap: '24px',
         }}
@@ -91,7 +92,7 @@ function App() {
             letterSpacing: '0.25em',
             opacity: 0.8,
             margin: 0,
-            color: '#7aa2f7',
+            color: theme.colors.accentPrimary,
           }}
         >
           Dax

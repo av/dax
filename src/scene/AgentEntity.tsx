@@ -5,15 +5,16 @@ import { AgentState } from '@/types';
 import { useAgentStore } from '@/stores/agentStore';
 import type { Vec3Tuple } from '@/stores/agentStore';
 import { useCameraFocusStore } from '@/scene/CameraController';
+import { theme } from '@/theme';
 
 // ── Color configuration per agent state ────────────────
 
 const STATE_COLORS: Record<AgentState, string> = {
-  [AgentState.Idle]: '#4A90D9',
-  [AgentState.Thinking]: '#D9A54A',
-  [AgentState.Acting]: '#4AD97A',
-  [AgentState.Error]: '#D94A4A',
-  [AgentState.WaitingApproval]: '#D9A54A',
+  [AgentState.Idle]: theme.colors.accentPrimary,
+  [AgentState.Thinking]: theme.colors.statusWarning,
+  [AgentState.Acting]: theme.colors.statusSuccess,
+  [AgentState.Error]: theme.colors.statusError,
+  [AgentState.WaitingApproval]: theme.colors.statusWarning,
 };
 
 const STATE_PULSE_SPEED: Record<AgentState, number> = {
