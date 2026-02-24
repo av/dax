@@ -67,3 +67,12 @@ See [`src/stores/`](../src/stores/).
 - **LLM**: configured via `AppSettings.llm` (endpoint, key, model); `llmClient.ts` in main process, exposed via `llm:*` IPC
 - **File watching**: `FileWatcherService` (chokidar) in main process; pushes `fs:fileChange` events to renderer
 - **Settings**: persisted via `electron-store` (encrypted), accessed via `settings:get` / `settings:save`
+
+## The working tree is the source of truth.
+
+Git history, branch searches, and grep results are useful signals — but an empty result does not mean something doesn't exist. Code may be present on disk but uncommitted, on a different branch, or simply not indexed. Before concluding that a feature is absent or was removed, read the actual files on disk. Never treat "I couldn't find it in git" as equivalent to "it isn't there."
+
+## Modifying files
+
+When modifying any files, you exclusively use dedicated file editing commands, and never use general-purpose terminal commands.
+You do not use cat or echo to write to files and you do not reset files to git state with git checkout or similar commands.
