@@ -1,7 +1,8 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { create } from 'zustand';
+import { useFileTreeStore } from '@/stores/fileTreeStore';
 
 // ── Camera focus store ─────────────────────────────────
 
@@ -28,8 +29,8 @@ export const useCameraFocusStore = create<CameraFocusState>((set) => ({
 const CAMERA_PITCH = 55 * (Math.PI / 180);
 
 /** Height limits for zoom */
-const MIN_HEIGHT = 5;
-const MAX_HEIGHT = 150;
+const MIN_HEIGHT = 3;
+const DEFAULT_MAX_HEIGHT = 150;
 
 /** Zoom speed (height change per scroll tick) */
 const ZOOM_SPEED = 2;
@@ -43,8 +44,8 @@ const KEY_PAN_SPEED = 30;
 /** Damping factor — lower = more inertia, 1 = instant */
 const DAMPING = 0.1;
 
-/** Intro animation */
-const INTRO_HEIGHT = 25;
+/** Intro animation defaults (overridden dynamically when bounds are available) */
+const DEFAULT_INTRO_HEIGHT = 25;
 const INTRO_LOOK_AT = new THREE.Vector3(0, 0, 0);
 const INTRO_LERP_SPEED = 0.035;
 
@@ -80,6 +81,24 @@ export default function CameraController() {
   const controlsEnabled = useCameraFocusStore((s) => s.orbitEnabled);
   const focusTarget = useCameraFocusStore((s) => s.target);
   const clearFocusTarget = useCameraFocusStore((s) => s.clearFocusTarget);
+  const workspaceBounds = useFileTreeStore((s) => s.workspaceBounds);
+
+  // ── Dynamic limits based on workspace bounds ─────
+  const dynamicMaxHeight = useMemo(() => {
+    if (!workspaceBounds) return DEFAULT_MAX_HEIGHT;
+    // At 55° FOV, visible ground width ≈ height * 2 * tan(FOV/2)
+    // height needed = extent / (2 * tan(27.5°)) + margin
+    return Math.max(
+      workspaceBounds.extent / (2 * Math.tan(27.5 * Math.PI / 180)) + 20,
+      DEFAULT_MAX_HEIGHT,
+    );
+  }, [workspaceBounds]);
+
+  const introHeight = useMemo(() => {
+    if (!workspaceBounds) return DEFAULT_INTRO_HEIGHT;
+    // Start at a height that shows most of the workspace
+    return Math.min(workspaceBounds.extent * 0.6, dynamicMaxHeight * 0.7);
+  }, [workspaceBounds, dynamicMaxHeight]);
 
   // --- Mutable refs for per-frame state (no re-renders) ---
 
@@ -88,9 +107,9 @@ export default function CameraController() {
   /** The desired look-at position (before damping) */
   const lookAtGoalRef = useRef(new THREE.Vector3(0, 0, 0));
   /** Current camera height */
-  const heightRef = useRef(INTRO_HEIGHT);
+  const heightRef = useRef(introHeight);
   /** Target camera height (before damping) */
-  const heightGoalRef = useRef(INTRO_HEIGHT);
+  const heightGoalRef = useRef(introHeight);
 
   /** Accumulated velocity from mouse drag (damped over time) */
   const dragVelocityRef = useRef(new THREE.Vector2(0, 0));
@@ -107,6 +126,18 @@ export default function CameraController() {
   useEffect(() => {
     controlsEnabledRef.current = controlsEnabled;
   }, [controlsEnabled]);
+
+  /** Mirrors dynamicMaxHeight so closure-captured handlers stay in sync */
+  const dynamicMaxHeightRef = useRef(dynamicMaxHeight);
+  useEffect(() => {
+    dynamicMaxHeightRef.current = dynamicMaxHeight;
+  }, [dynamicMaxHeight]);
+
+  /** Mirrors workspaceBounds so per-frame code sees latest value */
+  const workspaceBoundsRef = useRef(workspaceBounds);
+  useEffect(() => {
+    workspaceBoundsRef.current = workspaceBounds;
+  }, [workspaceBounds]);
 
   const [introComplete, setIntroComplete] = useState(false);
 
@@ -165,7 +196,7 @@ export default function CameraController() {
       heightGoalRef.current = THREE.MathUtils.clamp(
         heightGoalRef.current + scaledDelta,
         MIN_HEIGHT,
-        MAX_HEIGHT,
+        dynamicMaxHeightRef.current,
       );
     };
 
@@ -173,6 +204,12 @@ export default function CameraController() {
 
     const onKeyDown = (e: KeyboardEvent) => {
       keysRef.current.add(e.key.toLowerCase());
+
+      // Fit to workspace: Home or F key (when no modifier is held)
+      if (e.code === 'Home' || (e.code === 'KeyF' && !e.ctrlKey && !e.metaKey && !e.altKey)) {
+        lookAtGoalRef.current.set(0, 0, 0);
+        heightGoalRef.current = dynamicMaxHeightRef.current * 0.8;
+      }
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
@@ -211,10 +248,10 @@ export default function CameraController() {
 
     // ── Intro fly-in ────────────────────────────────
     if (!introComplete) {
-      // Compute desired intro camera position from the INTRO constants
+      // Compute desired intro camera position from dynamic intro height
       const introPos = cameraPositionFromLookAt(
         INTRO_LOOK_AT,
-        INTRO_HEIGHT,
+        introHeight,
         _desiredPos.current,
       );
       camera.position.lerp(introPos, INTRO_LERP_SPEED);
@@ -225,8 +262,8 @@ export default function CameraController() {
         setIntroComplete(true);
         lookAtGoal.copy(INTRO_LOOK_AT);
         lookAt.copy(INTRO_LOOK_AT);
-        heightRef.current = INTRO_HEIGHT;
-        heightGoalRef.current = INTRO_HEIGHT;
+        heightRef.current = introHeight;
+        heightGoalRef.current = introHeight;
       }
 
       // Update shared look-at for getCameraLookAt()
@@ -273,6 +310,14 @@ export default function CameraController() {
       } else {
         vel.set(0, 0);
       }
+    }
+
+    // ── Pan bounds clamping ───────────────────────────
+    const bounds = workspaceBoundsRef.current;
+    if (bounds) {
+      const margin = bounds.extent * 0.3;
+      lookAtGoal.x = Math.max(bounds.minX - margin, Math.min(bounds.maxX + margin, lookAtGoal.x));
+      lookAtGoal.z = Math.max(bounds.minZ - margin, Math.min(bounds.maxZ + margin, lookAtGoal.z));
     }
 
     // ── Damped interpolation ────────────────────────

@@ -5,11 +5,14 @@ import { useSelectionStore, type ScreenRect } from '@/stores/selectionStore';
 import { useFileTreeStore } from '@/stores/fileTreeStore';
 import { useCameraFocusStore } from '@/scene/CameraController';
 import type { LayoutEntry } from '@/scene/layout/spatialLayout';
+import type { RapierRigidBody } from '@react-three/rapier';
 
 // ── Types ──────────────────────────────────────────────
 
 interface SelectionBoxProps {
   layoutMap: Map<string, LayoutEntry>;
+  rigidBodyRef: React.RefObject<(RapierRigidBody | null)[] | null>;
+  fileIdToIndex: Map<string, number>;
 }
 
 interface Point2D {
@@ -70,7 +73,7 @@ function pointInRect(pt: Point2D, rect: ScreenRect): boolean {
 
 // ── Component ──────────────────────────────────────────
 
-export default function SelectionBox({ layoutMap }: SelectionBoxProps) {
+export default function SelectionBox({ layoutMap, rigidBodyRef, fileIdToIndex }: SelectionBoxProps) {
   const { camera, gl, scene, raycaster } = useThree();
   const selectMultiple = useSelectionStore((s) => s.selectMultiple);
   const clearSelection = useSelectionStore((s) => s.clearSelection);
@@ -80,6 +83,22 @@ export default function SelectionBox({ layoutMap }: SelectionBoxProps) {
   const isDragging = useRef(false);
   const passedThreshold = useRef(false);
   const startPoint = useRef<Point2D>({ x: 0, y: 0 });
+
+  /**
+   * Returns the current world position of a file, preferring the live
+   * physics body translation over the (potentially stale) layoutMap entry.
+   */
+  const getFileWorldPos = useCallback(
+    (id: string): [number, number, number] => {
+      const index = fileIdToIndex.get(id);
+      if (index !== undefined && rigidBodyRef.current?.[index]) {
+        const t = rigidBodyRef.current[index]!.translation();
+        return [t.x, t.y, t.z];
+      }
+      return layoutMap.get(id)?.position ?? [0, 0, 0];
+    },
+    [fileIdToIndex, rigidBodyRef, layoutMap],
+  );
 
   const finishSelection = useCallback(
     (endPoint: Point2D) => {
@@ -97,10 +116,12 @@ export default function SelectionBox({ layoutMap }: SelectionBoxProps) {
         const entry = layoutMap.get(node.id);
         if (!entry) continue;
 
-        const screenPos = projectToScreen(entry.position, camera, canvasRect);
+        // Use live physics position for accurate hit-testing
+        const worldPos = getFileWorldPos(node.id);
+        const screenPos = projectToScreen(worldPos, camera, canvasRect);
 
         // Skip points behind the camera (z > 1 in NDC = behind)
-        _projVec.set(entry.position[0], entry.position[1], entry.position[2]);
+        _projVec.set(worldPos[0], worldPos[1], worldPos[2]);
         _projVec.project(camera);
         if (_projVec.z > 1) continue;
 
@@ -115,7 +136,7 @@ export default function SelectionBox({ layoutMap }: SelectionBoxProps) {
         clearSelection();
       }
     },
-    [camera, gl, nodes, layoutMap, selectMultiple, clearSelection],
+    [camera, gl, nodes, layoutMap, getFileWorldPos, selectMultiple, clearSelection],
   );
 
   useEffect(() => {

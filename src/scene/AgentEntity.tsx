@@ -1,6 +1,8 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { RigidBody } from '@react-three/rapier';
+import type { RapierRigidBody } from '@react-three/rapier';
 import { AgentState } from '@/types';
 import { useAgentStore } from '@/stores/agentStore';
 import type { Vec3Tuple } from '@/stores/agentStore';
@@ -34,11 +36,12 @@ const outerGeo = new THREE.IcosahedronGeometry(0.35, 0);
 
 const _targetVec = new THREE.Vector3();
 const _currentVec = new THREE.Vector3();
-const IDLE_ORBIT_RADIUS = 3;
+const IDLE_ORBIT_RADIUS = 2;
 const BOB_AMPLITUDE = 0.08;
 const BOB_SPEED = 1.8;
 const FLY_LERP_SPEED = 2.5;
 const ROTATION_SPEED = 0.6;
+const _defaultCenter = new THREE.Vector3(0, 0, 0);
 
 // ── Particle trail ─────────────────────────────────────
 
@@ -67,6 +70,7 @@ export default function AgentEntity() {
   const outerRef = useRef<THREE.Mesh>(null);
   const lightRef = useRef<THREE.PointLight>(null);
   const trailMeshRef = useRef<THREE.Points>(null);
+  const agentRigidBodyRef = useRef<RapierRigidBody>(null);
 
   // Particle state
   const particles = useMemo(() => createParticles(), []);
@@ -151,16 +155,20 @@ export default function AgentEntity() {
   const isVisibleRef = useRef(true);
 
   // Subscribe to store outside frame loop
-  useAgentStore.subscribe((s) => {
-    statusRef.current = s.status;
-    targetPosRef.current = s.targetPosition;
-    isVisibleRef.current = s.isVisible;
-  });
+  useEffect(() => {
+    return useAgentStore.subscribe((s) => {
+      statusRef.current = s.status;
+      targetPosRef.current = s.targetPosition;
+      isVisibleRef.current = s.isVisible;
+    });
+  }, []);
 
   const cameraTargetRef = useRef<THREE.Vector3 | null>(null);
-  useCameraFocusStore.subscribe((s) => {
-    cameraTargetRef.current = s.target;
-  });
+  useEffect(() => {
+    return useCameraFocusStore.subscribe((s) => {
+      cameraTargetRef.current = s.target;
+    });
+  }, []);
 
   // Mutable tracking
   const orbitAngle = useRef(0);
@@ -223,7 +231,7 @@ export default function AgentEntity() {
       group.position.copy(_currentVec);
     } else {
       // Idle orbit around camera focus or origin
-      const center = cameraTargetRef.current ?? new THREE.Vector3(0, 0, 0);
+      const center = cameraTargetRef.current ?? _defaultCenter;
       orbitAngle.current += 0.3 * clampedDelta;
       const ox = center.x + Math.cos(orbitAngle.current) * IDLE_ORBIT_RADIUS;
       const oz = center.z + Math.sin(orbitAngle.current) * IDLE_ORBIT_RADIUS;
@@ -240,6 +248,10 @@ export default function AgentEntity() {
 
     // Clamp to minimum height above ground
     group.position.y = Math.max(group.position.y, 1.0);
+
+    // Sync kinematic rigid body to the final lerped position
+    _currentVec.set(group.position.x, group.position.y, group.position.z);
+    agentRigidBodyRef.current?.setNextKinematicTranslation(_currentVec);
 
     // Push position back to store (deterministic — every 3rd frame)
     frameCount.current += 1;
@@ -304,25 +316,28 @@ export default function AgentEntity() {
 
   return (
     <>
-      {/* Agent group */}
-      <group ref={groupRef} position={[0, 3, 0]}>
-        {/* Inner solid icosahedron */}
-        <mesh ref={innerRef} geometry={innerGeo} material={innerMat} />
+      {/* Kinematic rigid body — position driven by lerp in useFrame */}
+      <RigidBody ref={agentRigidBodyRef} type="kinematicPosition" colliders={false}>
+        {/* Agent group */}
+        <group ref={groupRef} position={[0, 3, 0]}>
+          {/* Inner solid icosahedron */}
+          <mesh ref={innerRef} geometry={innerGeo} material={innerMat} />
 
-        {/* Outer wireframe icosahedron */}
-        <mesh ref={outerRef} geometry={outerGeo} material={outerMat} />
+          {/* Outer wireframe icosahedron */}
+          <mesh ref={outerRef} geometry={outerGeo} material={outerMat} />
 
-        {/* Point light casting agent color */}
-        <pointLight
-          ref={lightRef}
-          color={STATE_COLORS[AgentState.Idle]}
-          intensity={2}
-          distance={12}
-          decay={2}
-        />
-      </group>
+          {/* Point light casting agent color */}
+          <pointLight
+            ref={lightRef}
+            color={STATE_COLORS[AgentState.Idle]}
+            intensity={2}
+            distance={12}
+            decay={2}
+          />
+        </group>
+      </RigidBody>
 
-      {/* Particle trail (world-space points) */}
+      {/* Particle trail (world-space points — must stay outside RigidBody) */}
       <points ref={trailMeshRef} material={trailMat}>
         <bufferGeometry>
           <bufferAttribute

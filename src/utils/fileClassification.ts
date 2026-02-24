@@ -54,15 +54,15 @@ export function getFileColor(extension: string | null): string {
   return theme.colors.fileUnknown;
 }
 
-/** Logarithmic scale for file size → object scale, clamped [0.3, 2.0] */
+/** Logarithmic scale for file size → object scale, clamped [0.4, 2.5] */
 export function getFileScale(sizeBytes: number): number {
-  if (sizeBytes <= 0) return 0.3;
-  // log10 of bytes: 0B→0.3, ~10B→0.3, 1KB→~0.6, 1MB→~1.2, 100MB→~1.6, 1GB→~1.8
-  const log = Math.log10(Math.max(sizeBytes, 1));
-  // Map log range [0, 10] → [0.3, 2.0]
-  const t = log / 10;
-  const scale = 0.3 + t * 1.7;
-  return Math.max(0.3, Math.min(2.0, scale));
+  const t = Math.log10(Math.max(sizeBytes, 1)) / 10;
+  return Math.max(0.4, Math.min(2.5, 0.4 + t * 2.1));
+}
+
+/** Half-extents for a card collider at the given scale (base card: 0.8 × 1.1 × 0.03) */
+export function getColliderHalfExtents(scale: number): [number, number, number] {
+  return [0.4 * scale, 0.55 * scale, 0.015 * scale];
 }
 
 /** Human-readable file size */

@@ -1,10 +1,15 @@
 import { create } from 'zustand';
 import type { FileNode } from '@/types';
+import type { WorkspaceBounds } from '@/scene/layout/spatialLayout';
+
+// ── Helpers ──────────────────────────────────────────
 
 function getParentPath(filePath: string): string {
   const lastSep = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
   return lastSep > 0 ? filePath.substring(0, lastSep) : '';
 }
+
+// ── Types ────────────────────────────────────────────
 
 interface FileTreeState {
   rootPath: string | null;
@@ -14,6 +19,7 @@ interface FileTreeState {
   error: string | null;
   searchQuery: string;
   positionOverrides: Map<string, [number, number, number]>;
+  workspaceBounds: WorkspaceBounds | null;
 
   openFolder: () => Promise<void>;
   setRootPath: (path: string) => void;
@@ -24,12 +30,14 @@ interface FileTreeState {
   insertNode: (node: FileNode) => void;
   removeNodeFromTree: (id: string) => void;
   getNodeByPath: (filePath: string) => FileNode | undefined;
+  getParentDirectory: (fileId: string) => FileNode | null;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   setSearchQuery: (query: string) => void;
   getSearchResults: () => string[];
   setPositionOverride: (fileId: string, pos: [number, number, number]) => void;
   clearPositionOverride: (fileId: string) => void;
+  setWorkspaceBounds: (bounds: WorkspaceBounds) => void;
   reset: () => void;
 }
 
@@ -47,6 +55,8 @@ function flattenTree(nodes: FileNode[]): Map<string, FileNode> {
   return map;
 }
 
+// ── Store ────────────────────────────────────────────
+
 export const useFileTreeStore = create<FileTreeState>((set, get) => ({
   rootPath: null,
   nodes: new Map<string, FileNode>(),
@@ -55,6 +65,7 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
   error: null,
   searchQuery: '',
   positionOverrides: new Map<string, [number, number, number]>(),
+  workspaceBounds: null,
 
   openFolder: async () => {
     set({ isLoading: true, error: null });
@@ -85,7 +96,7 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
 
       // Warn about very large directories (> 5 000 files)
       const LARGE_DIR_THRESHOLD = 5000;
-      if (nodeMap.size > LARGE_DIR_THRESHOLD) {
+      if (import.meta.env.DEV && nodeMap.size > LARGE_DIR_THRESHOLD) {
         console.warn(
           `[Dax] Large directory detected (${nodeMap.size} nodes). Performance may be affected.`,
         );
@@ -214,6 +225,20 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
     return undefined;
   },
 
+  getParentDirectory: (fileId: string) => {
+    const { nodes } = get();
+    const target = nodes.get(fileId);
+    if (!target) return null;
+
+    const parentPath = getParentPath(target.path);
+    if (!parentPath) return null;
+
+    for (const node of nodes.values()) {
+      if (node.type === 'directory' && node.path === parentPath) return node;
+    }
+    return null;
+  },
+
   setLoading: (isLoading: boolean) => set({ isLoading }),
 
   setError: (error: string | null) => set({ error }),
@@ -251,6 +276,8 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
       return { positionOverrides: overrides };
     }),
 
+  setWorkspaceBounds: (bounds) => set({ workspaceBounds: bounds }),
+
   reset: () =>
     set({
       rootPath: null,
@@ -260,8 +287,11 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
       error: null,
       searchQuery: '',
       positionOverrides: new Map<string, [number, number, number]>(),
+      workspaceBounds: null,
     }),
 }));
+
+// ── File-change Listener ─────────────────────────────
 
 // Subscribe to file change events from the main process
 function initFileChangeListener(): void {

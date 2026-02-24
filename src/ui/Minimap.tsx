@@ -31,10 +31,12 @@ export default function Minimap() {
   const nodes = useFileTreeStore((s) => s.nodes);
   const rootChildren = useFileTreeStore((s) => s.rootChildren);
 
-  const layoutMap = useMemo(() => {
+  const layoutResult = useMemo(() => {
     const tree = buildRootTree(rootChildren, nodes);
     return calculateLayout(tree, rootPath);
   }, [nodes, rootChildren, rootPath]);
+
+  const layoutMap = layoutResult.entries;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const agentPos = useAgentStore((s) => s.currentPosition);
 
@@ -47,30 +49,13 @@ export default function Minimap() {
     return () => clearInterval(id);
   }, []);
 
-  // Compute world bounds from layout entries
+  // Compute world bounds from layout result
   const getBounds = useCallback(() => {
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minZ = Infinity;
-    let maxZ = -Infinity;
-
-    for (const entry of layoutMap.values()) {
-      const [x, , z] = entry.position;
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (z < minZ) minZ = z;
-      if (z > maxZ) maxZ = z;
-    }
-
-    // Fallback for empty layouts
-    if (!isFinite(minX)) {
-      return { minX: -10, maxX: 10, minZ: -10, maxZ: 10 };
-    }
-
+    const b = layoutResult.bounds;
     // Add padding
     const pad = 5;
-    return { minX: minX - pad, maxX: maxX + pad, minZ: minZ - pad, maxZ: maxZ + pad };
-  }, [layoutMap]);
+    return { minX: b.minX - pad, maxX: b.maxX + pad, minZ: b.minZ - pad, maxZ: b.maxZ + pad };
+  }, [layoutResult.bounds]);
 
   // Map world coords to canvas coords
   const worldToCanvas = useCallback(
