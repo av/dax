@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { FileNode } from '@/types';
-import type { WorkspaceBounds } from '@/scene/layout/spatialLayout';
+import type { WorkspaceBounds, LayoutEntry } from '@/scene/layout/spatialLayout';
 
 // ── Helpers ──────────────────────────────────────────
 
@@ -20,6 +20,7 @@ interface FileTreeState {
   searchQuery: string;
   positionOverrides: Map<string, [number, number, number]>;
   workspaceBounds: WorkspaceBounds | null;
+  layoutMap: Map<string, LayoutEntry>;
 
   openFolder: () => Promise<void>;
   setRootPath: (path: string) => void;
@@ -38,6 +39,7 @@ interface FileTreeState {
   setPositionOverride: (fileId: string, pos: [number, number, number]) => void;
   clearPositionOverride: (fileId: string) => void;
   setWorkspaceBounds: (bounds: WorkspaceBounds) => void;
+  setLayoutMap: (layoutMap: Map<string, LayoutEntry>) => void;
   reset: () => void;
 }
 
@@ -66,6 +68,7 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
   searchQuery: '',
   positionOverrides: new Map<string, [number, number, number]>(),
   workspaceBounds: null,
+  layoutMap: new Map<string, LayoutEntry>(),
 
   openFolder: async () => {
     set({ isLoading: true, error: null });
@@ -278,6 +281,8 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
 
   setWorkspaceBounds: (bounds) => set({ workspaceBounds: bounds }),
 
+  setLayoutMap: (layoutMap) => set({ layoutMap }),
+
   reset: () =>
     set({
       rootPath: null,
@@ -288,6 +293,7 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
       searchQuery: '',
       positionOverrides: new Map<string, [number, number, number]>(),
       workspaceBounds: null,
+      layoutMap: new Map<string, LayoutEntry>(),
     }),
 }));
 

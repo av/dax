@@ -32,7 +32,12 @@ export async function executeStep(
   if (pathArg) {
     const targetNode = fileTreeState.getNodeByPath(pathArg);
     if (targetNode) {
-      store.moveTo(targetNode.position);
+      const layoutEntry = fileTreeState.layoutMap.get(targetNode.id);
+      if (layoutEntry) {
+        store.moveTo(layoutEntry.position);
+      } else {
+        store.moveTo(targetNode.position);
+      }
     }
   }
 

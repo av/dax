@@ -113,6 +113,11 @@ export default function Workspace() {
     return merged;
   }, [layoutMap, positionOverrides]);
 
+  // Store layout map for Agent pathfinding
+  useEffect(() => {
+    useFileTreeStore.getState().setLayoutMap(mergedLayoutMap);
+  }, [mergedLayoutMap]);
+
   // Separate files and directories
   const files = useMemo(() => collectFiles(nodes), [nodes]);
   const directories = useMemo(() => collectDirectories(nodes), [nodes]);

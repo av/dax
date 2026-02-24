@@ -4,7 +4,6 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import {
   InstancedRigidBodies,
-  CuboidCollider,
   type InstancedRigidBodyProps,
   type RapierRigidBody,
 } from '@react-three/rapier';
@@ -306,15 +305,36 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
         // Skip kinematic bodies (being dragged or used as agent) to avoid freezing them mid-drag
         if (body.bodyType() === 2) return; // 2 = KinematicPositionBased
         const bodyPos = body.translation();
+        
+        // Use layout target position for distance check if available, 
+        // to prevent disabled bodies from being stranded when their target moves closer.
+        const targetPos = targetPositionsRef.current.get(files[i].id);
+        const checkPos = targetPos ? { x: targetPos[0], y: targetPos[1], z: targetPos[2] } : bodyPos;
+
         const dist = Math.sqrt(
-          (bodyPos.x - camX) ** 2 +
-          (bodyPos.y - camY) ** 2 +
-          (bodyPos.z - camZ) ** 2,
+          (checkPos.x - camX) ** 2 +
+          (checkPos.y - camY) ** 2 +
+          (checkPos.z - camZ) ** 2,
         );
+
         if (dist > lodBillboard) {
-          body.setBodyType(RigidBodyType.Fixed, false);
+          if (body.isEnabled()) {
+            body.setBodyType(RigidBodyType.Fixed, false);
+            body.setEnabled(false);
+          }
         } else if (dist < lodBillboardInner) {
-          body.setBodyType(RigidBodyType.Dynamic, true);
+          if (!body.isEnabled()) {
+            body.setBodyType(RigidBodyType.Dynamic, true);
+            body.setEnabled(true);
+            
+            // If it was stranded, teleport it closer to its target so it doesn't fly from across the map
+            if (targetPos) {
+              // Teleporting slightly above target to allow dropping gracefully
+              body.setTranslation({ x: targetPos[0], y: targetPos[1] + 2, z: targetPos[2] }, true);
+              body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+              body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+            }
+          }
         }
       });
     }
@@ -568,8 +588,7 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
       <InstancedRigidBodies
         ref={rigidBodyRef}
         instances={instances}
-        colliders={false}
-        colliderNodes={[<CuboidCollider args={[0.4, 0.55, 0.015]} />]}
+        colliders="cuboid"
         restitution={0.15}
         friction={0.8}
       >

@@ -36,6 +36,7 @@ const outerGeo = new THREE.IcosahedronGeometry(0.35, 0);
 
 const _targetVec = new THREE.Vector3();
 const _currentVec = new THREE.Vector3();
+const _worldVec = new THREE.Vector3();
 const IDLE_ORBIT_RADIUS = 2;
 const BOB_AMPLITUDE = 0.08;
 const BOB_SPEED = 1.8;
@@ -223,12 +224,18 @@ export default function AgentEntity() {
 
     // ── Position ──────────────────────────────────
 
+    const rb = agentRigidBodyRef.current;
+    if (rb) {
+      const translation = rb.translation();
+      _currentVec.set(translation.x, translation.y, translation.z);
+    } else {
+      _currentVec.set(0, 3, 0);
+    }
+
     if (targetPos) {
       // Fly to target
       _targetVec.set(targetPos[0], targetPos[1] + 1.5, targetPos[2]);
-      _currentVec.set(group.position.x, group.position.y, group.position.z);
       _currentVec.lerp(_targetVec, 1 - Math.exp(-FLY_LERP_SPEED * clampedDelta));
-      group.position.copy(_currentVec);
     } else {
       // Idle orbit around camera focus or origin
       const center = cameraTargetRef.current ?? _defaultCenter;
@@ -238,38 +245,38 @@ export default function AgentEntity() {
       const baseY = center.y + 1.5;
 
       _targetVec.set(ox, baseY, oz);
-      _currentVec.set(group.position.x, group.position.y, group.position.z);
       _currentVec.lerp(_targetVec, 1 - Math.exp(-1.5 * clampedDelta));
-      group.position.copy(_currentVec);
     }
 
-    // Bob
-    group.position.y += Math.sin(elapsed * BOB_SPEED) * BOB_AMPLITUDE;
-
     // Clamp to minimum height above ground
-    group.position.y = Math.max(group.position.y, 1.0);
+    _currentVec.y = Math.max(_currentVec.y, 1.0);
 
     // Sync kinematic rigid body to the final lerped position
-    _currentVec.set(group.position.x, group.position.y, group.position.z);
-    agentRigidBodyRef.current?.setNextKinematicTranslation(_currentVec);
+    rb?.setNextKinematicTranslation(_currentVec);
+
+    // Bob
+    group.position.set(0, Math.sin(elapsed * BOB_SPEED) * BOB_AMPLITUDE, 0);
+
+    // Calculate absolute world position for particles and store
+    _worldVec.copy(_currentVec).add(group.position);
 
     // Push position back to store (deterministic — every 3rd frame)
     frameCount.current += 1;
     if (frameCount.current % 3 === 0) {
-      updatePosition([group.position.x, group.position.y, group.position.z]);
+      updatePosition([_worldVec.x, _worldVec.y, _worldVec.z]);
     }
 
     // ── Particle trail ────────────────────────────
 
-    const speed = prevPos.current.distanceTo(group.position) / Math.max(clampedDelta, 0.001);
-    prevPos.current.copy(group.position);
+    const speed = prevPos.current.distanceTo(_worldVec) / Math.max(clampedDelta, 0.001);
+    prevPos.current.copy(_worldVec);
 
     // Spawn particles when moving fast enough
     spawnTimer.current += clampedDelta;
     if (speed > 0.5 && spawnTimer.current > 0.03) {
       spawnTimer.current = 0;
       const idx = particleNextIdx.current % TRAIL_PARTICLE_COUNT;
-      particles[idx].position.copy(group.position);
+      particles[idx].position.copy(_worldVec);
       particles[idx].position.x += (Math.random() - 0.5) * 0.15;
       particles[idx].position.y += (Math.random() - 0.5) * 0.15;
       particles[idx].position.z += (Math.random() - 0.5) * 0.15;
@@ -317,9 +324,9 @@ export default function AgentEntity() {
   return (
     <>
       {/* Kinematic rigid body — position driven by lerp in useFrame */}
-      <RigidBody ref={agentRigidBodyRef} type="kinematicPosition" colliders={false}>
+      <RigidBody ref={agentRigidBodyRef} type="kinematicPosition" colliders={false} position={[0, 3, 0]}>
         {/* Agent group */}
-        <group ref={groupRef} position={[0, 3, 0]}>
+        <group ref={groupRef}>
           {/* Inner solid icosahedron */}
           <mesh ref={innerRef} geometry={innerGeo} material={innerMat} />
 
