@@ -52,6 +52,7 @@ interface TreemapItem {
 const BASE_Y = 0;
 const DEPTH_Y_STEP = 0.3;
 const PADDING = 0.3;
+const FOLDER_GAP = 0.8;
 const MIN_PLATFORM_SIZE = 4;
 const MIN_CELL_SIZE = 1.5;
 const LAYOUT_SCALE = 4.0;
@@ -356,18 +357,25 @@ function layoutTreemapItem(
   if (!itemRect) return;
 
   if (item.type === 'directory') {
-    // Directory: platform at center of its rect
-    const centerX = itemRect.x + itemRect.width / 2;
-    const centerZ = itemRect.z + itemRect.depth / 2;
-    const y = BASE_Y + depth * DEPTH_Y_STEP;
+    // Inset the allocated rect by FOLDER_GAP/2 on each side to create
+    // visible separation between adjacent sibling directories.
+    const halfGap = FOLDER_GAP / 2;
+    const insetRect: TreemapRect = {
+      x: itemRect.x + halfGap,
+      z: itemRect.z + halfGap,
+      width: Math.max(itemRect.width - FOLDER_GAP, MIN_CELL_SIZE),
+      depth: Math.max(itemRect.depth - FOLDER_GAP, MIN_CELL_SIZE),
+    };
 
-    const platformWidth = itemRect.width;
-    const platformDepth = itemRect.depth;
+    // Directory: platform at center of its inset rect
+    const centerX = insetRect.x + insetRect.width / 2;
+    const centerZ = insetRect.z + insetRect.depth / 2;
+    const y = BASE_Y + depth * DEPTH_Y_STEP;
 
     layoutMap.set(item.id, {
       id: item.id,
       position: [centerX, y, centerZ],
-      platformSize: [platformWidth, platformDepth],
+      platformSize: [insetRect.width, insetRect.depth],
       parentDirectoryId: parentDirId,
       totalSizeBytes: item.rawTotalBytes,
     });
@@ -376,10 +384,10 @@ function layoutTreemapItem(
     const children = item.children;
     if (children && children.length > 0) {
       const paddedRect: TreemapRect = {
-        x: itemRect.x + PADDING,
-        z: itemRect.z + PADDING,
-        width: Math.max(itemRect.width - PADDING * 2, MIN_CELL_SIZE),
-        depth: Math.max(itemRect.depth - PADDING * 2, MIN_CELL_SIZE),
+        x: insetRect.x + PADDING,
+        z: insetRect.z + PADDING,
+        width: Math.max(insetRect.width - PADDING * 2, MIN_CELL_SIZE),
+        depth: Math.max(insetRect.depth - PADDING * 2, MIN_CELL_SIZE),
       };
 
       squarify(children, paddedRect);
