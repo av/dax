@@ -22,10 +22,6 @@ import { theme } from '@/theme';
 
 // ── Constants (non-LOD) ────────────────────────────────
 
-// Staggered spawn constants
-const SPAWN_Y_STEP = 0.5;
-const MAX_SPAWN_Y_ABOVE = 10;
-
 // LOD body-type check interval (frames)
 const LOD_CHECK_INTERVAL = 30;
 
@@ -141,6 +137,12 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
   // Frame counter for LOD body-type switching throttle
   const frameCountRef = useRef(0);
 
+  // ── LOD position snapshot — stores settled body transforms before disabling ──
+  const lodBodySnapshotRef = useRef<Map<string, {
+    x: number; y: number; z: number;
+    rx: number; ry: number; rz: number; rw: number;
+  }>>(new Map());
+
   // ── Feature 2: Frustum culling — pre-allocated objects ──
   const frustumRef = useRef(new THREE.Frustum());
   const projMatrixRef = useRef(new THREE.Matrix4());
@@ -186,16 +188,15 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
 
   // Staggered spawn: instances array drives initial physics body positions + per-instance scale
   const instances = useMemo<InstancedRigidBodyProps[]>(() =>
-    files.map((file, index) => {
+    files.map((file) => {
       const layout = layoutMap.get(file.id);
       const pos = layout?.position ?? ([0, 0.5, 0] as [number, number, number]);
       const rotY = layout?.rotationY ?? 0;
       const s = layout?.cardScale ?? 1;
-      const spawnYOffset = Math.min(index * SPAWN_Y_STEP, MAX_SPAWN_Y_ABOVE);
       return {
         key: file.id,
-        position: [pos[0], pos[1] + spawnYOffset, pos[2]] as [number, number, number],
-        rotation: [0, rotY, 0] as [number, number, number],
+        position: [pos[0], pos[1], pos[2]] as [number, number, number],
+        rotation: [layout?.rotationX ?? 0, rotY, 0] as [number, number, number],
         scale: [s, s, s] as [number, number, number],
       };
     }),
@@ -291,6 +292,13 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
 
         if (dist > lodBillboard) {
           if (body.isEnabled()) {
+            // Snapshot the body's current transform before disabling
+            const t = body.translation();
+            const r = body.rotation();
+            lodBodySnapshotRef.current.set(files[i].id, {
+              x: t.x, y: t.y, z: t.z,
+              rx: r.x, ry: r.y, rz: r.z, rw: r.w,
+            });
             body.setBodyType(RigidBodyType.Fixed, false);
             body.setEnabled(false);
           }
@@ -299,10 +307,16 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
             body.setBodyType(RigidBodyType.Dynamic, true);
             body.setEnabled(true);
 
-            // If it was stranded, teleport it closer to its target so it doesn't fly from across the map
-            if (targetPos) {
-              // Teleporting slightly above target to allow dropping gracefully
-              body.setTranslation({ x: targetPos[0], y: targetPos[1] + 2, z: targetPos[2] }, true);
+            const snapshot = lodBodySnapshotRef.current.get(files[i].id);
+            if (snapshot) {
+              // Restore to the exact settled position (no +2 offset)
+              body.setTranslation({ x: snapshot.x, y: snapshot.y, z: snapshot.z }, true);
+              body.setRotation({ x: snapshot.rx, y: snapshot.ry, z: snapshot.rz, w: snapshot.rw }, true);
+              body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+              body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+            } else if (targetPos) {
+              // No snapshot — body never settled near here. Use layout target (no +2).
+              body.setTranslation({ x: targetPos[0], y: targetPos[1], z: targetPos[2] }, true);
               body.setLinvel({ x: 0, y: 0, z: 0 }, true);
               body.setAngvel({ x: 0, y: 0, z: 0 }, true);
             }
@@ -563,6 +577,8 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
         colliders="cuboid"
         restitution={0.15}
         friction={0.8}
+        linearDamping={0.5}
+        angularDamping={3.0}
       >
         <instancedMesh
           ref={meshRef}

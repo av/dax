@@ -7,6 +7,7 @@ export interface LayoutEntry {
   id: string;
   position: [number, number, number];
   rotationY?: number;                             // files only
+  rotationX?: number;                             // files only — flat spawn tilt
   platformSize?: [number, number];                // dirs only [width, depth]
   cardScale?: number;                             // files only
   colliderHalfExtents?: [number, number, number]; // files only
@@ -53,9 +54,10 @@ const DEPTH_Y_STEP = 0.3;
 const PADDING = 0.3;
 const MIN_PLATFORM_SIZE = 4;
 const MIN_CELL_SIZE = 1.5;
-const SPAWN_Y_OFFSET = 0.5;
 const LAYOUT_SCALE = 4.0;
 const LAYOUT_EXPONENT = 0.35;
+const BASE_AREA_PER_FILE = 2.0;
+const BYTE_WEIGHT = 0.015;
 
 // ── Log-Scale Helper ────────────────────────────────────
 
@@ -125,21 +127,24 @@ function buildTreemapItems(nodes: FileNode[]): TreemapItem[] {
 
   for (const node of nodes) {
     const rawBytes = computeTotalSize(node);
-    const scaledSize = logScale(rawBytes);
 
     if (node.type === 'directory') {
       const children = node.children
         ? buildTreemapItems(node.children)
         : undefined;
 
+      const leafCount = countLeafFiles(node.children ?? []);
+      const mixedSize = leafCount * BASE_AREA_PER_FILE + Math.sqrt(rawBytes) * BYTE_WEIGHT;
+
       items.push({
         id: node.id,
         type: 'directory',
-        totalSize: scaledSize,
+        totalSize: mixedSize,
         rawTotalBytes: rawBytes,
         children,
       });
     } else {
+      const scaledSize = logScale(rawBytes);
       items.push({
         id: node.id,
         type: 'file',
@@ -391,9 +396,8 @@ function layoutTreemapItem(
     const cardScale = getFileScale(item.sizeBytes ?? 0);
     const colliderHalf = getColliderHalfExtents(cardScale);
 
-    // Y position with stagger to prevent simultaneous spawns
-    const stagger = (seededRandom(item.id + ':stagger') * 0.4);
-    const y = BASE_Y + depth * DEPTH_Y_STEP + SPAWN_Y_OFFSET + stagger;
+    // Spawn flat on the platform surface (one card-thickness above)
+    const y = BASE_Y + depth * DEPTH_Y_STEP + 0.02;
 
     // Deterministic pseudo-random rotation ±15 degrees (~0.26 radians)
     const rotationY = (seededRandom(item.id + ':rot') - 0.5) * 2 * (Math.PI / 12);
@@ -402,6 +406,7 @@ function layoutTreemapItem(
       id: item.id,
       position: [centerX, y, centerZ],
       rotationY,
+      rotationX: -Math.PI / 2,
       cardScale,
       colliderHalfExtents: colliderHalf,
       parentDirectoryId: parentDirId,

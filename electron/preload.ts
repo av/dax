@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { FileNode, FileChangeEvent, AppSettings, LLMConfig, LLMMessage, DaxAPI } from '../src/types/index';
+import type { FileNode, FileChangeEvent, AppSettings, LLMConfig, LLMMessage, DaxAPI, SceneSnapshot, SaveSceneObject, AttributeRow, TaggedObject } from '../src/types/index';
 
 const api: DaxAPI = {
   openFolder(): Promise<string | null> {
@@ -71,6 +71,42 @@ const api: DaxAPI = {
   abortLLM(): Promise<void> {
     return ipcRenderer.invoke('llm:abort');
   },
-};
 
+  // ── Workspace / Scene Persistence ─────────────────────
+  workspaceOpen(wsPath: string, name: string): Promise<{ workspaceId: number }> {
+    return ipcRenderer.invoke('workspace:open', { path: wsPath, name });
+  },
+
+  workspaceLoadScene(workspaceId: number): Promise<SceneSnapshot> {
+    return ipcRenderer.invoke('workspace:loadScene', { workspaceId });
+  },
+
+  workspaceSaveScene(workspaceId: number, objects: SaveSceneObject[]): Promise<void> {
+    return ipcRenderer.invoke('workspace:saveScene', { workspaceId, objects });
+  },
+
+  workspaceUpsertAttributes(sceneObjectId: number, attrs: Record<string, string>): Promise<void> {
+    return ipcRenderer.invoke('workspace:upsertAttributes', { sceneObjectId, attrs });
+  },
+
+  workspaceLoadAttributes(sceneObjectId: number): Promise<AttributeRow[]> {
+    return ipcRenderer.invoke('workspace:loadAttributes', { sceneObjectId });
+  },
+
+  workspaceSaveTags(sceneObjectId: number, tagIds: number[]): Promise<void> {
+    return ipcRenderer.invoke('workspace:saveTags', { sceneObjectId, tagIds });
+  },
+
+  workspaceLoadTags(workspaceId: number): Promise<TaggedObject[]> {
+    return ipcRenderer.invoke('workspace:loadTags', { workspaceId });
+  },
+
+  workspaceSaveEmbedding(fileId: number, model: string, vector: number[]): Promise<void> {
+    return ipcRenderer.invoke('workspace:saveEmbedding', { fileId, model, vector });
+  },
+
+  workspaceSearchByEmbedding(vector: number[], limit?: number): Promise<{ fileId: number; distance: number }[]> {
+    return ipcRenderer.invoke('workspace:searchByEmbedding', { vector, limit });
+  },
+};
 contextBridge.exposeInMainWorld('electronAPI', api);

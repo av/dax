@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "database-schema-designer": {
+      "source": "softaworks/agent-toolkit",
+      "sourceType": "github",
+      "computedHash": "6a26ca15216bb4bfee66ebf813edcb1e31a8002f3f641f16f550df814b522217"
+    },
     "electron": {
       "source": "teachingai/full-stack-skills",
       "sourceType": "github",
@@ -10,6 +15,11 @@
       "source": "vercel-labs/skills",
       "sourceType": "github",
       "computedHash": "6412eb4eb3b91595ebab937f0c69501240e7ba761b3d82510b5cf506ec5c7adc"
+    },
+    "turso-db": {
+      "source": "av/skills",
+      "sourceType": "github",
+      "computedHash": "b4e80094110655e22ae97e05e4ed8d9ac13b9a93d9c0073ea5359cc34e15b2c0"
     },
     "ui-ux-pro-max": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",

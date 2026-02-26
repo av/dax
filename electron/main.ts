@@ -3,7 +3,9 @@ import path from 'path';
 import { registerFilesystemHandlers } from './ipc/filesystem';
 import { registerShellHandlers } from './ipc/shell';
 import { registerLLMHandlers } from './ipc/llm';
+import { registerWorkspaceHandlers } from './ipc/workspace';
 import { FileWatcherService } from './services/fileWatcher';
+import { databaseService } from './services/database';
 import type { AppSettings } from '../src/types/index';
 
 const isDev = !app.isPackaged;
@@ -89,13 +91,15 @@ function registerSettingsHandlers(): void {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   createWindow();
 
   registerFilesystemHandlers(() => mainWindow, fileWatcher);
   registerShellHandlers();
   registerLLMHandlers();
   registerSettingsHandlers();
+  await databaseService.initialize();
+  registerWorkspaceHandlers();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -110,6 +114,7 @@ app.on('window-all-closed', () => {
   }
 });
 
-app.on('before-quit', () => {
+app.on('before-quit', async () => {
   fileWatcher.stop();
+  await databaseService.close();
 });

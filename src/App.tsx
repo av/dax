@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useFileTreeStore } from './stores/fileTreeStore';
 import { useOnboardingStore } from './stores/onboardingStore';
 import { useAgentStore } from './stores/agentStore';
+import { useScenePersistence } from '@/hooks/useScenePersistence';
 import Workspace from './scene/Workspace';
 import HUD from './ui/HUD';
 import Onboarding from './ui/Onboarding';
@@ -37,6 +38,8 @@ function App() {
   const isOnboarding = useOnboardingStore((s) => s.isOnboarding);
   const hasCompletedOnboarding = useOnboardingStore((s) => s.hasCompletedOnboarding);
   const currentStep = useOnboardingStore((s) => s.currentStep);
+
+  useScenePersistence();
 
   // Watch for first successful agent step to show a toast
   const hasShownFirstActionToast = useOnboardingStore((s) => s.hasShownFirstActionToast);
