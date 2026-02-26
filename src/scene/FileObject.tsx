@@ -121,11 +121,6 @@ export default function FileObject({ node, position }: FileObjectProps) {
       new THREE.Vector3(targetScale, targetScale, targetScale),
       0.1,
     );
-
-    // Smooth lift for selection
-    const targetY = isSelected ? position[1] + 0.5 : position[1];
-    meshRef.current.position.y +=
-      (targetY - meshRef.current.position.y) * 0.12;
   });
 
   return (

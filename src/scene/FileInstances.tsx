@@ -221,38 +221,10 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
     }
   }, [files]);
 
-  // Selection impulse: apply upward impulse on newly selected cards
-  // and lock/unlock translation & rotation axes accordingly
+  // Track selection changes (kept for future use)
   useEffect(() => {
-    if (!rigidBodyRef.current) return;
-
-    // Restore full movement for newly deselected bodies
-    prevSelectedIds.current.forEach((id) => {
-      if (!selectedIds.has(id)) {
-        const index = fileIdToIndex.get(id);
-        if (index !== undefined && rigidBodyRef.current?.[index]) {
-          const body = rigidBodyRef.current[index]!;
-          body.setEnabledTranslations(true, true, true, true);
-          body.setEnabledRotations(true, true, true, true);
-        }
-      }
-    });
-
-    // Apply impulse + constraints for newly selected bodies
-    selectedIds.forEach((id) => {
-      if (!prevSelectedIds.current.has(id)) {
-        const index = fileIdToIndex.get(id);
-        if (index !== undefined && rigidBodyRef.current?.[index]) {
-          const body = rigidBodyRef.current[index]!;
-          body.applyImpulse({ x: 0, y: 4, z: 0 }, true);
-          body.setEnabledTranslations(false, true, false, true);
-          body.setEnabledRotations(false, false, false, true);
-        }
-      }
-    });
-
     prevSelectedIds.current = new Set(selectedIds);
-  }, [selectedIds, fileIdToIndex, rigidBodyRef]);
+  }, [selectedIds]);
 
   // Update colors + compose instance matrices from physics bodies every frame
   useFrame(() => {
@@ -305,8 +277,8 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
         // Skip kinematic bodies (being dragged or used as agent) to avoid freezing them mid-drag
         if (body.bodyType() === 2) return; // 2 = KinematicPositionBased
         const bodyPos = body.translation();
-        
-        // Use layout target position for distance check if available, 
+
+        // Use layout target position for distance check if available,
         // to prevent disabled bodies from being stranded when their target moves closer.
         const targetPos = targetPositionsRef.current.get(files[i].id);
         const checkPos = targetPos ? { x: targetPos[0], y: targetPos[1], z: targetPos[2] } : bodyPos;
@@ -326,7 +298,7 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
           if (!body.isEnabled()) {
             body.setBodyType(RigidBodyType.Dynamic, true);
             body.setEnabled(true);
-            
+
             // If it was stranded, teleport it closer to its target so it doesn't fly from across the map
             if (targetPos) {
               // Teleporting slightly above target to allow dropping gracefully
