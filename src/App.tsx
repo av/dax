@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useFileTreeStore } from './stores/fileTreeStore';
+import { useSettingsStore } from './stores/settingsStore';
 import { useOnboardingStore } from './stores/onboardingStore';
 import { useAgentStore } from './stores/agentStore';
 import { useScenePersistence } from '@/hooks/useScenePersistence';
@@ -39,7 +40,24 @@ function App() {
   const hasCompletedOnboarding = useOnboardingStore((s) => s.hasCompletedOnboarding);
   const currentStep = useOnboardingStore((s) => s.currentStep);
 
+  const lastOpenedFolder = useSettingsStore((s) => s.settings.lastOpenedFolder);
+  const isSettingsLoaded = useSettingsStore((s) => s.isLoaded);
+  const loadSettings = useSettingsStore((s) => s.loadSettings);
+  const loadFolder = useFileTreeStore((s) => s.loadFolder);
+
   useScenePersistence();
+
+  // Load settings once on mount so isLoaded transitions to true
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
+
+  // Auto-restore last opened folder on startup
+  useEffect(() => {
+    if (isSettingsLoaded && !rootPath && lastOpenedFolder) {
+      void loadFolder(lastOpenedFolder);
+    }
+  }, [isSettingsLoaded]); // intentionally only on settings-loaded transition
 
   // Watch for first successful agent step to show a toast
   const hasShownFirstActionToast = useOnboardingStore((s) => s.hasShownFirstActionToast);

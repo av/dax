@@ -23,6 +23,7 @@ interface FileTreeState {
   layoutMap: Map<string, LayoutEntry>;
 
   openFolder: () => Promise<void>;
+  loadFolder: (folderPath: string) => Promise<void>;
   setRootPath: (path: string) => void;
   setNodes: (nodes: FileNode[]) => void;
   addNode: (node: FileNode) => void;
@@ -106,10 +107,33 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
       }
 
       set({ rootPath: folderPath, nodes: nodeMap, rootChildren, isLoading: false });
+      // Persist last opened folder
+      window.electronAPI.getSettings()
+        .then((s) => window.electronAPI.saveSettings({ ...s, lastOpenedFolder: folderPath }))
+        .catch(() => { /* non-critical */ });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to open folder';
       set({ error: message, isLoading: false });
     }
+  },
+
+  loadFolder: async (folderPath: string) => {
+    set({ isLoading: true, error: null });
+    let tree: FileNode[];
+    try {
+      tree = await window.electronAPI.readDirectory(folderPath);
+    } catch (readErr: unknown) {
+      const msg = readErr instanceof Error ? readErr.message : String(readErr);
+      set({ error: `Failed to read folder: ${msg}`, isLoading: false });
+      return;
+    }
+    const nodeMap = flattenTree(tree);
+    const rootChildren = tree.map((node) => node.id);
+    set({ rootPath: folderPath, nodes: nodeMap, rootChildren, isLoading: false });
+    // Persist last opened folder
+    window.electronAPI.getSettings()
+      .then((s) => window.electronAPI.saveSettings({ ...s, lastOpenedFolder: folderPath }))
+      .catch(() => { /* non-critical */ });
   },
 
   setRootPath: (path: string) => set({ rootPath: path }),

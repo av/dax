@@ -127,6 +127,13 @@ CREATE TABLE file_embeddings (
 );
 `;
 
+const SCHEMA_V2 = `
+CREATE TABLE app_settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+`;
+
 // ── Migrations ────────────────────────────────────
 
 async function runMigrations(db: TursoDB): Promise<void> {
@@ -138,6 +145,11 @@ async function runMigrations(db: TursoDB): Promise<void> {
     // exec() supports multi-statement SQL strings
     await db.exec(SCHEMA_V1);
     await db.prepare('PRAGMA user_version = 1').run();
+  }
+
+  if (version < 2) {
+    await db.exec(SCHEMA_V2);
+    await db.prepare('PRAGMA user_version = 2').run();
   }
 }
 

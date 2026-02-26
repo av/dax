@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "package": "npm run build && electron-builder",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.node.json --noEmit"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "db:drop": "rm -rf ~/.config/dax/dax.db"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",

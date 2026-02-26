@@ -13,17 +13,6 @@ const isDev = !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
 const fileWatcher = new FileWatcherService();
 
-// electron-store is ESM-only; we dynamically import it.
-// Under CommonJS moduleResolution the generic types don't resolve,
-// so we define a minimal interface for the methods we use.
-interface SettingsStore {
-  get(key: 'settings'): AppSettings | undefined;
-  set(key: 'settings', value: AppSettings): void;
-}
-let store: SettingsStore | null = null;
-
-const ENCRYPTION_KEY = 'dax-settings-v1-enc';
-
 const defaultSettings: AppSettings = {
   llm: {
     apiEndpoint: '',
@@ -37,19 +26,6 @@ const defaultSettings: AppSettings = {
   cameraSpeed: 1.0,
   lastOpenedFolder: null,
 };
-
-async function initStore(): Promise<SettingsStore> {
-  if (store) return store;
-  const { default: Store } = await import('electron-store');
-  store = new Store({
-    name: 'dax-settings',
-    encryptionKey: ENCRYPTION_KEY,
-    defaults: {
-      settings: defaultSettings,
-    },
-  }) as unknown as SettingsStore;
-  return store;
-}
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -81,13 +57,22 @@ function createWindow(): void {
 
 function registerSettingsHandlers(): void {
   ipcMain.handle('settings:get', async (): Promise<AppSettings> => {
-    const s = await initStore();
-    return (s.get('settings') as AppSettings | undefined) ?? defaultSettings;
+    const db = databaseService.db;
+    const row = await db.prepare('SELECT value FROM app_settings WHERE key = ?').get('app') as { value: string } | null;
+    if (!row) return defaultSettings;
+    try {
+      return JSON.parse(row.value) as AppSettings;
+    } catch {
+      return defaultSettings;
+    }
   });
 
   ipcMain.handle('settings:save', async (_event, settings: AppSettings): Promise<void> => {
-    const s = await initStore();
-    s.set('settings', settings);
+    const db = databaseService.db;
+    await db.prepare(
+      `INSERT INTO app_settings (key, value) VALUES (?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    ).run('app', JSON.stringify(settings));
   });
 }
 
@@ -97,8 +82,8 @@ app.whenReady().then(async () => {
   registerFilesystemHandlers(() => mainWindow, fileWatcher);
   registerShellHandlers();
   registerLLMHandlers();
-  registerSettingsHandlers();
   await databaseService.initialize();
+  registerSettingsHandlers();
   registerWorkspaceHandlers();
 
   app.on('activate', () => {

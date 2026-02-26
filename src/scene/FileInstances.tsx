@@ -19,6 +19,7 @@ import { useFileTreeStore } from '@/stores/fileTreeStore';
 import type { LayoutEntry } from '@/scene/layout/spatialLayout';
 import { useDragStore } from '@/scene/FileDragger';
 import { theme } from '@/theme';
+import { physicsPositionsRef } from '@/stores/physicsPositionsRef';
 
 // ── Constants (non-LOD) ────────────────────────────────
 
@@ -264,6 +265,8 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
         const dx = t.x - camX;
         const dz = t.z - camZ;
         distanceCacheRef.current[i] = dx * dx + dz * dz; // squared distance
+        // Snapshot current world position for scene persistence (read by saveScene)
+        physicsPositionsRef.current.set(files[i].id, [t.x, t.y, t.z]);
       }
       sortedIndicesRef.current.sort(
         (a, b) => distanceCacheRef.current[a] - distanceCacheRef.current[b],
