@@ -26,8 +26,6 @@ const DEPTH_COLORS = [
 const FLOOR_HEIGHT = 0.2;
 const WALL_THICKNESS = 0.05;
 const FLOOR_OPACITY = 0.25;
-const WALL_OPACITY_DEFAULT = 0.35;
-const WALL_OPACITY_DROP = 0.6;
 const WALL_EMISSIVE_INTENSITY = 0.3;
 
 // ── LOD Constants ────────────────────────────────────────
@@ -53,8 +51,8 @@ const LOD_FAR_EXTENT_FACTOR = 0.5;
  * and physics colliders to prevent file cards from sliding out.
  *
  * Uses distance-based LOD to reduce draw calls for large workspaces:
- *  - **near**: full rendering (floor, walls, label, all colliders)
- *  - **mid**:  floor mesh + label + all colliders (wall meshes hidden)
+ *  - **near**: full rendering (floor, walls at full opacity, label, all colliders)
+ *  - **mid**:  floor + walls at reduced opacity + label + all colliders
  *  - **far**:  floor mesh + all colliders only (walls and label hidden)
  */
 export default function DirectoryPlatform({
@@ -72,7 +70,7 @@ export default function DirectoryPlatform({
 
   const lodTierRef = useRef<LodTier>('near');
   const [lodTier, setLodTier] = useState<LodTier>('near');
-  const frameCountRef = useRef(0);
+  const frameCountRef = useRef(Math.floor(Math.random() * LOD_CHECK_INTERVAL));
 
   // Dynamic LOD thresholds scaled to workspace size
   const extent = useFileTreeStore((s) => s.workspaceBounds?.extent ?? 100);
@@ -103,7 +101,6 @@ export default function DirectoryPlatform({
   const fontSize = Math.max(0.3, 0.5 - depth * 0.05);
 
   const wallColor = isDropTarget ? theme.colors.accentPrimary : baseColor;
-  const wallOpacity = isDropTarget ? WALL_OPACITY_DROP : WALL_OPACITY_DEFAULT;
   const wallEmissive = isDropTarget ? theme.colors.accentPrimary : '#000000';
   const wallEmissiveIntensity = isDropTarget ? WALL_EMISSIVE_INTENSITY : 0;
 
@@ -168,14 +165,14 @@ export default function DirectoryPlatform({
           />
         </mesh>
 
-        {/* ── Wall meshes (near tier only) ──────────────── */}
-        {lodTier === 'near' && walls.map((wall) => (
+        {/* ── Wall meshes (near + mid tiers) ────────────── */}
+        {lodTier !== 'far' && walls.map((wall) => (
           <mesh key={wall.key} position={wall.position}>
             <boxGeometry args={wall.size} />
             <meshStandardMaterial
               color={wallColor}
-              transparent
-              opacity={wallOpacity}
+              transparent={lodTier === 'mid'}
+              opacity={lodTier === 'mid' ? 0.35 : 1}
               roughness={0.9}
               metalness={0}
               emissive={wallEmissive}

@@ -40,6 +40,7 @@ function collectDirectories(nodes: Map<string, FileNode>): FileNode[] {
       dirs.push(node);
     }
   }
+  dirs.sort((a, b) => a.path.localeCompare(b.path));
   return dirs;
 }
 
@@ -83,12 +84,13 @@ export default function Workspace() {
   const dropTargetDirId = useDragStore((s) => s.dropTargetDirId);
   const nodes = useFileTreeStore((s) => s.nodes);
   const rootChildren = useFileTreeStore((s) => s.rootChildren);
+  const layoutGeneration = useFileTreeStore((s) => s.layoutGeneration);
 
-  // Compute layout from the tree structure
+  // Compute layout from the tree structure (layoutGeneration forces recompute on reset)
   const layoutResult = useMemo(() => {
     const tree = buildRootTree(rootChildren, nodes);
     return calculateLayout(tree, rootPath);
-  }, [nodes, rootChildren, rootPath]);
+  }, [nodes, rootChildren, rootPath, layoutGeneration]);
 
   const layoutMap = layoutResult.entries;
   const workspaceBounds = layoutResult.bounds;
