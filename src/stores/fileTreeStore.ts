@@ -19,6 +19,7 @@ interface FileTreeState {
   error: string | null;
   searchQuery: string;
   positionOverrides: Map<string, [number, number, number]>;
+  layoutGeneration: number;
   workspaceBounds: WorkspaceBounds | null;
   layoutMap: Map<string, LayoutEntry>;
 
@@ -41,6 +42,7 @@ interface FileTreeState {
   clearPositionOverride: (fileId: string) => void;
   setWorkspaceBounds: (bounds: WorkspaceBounds) => void;
   setLayoutMap: (layoutMap: Map<string, LayoutEntry>) => void;
+  resetLayout: () => void;
   reset: () => void;
 }
 
@@ -68,6 +70,7 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
   error: null,
   searchQuery: '',
   positionOverrides: new Map<string, [number, number, number]>(),
+  layoutGeneration: 0,
   workspaceBounds: null,
   layoutMap: new Map<string, LayoutEntry>(),
 
@@ -307,6 +310,12 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
 
   setLayoutMap: (layoutMap) => set({ layoutMap }),
 
+  resetLayout: () =>
+    set((state) => ({
+      positionOverrides: new Map(),
+      layoutGeneration: state.layoutGeneration + 1,
+    })),
+
   reset: () =>
     set({
       rootPath: null,
@@ -316,6 +325,7 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
       error: null,
       searchQuery: '',
       positionOverrides: new Map<string, [number, number, number]>(),
+      layoutGeneration: 0,
       workspaceBounds: null,
       layoutMap: new Map<string, LayoutEntry>(),
     }),

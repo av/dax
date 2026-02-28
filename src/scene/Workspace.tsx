@@ -177,7 +177,7 @@ export default function Workspace() {
       <CameraController />
 
       <Suspense fallback={null}>
-        <Physics gravity={[0, -4, 0]} timeStep="vary" debug={import.meta.env.DEV}>
+        <Physics gravity={[0, -4, 0]} timeStep="vary">
           {/* Dynamic world floor — prevents escaped cards */}
           <CuboidCollider args={[floorSize, 0.1, floorSize]} position={[0, -20, 0]} />
 

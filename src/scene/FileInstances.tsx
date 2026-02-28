@@ -17,6 +17,7 @@ import {
 import { useSelectionStore } from '@/stores/selectionStore';
 import { useFileTreeStore } from '@/stores/fileTreeStore';
 import type { LayoutEntry } from '@/scene/layout/spatialLayout';
+import { getDirAABB } from '@/scene/layout/directoryAABB';
 import { useDragStore } from '@/scene/FileDragger';
 import { theme } from '@/theme';
 import { physicsPositionsRef } from '@/stores/physicsPositionsRef';
@@ -117,7 +118,7 @@ function HoverLabel({ node, position }: { node: FileNode; position: [number, num
 const _tempObject = new THREE.Object3D();
 const _tempColor = new THREE.Color();
 
-function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: FileInstanceGroupProps) {
+function FileInstanceGroup({ files, layoutMap, rigidBodyRef }: FileInstanceGroupProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const { camera } = useThree();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -186,6 +187,28 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
     }
     targetPositionsRef.current = map;
   }, [files, layoutMap]);
+
+  // Teleport all physics bodies back to computed layout positions on reset
+  const layoutGeneration = useFileTreeStore((s) => s.layoutGeneration);
+  useEffect(() => {
+    if (layoutGeneration === 0 || !rigidBodyRef.current) return;
+    files.forEach((file, i) => {
+      const body = rigidBodyRef.current?.[i];
+      if (!body) return;
+      const entry = layoutMap.get(file.id);
+      if (!entry) return;
+      const [x, y, z] = entry.position;
+      body.setTranslation({ x, y, z }, true);
+      body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+      const rx = entry.rotationX ?? 0;
+      const ry = entry.rotationY ?? 0;
+      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, 0));
+      body.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
+    });
+    // Clear LOD snapshots so stale positions don't override the reset
+    lodBodySnapshotRef.current.clear();
+  }, [layoutGeneration]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Staggered spawn: instances array drives initial physics body positions + per-instance scale
   const instances = useMemo<InstancedRigidBodyProps[]>(() =>
@@ -311,14 +334,17 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
             body.setEnabled(true);
 
             const snapshot = lodBodySnapshotRef.current.get(files[i].id);
+            // Clamp restored position to parent directory bounds
+            const parentDirId = layoutMap.get(files[i].id)?.parentDirectoryId ?? '__root__';
+            const aabb = getDirAABB(parentDirId, layoutMap);
             if (snapshot) {
-              // Restore to the exact settled position (no +2 offset)
-              body.setTranslation({ x: snapshot.x, y: snapshot.y, z: snapshot.z }, true);
+              const rx = aabb ? Math.max(aabb.minX, Math.min(aabb.maxX, snapshot.x)) : snapshot.x;
+              const rz = aabb ? Math.max(aabb.minZ, Math.min(aabb.maxZ, snapshot.z)) : snapshot.z;
+              body.setTranslation({ x: rx, y: snapshot.y, z: rz }, true);
               body.setRotation({ x: snapshot.rx, y: snapshot.ry, z: snapshot.rz, w: snapshot.rw }, true);
               body.setLinvel({ x: 0, y: 0, z: 0 }, true);
               body.setAngvel({ x: 0, y: 0, z: 0 }, true);
             } else if (targetPos) {
-              // No snapshot — body never settled near here. Use layout target (no +2).
               body.setTranslation({ x: targetPos[0], y: targetPos[1], z: targetPos[2] }, true);
               body.setLinvel({ x: 0, y: 0, z: 0 }, true);
               body.setAngvel({ x: 0, y: 0, z: 0 }, true);
@@ -328,26 +354,36 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
       });
     }
 
-    // Corrective force: gently nudge bodies toward their target layout positions
-    // when layout recomputes (file add/remove/change), skipping during drags
-    if (rigidBodyRef.current && !useDragStore.getState().isDragging) {
-      const overrides = useFileTreeStore.getState().positionOverrides;
-      const targets = targetPositionsRef.current;
+    // ── Hard boundary enforcement: clamp every dynamic body to its parent dir ──
+    // Runs every frame so no file can visibly escape, regardless of physics forces.
+    if (rigidBodyRef.current) {
+      const aabbCache = new Map<string, ReturnType<typeof getDirAABB>>();
       files.forEach((file, i) => {
         const body = rigidBodyRef.current?.[i];
-        if (!body) return;
-        // Skip kinematic bodies (being dragged)
+        if (!body || !body.isEnabled()) return;
+        // Skip kinematic bodies (being dragged by user/agent)
         if (body.bodyType() === 2) return;
-        // Skip bodies with user-defined position overrides
-        if (overrides.has(file.id)) return;
-        const target = targets.get(file.id);
-        if (!target) return;
+        const parentDirId = layoutMap.get(file.id)?.parentDirectoryId ?? '__root__';
+        let aabb = aabbCache.get(parentDirId);
+        if (aabb === undefined) {
+          aabb = getDirAABB(parentDirId, layoutMap);
+          aabbCache.set(parentDirId, aabb);
+        }
+        if (!aabb) return;
         const pos = body.translation();
-        const dx = target[0] - pos.x;
-        const dz = target[2] - pos.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
-        if (dist > 1.0) {
-          body.addForce({ x: (dx / dist) * 2.0, y: 0, z: (dz / dist) * 2.0 }, true);
+        const layoutY = layoutMap.get(file.id)?.position[1] ?? 0;
+        const maxY = layoutY + 2;
+        const clampedX = Math.max(aabb.minX, Math.min(aabb.maxX, pos.x));
+        const clampedY = Math.min(maxY, pos.y);
+        const clampedZ = Math.max(aabb.minZ, Math.min(aabb.maxZ, pos.z));
+        if (pos.x !== clampedX || pos.y !== clampedY || pos.z !== clampedZ) {
+          body.setTranslation({ x: clampedX, y: clampedY, z: clampedZ }, true);
+          const vel = body.linvel();
+          body.setLinvel({
+            x: pos.x !== clampedX ? 0 : vel.x,
+            y: pos.y !== clampedY ? 0 : vel.y,
+            z: pos.z !== clampedZ ? 0 : vel.z,
+          }, true);
         }
       });
     }
@@ -369,6 +405,9 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
     const indicesToProcess = processAll
       ? sortedIndicesRef.current
       : sortedIndicesRef.current.slice(0, FRAME_BUDGET);
+
+    // Cache drag state once before the loop (avoid repeated getState() calls)
+    const { dragPositions: activeDragPositions } = useDragStore.getState();
 
     for (const i of indicesToProcess) {
       if (i >= fileCount) continue;
@@ -427,7 +466,11 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
           targetScale = (isHovered ? baseScale * 1.15 : baseScale) * lodFactor;
         }
 
-        _tempObject.position.set(t.x, t.y, t.z);
+        // Visual lift: slight float for selected items, higher lift for dragged items
+        const isDragged = activeDragPositions.has(file.id);
+        const selectionFloatY = isSelected && !isDragged ? 0.15 : 0;
+        const dragVisualY = isDragged ? 0.3 : 0;
+        _tempObject.position.set(t.x, t.y + dragVisualY + selectionFloatY, t.z);
         _tempObject.quaternion.set(r.x, r.y, r.z, r.w);
         _tempObject.scale.setScalar(targetScale);
         _tempObject.updateMatrix();
@@ -579,9 +622,10 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: Fi
         instances={instances}
         colliders="cuboid"
         restitution={0.15}
-        friction={0.8}
-        linearDamping={0.5}
+        friction={3.0}
+        linearDamping={0}
         angularDamping={3.0}
+        ccd
       >
         <instancedMesh
           ref={meshRef}

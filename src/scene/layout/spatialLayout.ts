@@ -92,16 +92,6 @@ function computeTotalLogArea(nodes: FileNode[]): number {
   return total;
 }
 
-// ── Seeded Pseudo-Random ────────────────────────────────
-
-function seededRandom(seed: string): number {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
-  }
-  return (Math.abs(Math.sin(hash) * 10000)) % 1;
-}
-
 // ── Total Size Computation ──────────────────────────────
 
 function computeTotalSize(node: FileNode): number {
@@ -404,16 +394,16 @@ function layoutTreemapItem(
     const cardScale = getFileScale(item.sizeBytes ?? 0);
     const colliderHalf = getColliderHalfExtents(cardScale);
 
-    // Spawn flat on the platform surface (one card-thickness above)
-    const y = BASE_Y + depth * DEPTH_Y_STEP + 0.02;
-
-    // Deterministic pseudo-random rotation ±15 degrees (~0.26 radians)
-    const rotationY = (seededRandom(item.id + ':rot') - 0.5) * 2 * (Math.PI / 12);
+    // Spawn flat just above the parent platform surface (collider half-height = 0.1)
+    const parentSurfaceY = depth === 0
+      ? BASE_Y
+      : BASE_Y + (depth - 1) * DEPTH_Y_STEP + 0.1;
+    const y = parentSurfaceY + 0.02;
 
     layoutMap.set(item.id, {
       id: item.id,
       position: [centerX, y, centerZ],
-      rotationY,
+      rotationY: 0,
       rotationX: -Math.PI / 2,
       cardScale,
       colliderHalfExtents: colliderHalf,

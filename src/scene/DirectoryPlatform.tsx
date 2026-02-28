@@ -143,7 +143,7 @@ export default function DirectoryPlatform({
   return (
     <RigidBody type="fixed" colliders={false} position={[px, py, pz]}>
       {/* ── Floor collider (always — required for physics) ── */}
-      <CuboidCollider args={[width / 2, 0.1, platformDepth / 2]} />
+      <CuboidCollider args={[width / 2, 0.1, platformDepth / 2]} friction={20.0} />
 
       {/* ── Wall colliders (always — keeps physics stable) ── */}
       {walls.map((wall) => (
@@ -151,6 +151,7 @@ export default function DirectoryPlatform({
           key={wall.key}
           args={wall.colliderArgs}
           position={wall.position}
+          friction={3.0}
         />
       ))}
 

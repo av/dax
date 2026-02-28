@@ -436,18 +436,36 @@ export default function HUD() {
           pointerEvents: 'none',
         }}
       >
-        <span
-          style={{
-            fontSize: '12px',
-            color: theme.colors.textSecondary,
-            fontFamily: 'monospace',
-            background: `${theme.colors.bgBase}B3`,
-            padding: '4px 10px',
-            borderRadius: '4px',
-          }}
-        >
-          {fileCount} files
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', pointerEvents: 'auto' }}>
+          <span
+            style={{
+              fontSize: '12px',
+              color: theme.colors.textSecondary,
+              fontFamily: 'monospace',
+              background: `${theme.colors.bgBase}B3`,
+              padding: '4px 10px',
+              borderRadius: '4px',
+            }}
+          >
+            {fileCount} files
+          </span>
+          <button
+            onClick={() => useFileTreeStore.getState().resetLayout()}
+            style={{
+              padding: '4px 10px',
+              fontSize: '11px',
+              background: `${theme.colors.bgSurface}E6`,
+              color: theme.colors.textSecondary,
+              border: `1px solid ${theme.colors.borderDefault}`,
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontFamily: 'monospace',
+            }}
+            title="Reset all files to computed layout positions"
+          >
+            Reset Layout
+          </button>
+        </div>
         {import.meta.env.DEV && <PerformanceStats />}
         <span
           style={{
