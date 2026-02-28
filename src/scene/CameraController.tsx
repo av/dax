@@ -25,8 +25,13 @@ export const useCameraFocusStore = create<CameraFocusState>((set) => ({
 
 // ── RTS Camera constants ───────────────────────────────
 
-/** Fixed pitch angle in radians (~55° from horizontal → camera looks down) */
-const CAMERA_PITCH = 55 * (Math.PI / 180);
+/** Pitch angle range — interpolated based on zoom level */
+const PITCH_MIN = 35 * (Math.PI / 180); // zoomed in: more from the side
+const PITCH_MAX = 75 * (Math.PI / 180); // zoomed out: more top-down
+
+/** Movement tilt (roll/pitch offset when panning) */
+const TILT_MAX = 0.2 * (Math.PI / 180);
+const TILT_DAMPING = 0.07;
 
 /** Height limits for zoom */
 const MIN_HEIGHT = 3;
@@ -66,10 +71,10 @@ export function getCameraLookAt(): [number, number, number] {
 function cameraPositionFromLookAt(
   lookAt: THREE.Vector3,
   height: number,
+  pitch: number,
   out: THREE.Vector3,
 ): THREE.Vector3 {
-  // Camera is offset along +Z and +Y from the look-at point based on pitch
-  const zOffset = height / Math.tan(CAMERA_PITCH);
+  const zOffset = height / Math.tan(pitch);
   out.set(lookAt.x, lookAt.y + height, lookAt.z + zOffset);
   return out;
 }
@@ -143,6 +148,13 @@ export default function CameraController() {
 
   // Scratch vectors to avoid per-frame allocations
   const _desiredPos = useRef(new THREE.Vector3());
+
+  /** Dynamic pitch (smoothed) */
+  const pitchRef = useRef(PITCH_MAX);
+  /** Movement tilt: x = roll (lateral), y = pitch (forward/back) */
+  const tiltRef = useRef(new THREE.Vector2(0, 0));
+  /** Previous lookAt for computing per-frame velocity */
+  const prevLookAtRef = useRef(new THREE.Vector3());
 
   // --- Input event handlers ---
 
@@ -248,10 +260,17 @@ export default function CameraController() {
 
     // ── Intro fly-in ────────────────────────────────
     if (!introComplete) {
-      // Compute desired intro camera position from dynamic intro height
+      // Keep pitch in sync with introHeight so there's no drift when
+      // the main loop takes over after the intro completes.
+      const introT = THREE.MathUtils.clamp(
+        (introHeight - MIN_HEIGHT) / (dynamicMaxHeightRef.current - MIN_HEIGHT), 0, 1,
+      );
+      pitchRef.current = THREE.MathUtils.lerp(PITCH_MIN, PITCH_MAX, Math.pow(introT, 0.3));
+
       const introPos = cameraPositionFromLookAt(
         INTRO_LOOK_AT,
         introHeight,
+        pitchRef.current,
         _desiredPos.current,
       );
       camera.position.lerp(introPos, INTRO_LERP_SPEED);
@@ -339,9 +358,32 @@ export default function CameraController() {
       heightGoalRef.current = heightRef.current;
     }
 
+    // ── Dynamic pitch from zoom level ───────────────
+    const heightT = THREE.MathUtils.clamp(
+      (heightRef.current - MIN_HEIGHT) / (dynamicMaxHeightRef.current - MIN_HEIGHT), 0, 1,
+    );
+    const targetPitch = THREE.MathUtils.lerp(PITCH_MIN, PITCH_MAX, Math.pow(heightT, 0.3));
+    pitchRef.current = THREE.MathUtils.lerp(pitchRef.current, targetPitch, DAMPING);
+
+    // ── Movement tilt ───────────────────────────────
+    // Only update tilt when camera is active — during drag/selection the
+    // camera must be completely static so raycasts stay consistent.
+    if (controlsEnabledRef.current || focusTarget) {
+      const dx = lookAt.x - prevLookAtRef.current.x;
+      const dz = lookAt.z - prevLookAtRef.current.z;
+      const h = heightRef.current;
+      const tiltGoalX = THREE.MathUtils.clamp(-dx / h * 20, -TILT_MAX, TILT_MAX);
+      const tiltGoalY = THREE.MathUtils.clamp(dz / h * 20, -TILT_MAX, TILT_MAX);
+      tiltRef.current.x = THREE.MathUtils.lerp(tiltRef.current.x, tiltGoalX, TILT_DAMPING);
+      tiltRef.current.y = THREE.MathUtils.lerp(tiltRef.current.y, tiltGoalY, TILT_DAMPING);
+    }
+    prevLookAtRef.current.copy(lookAt);
+
     // ── Position the camera ─────────────────────────
-    cameraPositionFromLookAt(lookAt, heightRef.current, camera.position);
+    cameraPositionFromLookAt(lookAt, heightRef.current, pitchRef.current, camera.position);
     camera.lookAt(lookAt);
+    camera.rotateZ(tiltRef.current.x);
+    camera.rotateX(tiltRef.current.y);
 
     // ── Sync shared look-at for getCameraLookAt() ───
     _currentLookAt.copy(lookAt);

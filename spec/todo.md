@@ -2,18 +2,21 @@
   - File must physically interact with other files
   - Directory fence should be an actual physical boundary file objects cannot be pushed through by other files
   - When dragging with a mouse, file can be dragged between directories and dropped into another directory to move it on the actual filesystem
-
 + Directory boundaries should not be crossable by files unless those are being dragged by a user or an agent
+
+---
+
+- Camera should change its angle depending on the zoom level:
+  - When zoomed out - looks more from the top down
+  - When zoomed in - looks more from the side
+  - When moving - camera should slightly tilt in the direction of movement
 
 
 - Directory floor should have a white rectangle drawn on it to indicate where files can be placed
 
 - Directories should be resizable by dragging the directory fence corner with a mouse
 
-- Camera should change its angle depending on the zoom level:
-  - When zoomed out - looks more from the top down
-  - When zoomed in - looks more from the side
-  - When moving - camera should slightly tilt in the direction of movement
+
 
 - Respect .gitignore when loading workspace
 
