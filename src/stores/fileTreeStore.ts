@@ -19,6 +19,7 @@ interface FileTreeState {
   error: string | null;
   searchQuery: string;
   positionOverrides: Map<string, [number, number, number]>;
+  sizeOverrides: Map<string, [number, number]>;
   layoutGeneration: number;
   workspaceBounds: WorkspaceBounds | null;
   layoutMap: Map<string, LayoutEntry>;
@@ -40,6 +41,8 @@ interface FileTreeState {
   getSearchResults: () => string[];
   setPositionOverride: (fileId: string, pos: [number, number, number]) => void;
   clearPositionOverride: (fileId: string) => void;
+  setSizeOverride: (dirId: string, size: [number, number]) => void;
+  clearSizeOverride: (dirId: string) => void;
   setWorkspaceBounds: (bounds: WorkspaceBounds) => void;
   setLayoutMap: (layoutMap: Map<string, LayoutEntry>) => void;
   resetLayout: () => void;
@@ -70,6 +73,7 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
   error: null,
   searchQuery: '',
   positionOverrides: new Map<string, [number, number, number]>(),
+  sizeOverrides: new Map<string, [number, number]>(),
   layoutGeneration: 0,
   workspaceBounds: null,
   layoutMap: new Map<string, LayoutEntry>(),
@@ -240,11 +244,13 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
       const rootChildren = state.rootChildren.filter((childId) => !idsToRemove.has(childId));
 
       const positionOverrides = new Map(state.positionOverrides);
+      const sizeOverrides = new Map(state.sizeOverrides);
       for (const removeId of idsToRemove) {
         positionOverrides.delete(removeId);
+        sizeOverrides.delete(removeId);
       }
 
-      return { nodes, rootChildren, positionOverrides };
+      return { nodes, rootChildren, positionOverrides, sizeOverrides };
     }),
 
   getNodeByPath: (filePath: string) => {
@@ -306,6 +312,20 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
       return { positionOverrides: overrides };
     }),
 
+  setSizeOverride: (dirId, size) =>
+    set((state) => {
+      const overrides = new Map(state.sizeOverrides);
+      overrides.set(dirId, size);
+      return { sizeOverrides: overrides };
+    }),
+
+  clearSizeOverride: (dirId) =>
+    set((state) => {
+      const overrides = new Map(state.sizeOverrides);
+      overrides.delete(dirId);
+      return { sizeOverrides: overrides };
+    }),
+
   setWorkspaceBounds: (bounds) => set({ workspaceBounds: bounds }),
 
   setLayoutMap: (layoutMap) => set({ layoutMap }),
@@ -313,6 +333,7 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
   resetLayout: () =>
     set((state) => ({
       positionOverrides: new Map(),
+      sizeOverrides: new Map(),
       layoutGeneration: state.layoutGeneration + 1,
     })),
 
@@ -325,6 +346,7 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
       error: null,
       searchQuery: '',
       positionOverrides: new Map<string, [number, number, number]>(),
+      sizeOverrides: new Map<string, [number, number]>(),
       layoutGeneration: 0,
       workspaceBounds: null,
       layoutMap: new Map<string, LayoutEntry>(),

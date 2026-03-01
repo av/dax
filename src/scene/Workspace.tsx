@@ -12,6 +12,7 @@ import CameraController from '@/scene/CameraController';
 import AgentEntity from '@/scene/AgentEntity';
 import SelectionBox from '@/scene/SelectionBox';
 import FileDragger, { useDragStore } from '@/scene/FileDragger';
+import DirectoryResizer from '@/scene/DirectoryResizer';
 import PerformanceMonitor from '@/scene/PerformanceMonitor';
 import { theme } from '@/theme';
 
@@ -100,11 +101,12 @@ export default function Workspace() {
     useFileTreeStore.getState().setWorkspaceBounds(workspaceBounds);
   }, [workspaceBounds]);
 
-  // Merge user-defined position overrides into the layout
+  // Merge user-defined position and size overrides into the layout
   const positionOverrides = useFileTreeStore((s) => s.positionOverrides);
+  const sizeOverrides = useFileTreeStore((s) => s.sizeOverrides);
 
   const mergedLayoutMap = useMemo(() => {
-    if (positionOverrides.size === 0) return layoutMap;
+    if (positionOverrides.size === 0 && sizeOverrides.size === 0) return layoutMap;
     const merged = new Map(layoutMap);
     for (const [id, pos] of positionOverrides) {
       const existing = merged.get(id);
@@ -112,8 +114,14 @@ export default function Workspace() {
         merged.set(id, { ...existing, position: pos });
       }
     }
+    for (const [id, size] of sizeOverrides) {
+      const existing = merged.get(id);
+      if (existing) {
+        merged.set(id, { ...existing, platformSize: size });
+      }
+    }
     return merged;
-  }, [layoutMap, positionOverrides]);
+  }, [layoutMap, positionOverrides, sizeOverrides]);
 
   // Store layout map for Agent pathfinding
   useEffect(() => {
@@ -236,6 +244,9 @@ export default function Workspace() {
             directories={directories}
             rootPath={rootPath}
           />
+
+          {/* Drag-to-resize for directory platforms */}
+          <DirectoryResizer layoutMap={mergedLayoutMap} />
 
           {/* Performance monitor (dev mode stats collection) */}
           {import.meta.env.DEV && <PerformanceMonitor />}

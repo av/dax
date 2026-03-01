@@ -32,7 +32,8 @@ export interface LayoutResult {
 // ── Constants ───────────────────────────────────────────
 
 const BASE_Y = 0;
-const DEPTH_Y_STEP = 0.3;
+const DEPTH_Y_EPSILON = 0.001;   // tiny per-depth offset to prevent Z-fighting between overlapping floors
+const FLOOR_HALF_HEIGHT = 0.1;   // half of FLOOR_HEIGHT (0.2) from DirectoryPlatform
 const PADDING = 0.3;
 const FOLDER_GAP = 0.8;
 const MIN_PLATFORM_SIZE = 4;
@@ -157,7 +158,7 @@ function emitLayout(
     // is handled by d3's paddingInner, edge-to-children by paddingOuter.
     const centerX = x0 + w / 2;
     const centerZ = z0 + h / 2;
-    const y = BASE_Y + depth * DEPTH_Y_STEP;
+    const y = BASE_Y + depth * DEPTH_Y_EPSILON;
 
     layoutMap.set(data.id, {
       id: data.id,
@@ -180,9 +181,7 @@ function emitLayout(
     const cardScale = getFileScale(data.sizeBytes ?? 0);
     const colliderHalf = getColliderHalfExtents(cardScale);
 
-    const parentSurfaceY = depth === 0
-      ? BASE_Y
-      : BASE_Y + (depth - 1) * DEPTH_Y_STEP + 0.1;
+    const parentSurfaceY = BASE_Y + FLOOR_HALF_HEIGHT;
     const y = parentSurfaceY + 0.02;
 
     layoutMap.set(data.id, {

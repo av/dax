@@ -15,6 +15,27 @@ interface DirectoryPlatformProps {
   isDropTarget: boolean;
 }
 
+type Corner = 'nw' | 'ne' | 'sw' | 'se';
+
+interface CornerHandleUserData {
+  type: 'corner-handle';
+  dirId: string;
+  corner: Corner;
+  dirPosition: [number, number, number];
+  platformSize: [number, number];
+}
+
+/** Corner definitions: [corner name, X sign, Z sign, resize cursor] */
+const CORNER_DEFS: [Corner, number, number, string][] = [
+  ['nw', -1, -1, 'nwse-resize'],
+  ['ne',  1, -1, 'nesw-resize'],
+  ['sw', -1,  1, 'nesw-resize'],
+  ['se',  1,  1, 'nwse-resize'],
+];
+
+const HANDLE_SIZE = 0.25;
+const HANDLE_COLOR = theme.colors.accentPrimary;
+
 // ── Constants ────────────────────────────────────────────
 
 const DEPTH_COLORS = [
@@ -27,6 +48,10 @@ const FLOOR_HEIGHT = 0.2;
 const WALL_THICKNESS = 0.05;
 const FLOOR_OPACITY = 0.25;
 const WALL_EMISSIVE_INTENSITY = 0.3;
+
+/** Inset from walls for the placement-area rectangle (matches directoryAABB default) */
+const PLACEMENT_INSET = 0.5;
+const PLACEMENT_RECT_OPACITY = 0.15;
 
 // ── LOD Constants ────────────────────────────────────────
 
@@ -97,8 +122,8 @@ export default function DirectoryPlatform({
 
   const colorIndex = depth % DEPTH_COLORS.length;
   const baseColor = DEPTH_COLORS[colorIndex];
-  const wallHeight = 0.3 + depth * 0.1;
-  const fontSize = Math.max(0.3, 0.5 - depth * 0.05);
+  const wallHeight = 0.5;
+  const fontSize = 0.4;
 
   const wallColor = isDropTarget ? theme.colors.accentPrimary : baseColor;
   const wallEmissive = isDropTarget ? theme.colors.accentPrimary : '#000000';
@@ -165,6 +190,24 @@ export default function DirectoryPlatform({
           />
         </mesh>
 
+        {/* ── Placement-area rectangle (near + mid, non-root) ── */}
+        {lodTier !== 'far' && entry.id !== '__root__' && (
+          <mesh
+            position={[0, FLOOR_HEIGHT / 2 + 0.005, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          >
+            <planeGeometry args={[width - 2 * PLACEMENT_INSET, platformDepth - 2 * PLACEMENT_INSET]} />
+            <meshStandardMaterial
+              color="#FFFFFF"
+              transparent
+              opacity={PLACEMENT_RECT_OPACITY}
+              roughness={1}
+              metalness={0}
+              depthWrite={false}
+            />
+          </mesh>
+        )}
+
         {/* ── Wall meshes (near + mid tiers) ────────────── */}
         {lodTier !== 'far' && walls.map((wall) => (
           <mesh key={wall.key} position={wall.position}>
@@ -198,6 +241,38 @@ export default function DirectoryPlatform({
           >
             {name}
           </Text>
+        )}
+
+        {/* ── Corner resize handles (near + mid, non-root) ── */}
+        {lodTier !== 'far' && entry.id !== '__root__' && CORNER_DEFS.map(
+          ([corner, xSign, zSign, cursor]) => (
+            <mesh
+              key={corner}
+              position={[
+                xSign * width / 2,
+                wallHeight,
+                zSign * platformDepth / 2,
+              ]}
+              userData={{
+                type: 'corner-handle',
+                dirId: entry.id,
+                corner,
+                dirPosition: entry.position,
+                platformSize: [width, platformDepth],
+              } satisfies CornerHandleUserData}
+              onPointerEnter={() => { document.body.style.cursor = cursor; }}
+              onPointerLeave={() => { document.body.style.cursor = 'auto'; }}
+            >
+              <boxGeometry args={[HANDLE_SIZE, HANDLE_SIZE, HANDLE_SIZE]} />
+              <meshStandardMaterial
+                color={HANDLE_COLOR}
+                emissive={HANDLE_COLOR}
+                emissiveIntensity={0.4}
+                roughness={0.6}
+                metalness={0}
+              />
+            </mesh>
+          ),
         )}
       </group>
     </RigidBody>

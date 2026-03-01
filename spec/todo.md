@@ -12,9 +12,10 @@
   - Borders must be drawn for all folders, and they should be consistent across reloads
   - Layout computation should be deterministic and not change across reloads
 
++ There shouldn't be any height difference between floors of different directories, they should all be on the same level, and the directory fence should be the only thing separating them vertically, files should not be able to get "under" the directory fence
+
 ---
 
-- There shouldn't be any height difference between floors of different directories, they should all be on the same level, and the directory fence should be the only thing separating them vertically, files should not be able to get "under" the directory fence
 
 - Directory floor should have a white rectangle drawn on it to indicate where files can be placed
 

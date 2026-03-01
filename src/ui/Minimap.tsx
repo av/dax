@@ -2,9 +2,8 @@ import { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import { useFileTreeStore } from '@/stores/fileTreeStore';
 import { useAgentStore } from '@/stores/agentStore';
 import { getFileColor } from '@/utils/fileClassification';
-import { calculateLayout } from '@/scene/layout/spatialLayout';
 import { useCameraFocusStore, getCameraLookAt } from '@/scene/CameraController';
-import type { FileNode } from '@/types';
+import type { LayoutEntry } from '@/scene/layout/spatialLayout';
 import { theme } from '@/theme';
 
 const MINIMAP_SIZE = 200;
@@ -13,30 +12,40 @@ const VIEWPORT_COLOR = `${theme.colors.accentPrimary}80`;
 const BG_COLOR = `${theme.colors.bgBase}BF`;
 const BORDER_COLOR = `${theme.colors.borderDefault}CC`;
 
-function buildRootTree(
-  rootChildren: string[],
-  nodes: Map<string, FileNode>,
-): FileNode[] {
-  return rootChildren
-    .map((id) => nodes.get(id))
-    .filter((n): n is FileNode => n !== undefined);
-}
-
 /**
  * 2D HTML Canvas minimap — bottom-left corner.
  * Draws file dots colored by type, camera viewport rect, and click-to-navigate.
+ *
+ * Sources layout data from the store (set by Workspace) instead of recomputing
+ * its own layout, and merges position/size overrides so user-dragged files and
+ * user-resized directories are accurately reflected.
  */
 export default function Minimap() {
-  const rootPath = useFileTreeStore((s) => s.rootPath);
   const nodes = useFileTreeStore((s) => s.nodes);
-  const rootChildren = useFileTreeStore((s) => s.rootChildren);
+  const storeLayoutMap = useFileTreeStore((s) => s.layoutMap);
+  const workspaceBounds = useFileTreeStore((s) => s.workspaceBounds);
+  const positionOverrides = useFileTreeStore((s) => s.positionOverrides);
+  const sizeOverrides = useFileTreeStore((s) => s.sizeOverrides);
 
-  const layoutResult = useMemo(() => {
-    const tree = buildRootTree(rootChildren, nodes);
-    return calculateLayout(tree, rootPath);
-  }, [nodes, rootChildren, rootPath]);
+  // Merge user-defined position and size overrides into the layout
+  const mergedLayoutMap = useMemo(() => {
+    if (positionOverrides.size === 0 && sizeOverrides.size === 0) return storeLayoutMap;
+    const merged = new Map<string, LayoutEntry>(storeLayoutMap);
+    for (const [id, pos] of positionOverrides) {
+      const existing = merged.get(id);
+      if (existing) {
+        merged.set(id, { ...existing, position: pos });
+      }
+    }
+    for (const [id, size] of sizeOverrides) {
+      const existing = merged.get(id);
+      if (existing) {
+        merged.set(id, { ...existing, platformSize: size });
+      }
+    }
+    return merged;
+  }, [storeLayoutMap, positionOverrides, sizeOverrides]);
 
-  const layoutMap = layoutResult.entries;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const agentPos = useAgentStore((s) => s.currentPosition);
 
@@ -49,13 +58,20 @@ export default function Minimap() {
     return () => clearInterval(id);
   }, []);
 
-  // Compute world bounds from layout result
+  // Compute padded bounds from store's workspace bounds
   const getBounds = useCallback(() => {
-    const b = layoutResult.bounds;
-    // Add padding
-    const pad = 5;
-    return { minX: b.minX - pad, maxX: b.maxX + pad, minZ: b.minZ - pad, maxZ: b.maxZ + pad };
-  }, [layoutResult.bounds]);
+    if (workspaceBounds) {
+      const pad = 5;
+      return {
+        minX: workspaceBounds.minX - pad,
+        maxX: workspaceBounds.maxX + pad,
+        minZ: workspaceBounds.minZ - pad,
+        maxZ: workspaceBounds.maxZ + pad,
+      };
+    }
+    // Fallback: if workspace bounds aren't set yet, return a safe default
+    return { minX: -50, maxX: 50, minZ: -50, maxZ: 50 };
+  }, [workspaceBounds]);
 
   // Map world coords to canvas coords
   const worldToCanvas = useCallback(
@@ -98,7 +114,7 @@ export default function Minimap() {
     ctx.fillRect(0, 0, MINIMAP_SIZE, MINIMAP_SIZE);
 
     // Draw file dots
-    for (const [id, entry] of layoutMap) {
+    for (const [id, entry] of mergedLayoutMap) {
       if (id === '__root__') continue;
       const node = nodes.get(id);
       if (!node) continue;
@@ -126,7 +142,7 @@ export default function Minimap() {
     ctx.strokeStyle = VIEWPORT_COLOR;
     ctx.lineWidth = 1.5;
     ctx.strokeRect(v1x, v1y, v2x - v1x, v2y - v1y);
-  }, [layoutMap, nodes, agentPos, cameraPos, getBounds, worldToCanvas]);
+  }, [mergedLayoutMap, nodes, agentPos, cameraPos, getBounds, worldToCanvas]);
 
   // Click handler — navigate camera to clicked position
   const handleClick = useCallback(
