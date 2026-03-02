@@ -1,12 +1,12 @@
 import { create } from 'zustand';
-import type { FileNode } from '@/types';
+import { sha256Hex } from '@/utils/sha256';
+import type { FileNode, FileChangeEvent } from '@/types';
 import type { WorkspaceBounds, LayoutEntry } from '@/scene/layout/spatialLayout';
 
 // ── Helpers ──────────────────────────────────────────
 
-function getParentPath(filePath: string): string {
-  const lastSep = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
-  return lastSep > 0 ? filePath.substring(0, lastSep) : '';
+function hashPath(absolutePath: string): string {
+  return sha256Hex(absolutePath).slice(0, 16);
 }
 
 // ── Types ────────────────────────────────────────────
@@ -15,6 +15,10 @@ interface FileTreeState {
   rootPath: string | null;
   nodes: Map<string, FileNode>;
   rootChildren: string[];
+  pathIndex: Map<string, string>;
+  childrenIndex: Map<string, string[]>;
+  knownSessionId: number | null;
+  unsubFileChange: (() => void) | null;
   isLoading: boolean;
   error: string | null;
   searchQuery: string;
@@ -26,15 +30,18 @@ interface FileTreeState {
 
   openFolder: () => Promise<void>;
   loadFolder: (folderPath: string) => Promise<void>;
+  initWatcher: (folderPath: string) => Promise<void>;
+  applyFileChange: (event: FileChangeEvent) => void;
   setRootPath: (path: string) => void;
   setNodes: (nodes: FileNode[]) => void;
   addNode: (node: FileNode) => void;
   removeNode: (id: string) => void;
   updateNode: (id: string, partial: Partial<FileNode>) => void;
   insertNode: (node: FileNode) => void;
-  removeNodeFromTree: (id: string) => void;
+  removeNodeFromTree: (targetPath: string) => void;
   getNodeByPath: (filePath: string) => FileNode | undefined;
   getParentDirectory: (fileId: string) => FileNode | null;
+  getChildrenOf: (parentId: string | null) => FileNode[];
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   setSearchQuery: (query: string) => void;
@@ -49,26 +56,16 @@ interface FileTreeState {
   reset: () => void;
 }
 
-function flattenTree(nodes: FileNode[]): Map<string, FileNode> {
-  const map = new Map<string, FileNode>();
-  function recurse(list: FileNode[]): void {
-    for (const node of list) {
-      map.set(node.id, node);
-      if (node.children) {
-        recurse(node.children);
-      }
-    }
-  }
-  recurse(nodes);
-  return map;
-}
-
 // ── Store ────────────────────────────────────────────
 
 export const useFileTreeStore = create<FileTreeState>((set, get) => ({
   rootPath: null,
   nodes: new Map<string, FileNode>(),
   rootChildren: [],
+  pathIndex: new Map<string, string>(),
+  childrenIndex: new Map<string, string[]>(),
+  knownSessionId: null,
+  unsubFileChange: null,
   isLoading: false,
   error: null,
   searchQuery: '',
@@ -77,6 +74,120 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
   layoutGeneration: 0,
   workspaceBounds: null,
   layoutMap: new Map<string, LayoutEntry>(),
+
+  // ── initWatcher ────────────────────────────────────
+
+  initWatcher: async (folderPath: string) => {
+    const { unsubFileChange } = get();
+    if (unsubFileChange) unsubFileChange();
+
+    const pendingPayloads: Array<{ sessionId: number; events: FileChangeEvent[] }> = [];
+    let initialized = false;
+
+    const unsub = window.electronAPI.onFileChange((payload) => {
+      if (!initialized) {
+        pendingPayloads.push(payload);
+        return;
+      }
+      if (payload.sessionId !== get().knownSessionId) return;
+      for (const event of payload.events) {
+        get().applyFileChange(event);
+      }
+    });
+
+    const { sessionId, tree, gapEvents } = await window.electronAPI.watchFolder(folderPath);
+
+    const nodes = new Map<string, FileNode>();
+    const pathIndex = new Map<string, string>();
+    const childrenIndex = new Map<string, string[]>();
+    const rootChildren: string[] = [];
+
+    childrenIndex.set('__root__', []);
+
+    for (const node of tree) {
+      nodes.set(node.id, node);
+      pathIndex.set(node.path, node.id);
+
+      if (node.parentId === null) {
+        rootChildren.push(node.id);
+        childrenIndex.get('__root__')!.push(node.id);
+      } else {
+        const siblings = childrenIndex.get(node.parentId) ?? [];
+        siblings.push(node.id);
+        childrenIndex.set(node.parentId, siblings);
+      }
+
+      if (node.type === 'directory' && !childrenIndex.has(node.id)) {
+        childrenIndex.set(node.id, []);
+      }
+    }
+
+    set({
+      nodes,
+      pathIndex,
+      childrenIndex,
+      rootChildren,
+      rootPath: folderPath,
+      knownSessionId: sessionId,
+      unsubFileChange: unsub,
+      isLoading: false,
+    });
+
+    for (const event of gapEvents) {
+      get().applyFileChange(event);
+    }
+
+    // Replay buffered live events, filtering to the correct session
+    initialized = true;
+    for (const payload of pendingPayloads) {
+      if (payload.sessionId !== sessionId) continue;
+      for (const event of payload.events) {
+        get().applyFileChange(event);
+      }
+    }
+  },
+
+  // ── applyFileChange ────────────────────────────────
+
+  applyFileChange: (event: FileChangeEvent) => {
+    switch (event.type) {
+      case 'add':
+      case 'addDir': {
+        const existingId = get().pathIndex.get(event.path);
+        if (existingId && event.fileInfo) {
+          get().updateNode(existingId, event.fileInfo);
+          break;
+        }
+        if (existingId) break;
+        const name = event.path.substring(event.path.lastIndexOf('/') + 1);
+        const isDir = event.type === 'addDir';
+        const newNode: FileNode = {
+          id: hashPath(event.path),
+          name,
+          path: event.path,
+          type: isDir ? 'directory' : 'file',
+          sizeBytes: event.fileInfo?.sizeBytes ?? 0,
+          modifiedAt: event.fileInfo?.modifiedAt ?? Date.now(),
+          extension: isDir ? null : (name.lastIndexOf('.') > 0 ? name.substring(name.lastIndexOf('.')) : null),
+          parentId: null, // set by insertNode
+        };
+        get().insertNode(newNode);
+        break;
+      }
+      case 'change': {
+        const nodeId = get().pathIndex.get(event.path);
+        if (nodeId && event.fileInfo) get().updateNode(nodeId, event.fileInfo);
+        break;
+      }
+      case 'unlink':
+      case 'unlinkDir': {
+        get().removeNodeFromTree(event.path);
+        break;
+      }
+    }
+  },
+
+  // ── Folder operations ──────────────────────────────
 
   openFolder: async () => {
     set({ isLoading: true, error: null });
@@ -87,33 +198,16 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
         return;
       }
 
-      let tree: FileNode[];
-      try {
-        tree = await window.electronAPI.readDirectory(folderPath);
-      } catch (readErr: unknown) {
-        const msg = readErr instanceof Error ? readErr.message : String(readErr);
-        const isPermission = /EACCES|EPERM|permission denied/i.test(msg);
-        set({
-          error: isPermission
-            ? 'Permission denied — cannot read this folder.'
-            : `Failed to read folder: ${msg}`,
-          isLoading: false,
-        });
-        return;
-      }
-
-      const nodeMap = flattenTree(tree);
-      const rootChildren = tree.map((node) => node.id);
+      await get().initWatcher(folderPath);
 
       // Warn about very large directories (> 5 000 files)
       const LARGE_DIR_THRESHOLD = 5000;
-      if (import.meta.env.DEV && nodeMap.size > LARGE_DIR_THRESHOLD) {
+      if (import.meta.env.DEV && get().nodes.size > LARGE_DIR_THRESHOLD) {
         console.warn(
-          `[Dax] Large directory detected (${nodeMap.size} nodes). Performance may be affected.`,
+          `[Dax] Large directory detected (${get().nodes.size} nodes). Performance may be affected.`,
         );
       }
 
-      set({ rootPath: folderPath, nodes: nodeMap, rootChildren, isLoading: false });
       // Persist last opened folder
       window.electronAPI.getSettings()
         .then((s) => window.electronAPI.saveSettings({ ...s, lastOpenedFolder: folderPath }))
@@ -126,153 +220,188 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
 
   loadFolder: async (folderPath: string) => {
     set({ isLoading: true, error: null });
-    let tree: FileNode[];
     try {
-      tree = await window.electronAPI.readDirectory(folderPath);
-    } catch (readErr: unknown) {
-      const msg = readErr instanceof Error ? readErr.message : String(readErr);
+      await get().initWatcher(folderPath);
+
+      // Persist last opened folder
+      window.electronAPI.getSettings()
+        .then((s) => window.electronAPI.saveSettings({ ...s, lastOpenedFolder: folderPath }))
+        .catch(() => { /* non-critical */ });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
       set({ error: `Failed to read folder: ${msg}`, isLoading: false });
-      return;
     }
-    const nodeMap = flattenTree(tree);
-    const rootChildren = tree.map((node) => node.id);
-    set({ rootPath: folderPath, nodes: nodeMap, rootChildren, isLoading: false });
-    // Persist last opened folder
-    window.electronAPI.getSettings()
-      .then((s) => window.electronAPI.saveSettings({ ...s, lastOpenedFolder: folderPath }))
-      .catch(() => { /* non-critical */ });
   },
 
   setRootPath: (path: string) => set({ rootPath: path }),
 
-  setNodes: (nodes: FileNode[]) => {
-    const nodeMap = flattenTree(nodes);
-    const rootChildren = nodes.map((node) => node.id);
-    set({ nodes: nodeMap, rootChildren });
+  setNodes: (nodeList: FileNode[]) => {
+    const nodes = new Map<string, FileNode>();
+    const pathIndex = new Map<string, string>();
+    const childrenIndex = new Map<string, string[]>();
+    const rootChildren: string[] = [];
+
+    childrenIndex.set('__root__', []);
+
+    for (const node of nodeList) {
+      nodes.set(node.id, node);
+      pathIndex.set(node.path, node.id);
+
+      if (node.parentId === null) {
+        rootChildren.push(node.id);
+        childrenIndex.get('__root__')!.push(node.id);
+      } else {
+        const siblings = childrenIndex.get(node.parentId) ?? [];
+        siblings.push(node.id);
+        childrenIndex.set(node.parentId, siblings);
+      }
+
+      if (node.type === 'directory' && !childrenIndex.has(node.id)) {
+        childrenIndex.set(node.id, []);
+      }
+    }
+
+    set({ nodes, pathIndex, childrenIndex, rootChildren });
   },
 
-  addNode: (node: FileNode) =>
-    set((state) => {
-      const nodes = new Map(state.nodes);
-      nodes.set(node.id, node);
-      return { nodes };
-    }),
+  addNode: (node: FileNode) => {
+    get().insertNode(node);
+  },
 
-  removeNode: (id: string) =>
-    set((state) => {
-      const nodes = new Map(state.nodes);
-      nodes.delete(id);
-      return {
-        nodes,
-        rootChildren: state.rootChildren.filter((childId) => childId !== id),
-      };
-    }),
+  removeNode: (id: string) => {
+    const node = get().nodes.get(id);
+    if (node) {
+      get().removeNodeFromTree(node.path);
+    }
+  },
 
   updateNode: (id: string, partial: Partial<FileNode>) =>
     set((state) => {
       const existing = state.nodes.get(id);
       if (!existing) return state;
+      const updated = { ...existing, ...partial };
       const nodes = new Map(state.nodes);
-      nodes.set(id, { ...existing, ...partial });
-      return { nodes };
+      nodes.set(id, updated);
+
+      // If the path changed, update pathIndex
+      const pathIndex = new Map(state.pathIndex);
+      if (partial.path && partial.path !== existing.path) {
+        pathIndex.delete(existing.path);
+        pathIndex.set(partial.path, id);
+      }
+
+      return { nodes, pathIndex };
     }),
 
   insertNode: (node: FileNode) =>
     set((state) => {
       const nodes = new Map(state.nodes);
-      if (nodes.has(node.id)) return state;
+      const pathIndex = new Map(state.pathIndex);
+      const childrenIndex = new Map(state.childrenIndex);
+      const rootChildren = [...state.rootChildren];
+      const parentPath = node.path.substring(0, node.path.lastIndexOf('/'));
+      const parentId = parentPath === state.rootPath
+        ? null
+        : pathIndex.get(parentPath) ?? null;
 
+      if (parentId === null && parentPath !== state.rootPath) {
+        console.warn(`insertNode: parent missing for ${node.path}`);
+        return state;
+      }
+
+      node = { ...node, parentId };
       nodes.set(node.id, node);
+      pathIndex.set(node.path, node.id);
 
-      const parentPath = getParentPath(node.path);
-      let rootChildren = state.rootChildren;
-      let parentFound = false;
+      // Update childrenIndex
+      const parentKey = parentId ?? '__root__';
+      const siblings = [...(childrenIndex.get(parentKey) ?? [])];
+      siblings.push(node.id);
+      childrenIndex.set(parentKey, siblings);
 
-      for (const [id, existing] of nodes) {
-        if (existing.type === 'directory' && existing.path === parentPath) {
-          nodes.set(id, {
-            ...existing,
-            children: [...(existing.children ?? []), node],
-          });
-          parentFound = true;
-          break;
-        }
+      // Init empty children list for new directories
+      if (node.type === 'directory' && !childrenIndex.has(node.id)) {
+        childrenIndex.set(node.id, []);
       }
 
-      if (!parentFound && parentPath === state.rootPath) {
-        rootChildren = [...state.rootChildren, node.id];
+      if (parentId === null) {
+        rootChildren.push(node.id);
       }
 
-      return { nodes, rootChildren };
+      return { nodes, pathIndex, childrenIndex, rootChildren };
     }),
 
-  removeNodeFromTree: (id: string) =>
+  removeNodeFromTree: (targetPath: string) =>
     set((state) => {
-      const target = state.nodes.get(id);
-      if (!target) return state;
+      const targetId = state.pathIndex.get(targetPath);
+      if (!targetId) return state;
 
       const nodes = new Map(state.nodes);
-      const idsToRemove = new Set<string>([id]);
+      const pathIndex = new Map(state.pathIndex);
+      const childrenIndex = new Map(state.childrenIndex);
+      const rootChildren = [...state.rootChildren];
 
-      if (target.type === 'directory') {
-        const collectDescendants = (node: FileNode): void => {
-          if (node.children) {
-            for (const child of node.children) {
-              idsToRemove.add(child.id);
-              collectDescendants(child);
-            }
-          }
-        };
-        collectDescendants(target);
+      // Collect target + all descendants via childrenIndex
+      const toRemove: string[] = [];
+      const collect = (id: string): void => {
+        toRemove.push(id);
+        const childIds = childrenIndex.get(id) ?? [];
+        for (const childId of childIds) collect(childId);
+      };
+      collect(targetId);
+
+      // Remove all collected nodes + associated overrides
+      const positionOverrides = new Map(state.positionOverrides);
+      const sizeOverrides = new Map(state.sizeOverrides);
+      for (const id of toRemove) {
+        const node = nodes.get(id);
+        if (node) {
+          pathIndex.delete(node.path);
+        }
+        childrenIndex.delete(id);
+        nodes.delete(id);
+        positionOverrides.delete(id);
+        sizeOverrides.delete(id);
       }
 
-      for (const removeId of idsToRemove) {
-        nodes.delete(removeId);
-      }
-
-      const parentPath = getParentPath(target.path);
-      for (const [nodeId, existing] of nodes) {
-        if (existing.type === 'directory' && existing.path === parentPath) {
-          nodes.set(nodeId, {
-            ...existing,
-            children: (existing.children ?? []).filter((c) => c.id !== id),
-          });
-          break;
+      // Remove target from its parent's children list
+      const target = state.nodes.get(targetId);
+      if (target) {
+        const parentKey = target.parentId ?? '__root__';
+        const siblings = childrenIndex.get(parentKey);
+        if (siblings) {
+          childrenIndex.set(parentKey, siblings.filter(id => id !== targetId));
         }
       }
 
-      const rootChildren = state.rootChildren.filter((childId) => !idsToRemove.has(childId));
-
-      const positionOverrides = new Map(state.positionOverrides);
-      const sizeOverrides = new Map(state.sizeOverrides);
-      for (const removeId of idsToRemove) {
-        positionOverrides.delete(removeId);
-        sizeOverrides.delete(removeId);
-      }
-
-      return { nodes, rootChildren, positionOverrides, sizeOverrides };
+      return {
+        nodes,
+        pathIndex,
+        childrenIndex,
+        rootChildren: rootChildren.filter(id => id !== targetId),
+        positionOverrides,
+        sizeOverrides,
+      };
     }),
 
   getNodeByPath: (filePath: string) => {
-    const { nodes } = get();
-    for (const node of nodes.values()) {
-      if (node.path === filePath) return node;
-    }
-    return undefined;
+    const { pathIndex, nodes } = get();
+    const id = pathIndex.get(filePath);
+    return id ? nodes.get(id) : undefined;
   },
 
   getParentDirectory: (fileId: string) => {
     const { nodes } = get();
-    const target = nodes.get(fileId);
-    if (!target) return null;
+    const node = nodes.get(fileId);
+    if (!node || !node.parentId) return null;
+    return nodes.get(node.parentId) ?? null;
+  },
 
-    const parentPath = getParentPath(target.path);
-    if (!parentPath) return null;
-
-    for (const node of nodes.values()) {
-      if (node.type === 'directory' && node.path === parentPath) return node;
-    }
-    return null;
+  getChildrenOf: (parentId: string | null) => {
+    const { childrenIndex, nodes } = get();
+    const key = parentId ?? '__root__';
+    const childIds = childrenIndex.get(key) ?? [];
+    return childIds.map(id => nodes.get(id)).filter((n): n is FileNode => n !== undefined);
   },
 
   setLoading: (isLoading: boolean) => set({ isLoading }),
@@ -337,11 +466,17 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
       layoutGeneration: state.layoutGeneration + 1,
     })),
 
-  reset: () =>
+  reset: () => {
+    const { unsubFileChange } = get();
+    if (unsubFileChange) unsubFileChange();
     set({
       rootPath: null,
       nodes: new Map<string, FileNode>(),
       rootChildren: [],
+      pathIndex: new Map<string, string>(),
+      childrenIndex: new Map<string, string[]>(),
+      knownSessionId: null,
+      unsubFileChange: null,
       isLoading: false,
       error: null,
       searchQuery: '',
@@ -350,59 +485,6 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
       layoutGeneration: 0,
       workspaceBounds: null,
       layoutMap: new Map<string, LayoutEntry>(),
-    }),
+    });
+  },
 }));
-
-// ── File-change Listener ─────────────────────────────
-
-// Subscribe to file change events from the main process
-function initFileChangeListener(): void {
-  if (typeof window === 'undefined' || !window.electronAPI) return;
-
-  window.electronAPI.onFileChange((event) => {
-    const state = useFileTreeStore.getState();
-    if (!state.rootPath) return;
-
-    switch (event.type) {
-      case 'add':
-      case 'addDir': {
-        if (!event.fileInfo) break;
-        const isDir = event.type === 'addDir';
-        const newNode: FileNode = {
-          id: event.fileInfo.id,
-          name: event.fileInfo.name,
-          path: event.path,
-          type: isDir ? 'directory' : 'file',
-          extension: event.fileInfo.extension,
-          sizeBytes: event.fileInfo.sizeBytes,
-          modifiedAt: event.fileInfo.modifiedAt,
-          position: [0, 0, 0],
-          ...(isDir ? { children: [] } : {}),
-        };
-        state.insertNode(newNode);
-        break;
-      }
-      case 'change': {
-        if (!event.fileInfo) break;
-        const existing = state.getNodeByPath(event.path);
-        if (existing) {
-          state.updateNode(existing.id, {
-            sizeBytes: event.fileInfo.sizeBytes,
-            modifiedAt: event.fileInfo.modifiedAt,
-          });
-        }
-        break;
-      }
-      case 'unlink':
-      case 'unlinkDir': {
-        const existing = state.getNodeByPath(event.path);
-        if (existing) {
-          state.removeNodeFromTree(existing.id);
-        }
-        break;
-      }
-    }
-  });
-}
-
-initFileChangeListener();

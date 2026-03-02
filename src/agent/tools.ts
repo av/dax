@@ -1,5 +1,6 @@
 import type { FileNode, LLMConfig, LLMMessage } from '@/types';
 import { useFileTreeStore } from '@/stores/fileTreeStore';
+import { buildNestedTree } from '@/utils/treeUtils';
 
 // ── Types ──────────────────────────────────────────────
 
@@ -19,13 +20,7 @@ export interface Tool {
 // ── Helpers ────────────────────────────────────────────
 
 function getFileTreeSnapshot(): FileNode[] {
-  const state = useFileTreeStore.getState();
-  const result: FileNode[] = [];
-  for (const id of state.rootChildren) {
-    const node = state.nodes.get(id);
-    if (node) result.push(node);
-  }
-  return result;
+  return buildNestedTree();
 }
 
 function flattenNodes(nodes: FileNode[]): FileNode[] {
@@ -152,8 +147,11 @@ const listDirectoryTool: Tool = {
     { name: 'path', description: 'Absolute path of the directory to list', required: true },
   ],
   execute: async (args) => {
-    const nodes = await window.electronAPI.readDirectory(args['path']);
-    return formatFileTree(nodes);
+    const { getNodeByPath } = useFileTreeStore.getState();
+    const dirNode = getNodeByPath(args['path']);
+    if (!dirNode) return `Directory not found: ${args['path']}`;
+    const subtree = buildNestedTree(dirNode.id);
+    return formatFileTree(subtree);
   },
 };
 

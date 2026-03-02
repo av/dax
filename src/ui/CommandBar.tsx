@@ -1,20 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAgentStore } from '@/stores/agentStore';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { useFileTreeStore } from '@/stores/fileTreeStore';
 import { AgentState } from '@/types';
 import type { FileNode } from '@/types';
 import { createPlan } from '@/agent/planner';
+import { buildNestedTree } from '@/utils/treeUtils';
 import { theme } from '@/theme';
 
 function collectRootNodes(): FileNode[] {
-  const state = useFileTreeStore.getState();
-  const result: FileNode[] = [];
-  for (const id of state.rootChildren) {
-    const node = state.nodes.get(id);
-    if (node) result.push(node);
-  }
-  return result;
+  return buildNestedTree();
 }
 
 export default function CommandBar() {

@@ -88,7 +88,7 @@ function SearchBar() {
       const node = nodes.get(id);
       if (!node) return;
       select(id);
-      setFocusTarget(node.position);
+      if (node.position) setFocusTarget(node.position);
       setShowDropdown(false);
     },
     [nodes, select, setFocusTarget],

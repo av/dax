@@ -41,11 +41,11 @@ interface DirTreeItemProps {
 function DirTreeItem({ node, depth, selectedPath, onSelect }: DirTreeItemProps) {
   const [expanded, setExpanded] = useState(depth < 1);
   const isSelected = selectedPath === node.path;
+  const nodes = useFileTreeStore((s) => s.nodes);
 
   const childDirs = useMemo(() => {
-    if (!node.children) return [];
-    return node.children.filter((c) => c.type === 'directory');
-  }, [node.children]);
+    return useFileTreeStore.getState().getChildrenOf(node.id).filter((c) => c.type === 'directory');
+  }, [node.id, nodes]);
 
   const hasChildren = childDirs.length > 0;
 

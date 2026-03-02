@@ -8,17 +8,15 @@ export interface FileNode {
   extension: string | null;
   sizeBytes: number;
   modifiedAt: number;
-  children?: FileNode[];
-  position: [number, number, number];
+  parentId: string | null;
+  children?: FileNode[];  // Only populated by buildNestedTree(); never stored in the flat store
+  position?: [number, number, number]; // Computed by layout engine; not persisted
   metadata?: Record<string, unknown>;
 }
 
 // ── File System Events ──────────────────────────────────
 
 export interface FileChangeEventStat {
-  id: string;
-  name: string;
-  extension: string | null;
   sizeBytes: number;
   modifiedAt: number;
 }
@@ -26,7 +24,19 @@ export interface FileChangeEventStat {
 export interface FileChangeEvent {
   type: 'add' | 'change' | 'unlink' | 'addDir' | 'unlinkDir';
   path: string;
+  sessionId: number;
   fileInfo?: FileChangeEventStat;
+}
+
+export interface WatcherInitPayload {
+  sessionId: number;
+  tree: FileNode[];       // flat list, parentId links
+  gapEvents: FileChangeEvent[];
+}
+
+export interface WatcherErrorEvent {
+  sessionId: number;
+  error: string;
 }
 
 // ── Settings ────────────────────────────────────────────
@@ -201,7 +211,9 @@ export interface DaxAPI {
   deleteFile(path: string): Promise<void>;
   renameFile(path: string, newName: string): Promise<void>;
   openExternal(path: string): Promise<void>;
-  onFileChange(callback: (event: FileChangeEvent) => void): () => void;
+  watchFolder(path: string): Promise<WatcherInitPayload>;
+  onFileChange(callback: (event: { sessionId: number; events: FileChangeEvent[] }) => void): () => void;
+  onWatcherError(callback: (event: WatcherErrorEvent) => void): () => void;
   getSettings(): Promise<AppSettings>;
   saveSettings(settings: AppSettings): Promise<void>;
   testLLMConnection(config: LLMConfig): Promise<boolean>;

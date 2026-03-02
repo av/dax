@@ -1,97 +1,202 @@
-import { watch } from 'chokidar';
+import * as watcher from '@parcel/watcher';
 import fs from 'fs/promises';
 import nodePath from 'path';
 import crypto from 'crypto';
+import { app } from 'electron';
 import type { BrowserWindow } from 'electron';
-import type { FileChangeEvent } from '../../src/types/index';
+import type { FileChangeEvent, FileNode, WatcherInitPayload } from '../../src/types/index';
+
+// ── Helpers ──────────────────────────────────────────
 
 function hashPath(absolutePath: string): string {
   return crypto.createHash('sha256').update(absolutePath).digest('hex').slice(0, 16);
 }
 
-type ChokidarWatcher = ReturnType<typeof watch>;
+function shouldIgnore(name: string): boolean {
+  return name === '.git' || name === 'node_modules' || name === '.DS_Store'
+    || name === 'dist' || name === 'dist-electron' || name === 'dist-renderer';
+}
+
+async function statWithRetry(
+  absPath: string,
+  retries: number = 3,
+  backoff: number = 50,
+): Promise<Awaited<ReturnType<typeof fs.stat>> | null> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fs.stat(absPath);
+    } catch {
+      if (i < retries - 1) {
+        await new Promise((r) => setTimeout(r, backoff * Math.pow(2, i)));
+      }
+    }
+  }
+  return null;
+}
+
+async function enrichEvent(
+  raw: { type: 'create' | 'update' | 'delete'; path: string },
+  sessionId: number,
+  _rootPath: string,
+): Promise<FileChangeEvent> {
+  if (raw.type === 'delete') {
+    return { type: 'unlink', path: raw.path, sessionId };
+  }
+
+  const stat = await statWithRetry(raw.path);
+  if (!stat) {
+    return { type: raw.type === 'create' ? 'add' : 'change', path: raw.path, sessionId };
+  }
+
+  const isDir = stat.isDirectory();
+  if (raw.type === 'create') {
+    return {
+      type: isDir ? 'addDir' : 'add',
+      path: raw.path,
+      sessionId,
+      fileInfo: { sizeBytes: Number(stat.size), modifiedAt: Number(stat.mtimeMs) },
+    };
+  }
+
+  // raw.type === 'update'
+  return {
+    type: 'change',
+    path: raw.path,
+    sessionId,
+    fileInfo: { sizeBytes: Number(stat.size), modifiedAt: Number(stat.mtimeMs) },
+  };
+}
+
+async function readDirectoryRecursiveFlat(
+  dirPath: string,
+  rootPath: string,
+  maxDepth: number = 10,
+  depth: number = 0,
+): Promise<FileNode[]> {
+  const result: FileNode[] = [];
+  const entries = await fs.readdir(dirPath, { withFileTypes: true }).catch(() => null);
+  if (!entries) return result;
+
+  const parentId = dirPath === rootPath ? null : hashPath(dirPath);
+
+  for (const entry of entries) {
+    if (shouldIgnore(entry.name)) continue;
+    const absolutePath = nodePath.join(dirPath, entry.name);
+    const stat = await fs.stat(absolutePath).catch(() => null);
+    if (!stat) continue;
+
+    const isDir = entry.isDirectory();
+    const node: FileNode = {
+      id: hashPath(absolutePath),
+      name: entry.name,
+      path: absolutePath,
+      type: isDir ? 'directory' : 'file',
+      sizeBytes: stat.size,
+      modifiedAt: stat.mtimeMs,
+      extension: isDir ? null : nodePath.extname(entry.name) || null,
+      parentId,
+    };
+    result.push(node);
+
+    if (isDir && depth < maxDepth) {
+      const children = await readDirectoryRecursiveFlat(absolutePath, rootPath, maxDepth, depth + 1);
+      result.push(...children);
+    }
+  }
+  return result;
+}
+
+// ── Service ──────────────────────────────────────────
 
 export class FileWatcherService {
-  private watcher: ChokidarWatcher | null = null;
-  private debounceTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
-  private window: BrowserWindow | null = null;
+  private subscription: watcher.AsyncSubscription | null = null;
+  private sessionId: number = 0;
 
-  watch(rootPath: string, window: BrowserWindow): void {
-    this.stop();
-    this.window = window;
+  async watch(rootPath: string, win: BrowserWindow): Promise<WatcherInitPayload> {
+    // Tear down previous subscription
+    if (this.subscription) {
+      await this.subscription.unsubscribe();
+      this.subscription = null;
+    }
 
-    this.watcher = watch(rootPath, {
-      ignoreInitial: true,
-      ignored: [
-        '**/node_modules/**',
-        '**/.git/**',
-        '**/dist/**',
-        '**/dist-electron/**',
-        '**/dist-renderer/**',
-      ],
-      persistent: true,
+    const sessionId = ++this.sessionId;
+
+    // Build snapshot path
+    const snapshotDir = app.getPath('userData');
+    const rootHash = hashPath(rootPath);
+    const snapshotPath = nodePath.join(snapshotDir, `watcher-snapshot-${rootHash}.txt`);
+
+    // Write initial snapshot
+    await watcher.writeSnapshot(rootPath, snapshotPath, {
+      ignore: ['.git', 'node_modules', '.DS_Store', 'dist', 'dist-electron', 'dist-renderer'],
     });
 
-    const sendEventWithStat = (type: FileChangeEvent['type']) => (filePath: string) => {
-      fs.stat(filePath)
-        .then((stat) => {
-          const name = nodePath.basename(filePath);
-          const isDirectory = stat.isDirectory();
-          this.debouncedSend({
-            type,
-            path: filePath,
-            fileInfo: {
-              id: hashPath(filePath),
-              name,
-              extension: isDirectory ? null : nodePath.extname(name) || null,
-              sizeBytes: stat.size,
-              modifiedAt: stat.mtimeMs,
-            },
-          });
-        })
-        .catch(() => {
-          // File may have been removed between event firing and stat
-          this.debouncedSend({ type, path: filePath });
-        });
-    };
-
-    const sendEvent = (type: FileChangeEvent['type']) => (filePath: string) => {
-      this.debouncedSend({ type, path: filePath });
-    };
-
-    this.watcher.on('add', sendEventWithStat('add'));
-    this.watcher.on('change', sendEventWithStat('change'));
-    this.watcher.on('unlink', sendEvent('unlink'));
-    this.watcher.on('addDir', sendEventWithStat('addDir'));
-    this.watcher.on('unlinkDir', sendEvent('unlinkDir'));
-  }
-
-  stop(): void {
-    if (this.watcher) {
-      void this.watcher.close();
-      this.watcher = null;
-    }
-    for (const timer of this.debounceTimers.values()) {
-      clearTimeout(timer);
-    }
-    this.debounceTimers.clear();
-    this.window = null;
-  }
-
-  private debouncedSend(event: FileChangeEvent): void {
-    const key = `${event.type}:${event.path}`;
-    const existing = this.debounceTimers.get(key);
-    if (existing !== undefined) {
-      clearTimeout(existing);
-    }
-
-    const timer = setTimeout(() => {
-      this.debounceTimers.delete(key);
-      if (this.window && !this.window.isDestroyed()) {
-        this.window.webContents.send('fs:fileChange', event);
+    // Start subscription
+    this.subscription = await watcher.subscribe(rootPath, async (err, events) => {
+      if (win.isDestroyed()) return;
+      if (err) {
+        win.webContents.send('fs:watcherError', { sessionId, error: String(err) });
+        return;
       }
-    }, 300);
 
-    this.debounceTimers.set(key, timer);
+      const enriched = await Promise.all(
+        events.map((e) => enrichEvent(e, sessionId, rootPath)),
+      );
+      win.webContents.send('fs:fileChange', { sessionId, events: enriched });
+
+      // Directory rename re-scan: if a directory was created, re-discover children
+      for (const event of enriched) {
+        if (event.type === 'addDir') {
+          setImmediate(async () => {
+            if (win.isDestroyed()) return;
+            try {
+              const children = await readDirectoryRecursiveFlat(event.path, rootPath);
+              if (children.length > 0) {
+                win.webContents.send('fs:fileChange', {
+                  sessionId,
+                  events: children.map((node) => ({
+                    type: node.type === 'directory' ? 'addDir' as const : 'add' as const,
+                    path: node.path,
+                    sessionId,
+                    fileInfo: { sizeBytes: node.sizeBytes, modifiedAt: node.modifiedAt },
+                  })),
+                });
+              }
+            } catch {
+              // Non-critical: directory may have been removed
+            }
+          });
+        }
+      }
+    }, {
+      ignore: ['.git', 'node_modules', '.DS_Store', 'dist', 'dist-electron', 'dist-renderer'],
+    });
+
+    // Get gap events (events that occurred between snapshot and subscription start)
+    let gapEvents: FileChangeEvent[] = [];
+    try {
+      const rawGapEvents = await watcher.getEventsSince(rootPath, snapshotPath, {
+        ignore: ['.git', 'node_modules', '.DS_Store', 'dist', 'dist-electron', 'dist-renderer'],
+      });
+      gapEvents = await Promise.all(
+        rawGapEvents.map((e) => enrichEvent(e, sessionId, rootPath)),
+      );
+    } catch {
+      // getEventsSince may fail if no backend supports it; safe to ignore
+    }
+
+    // Build full tree
+    const tree = await readDirectoryRecursiveFlat(rootPath, rootPath);
+
+    return { sessionId, tree, gapEvents };
+  }
+
+  async stop(): Promise<void> {
+    if (this.subscription) {
+      await this.subscription.unsubscribe();
+      this.subscription = null;
+    }
   }
 }
+
+export { readDirectoryRecursiveFlat, hashPath, shouldIgnore };

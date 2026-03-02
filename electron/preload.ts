@@ -1,9 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { FileNode, FileChangeEvent, AppSettings, LLMConfig, LLMMessage, DaxAPI, SceneSnapshot, SaveSceneObject, AttributeRow, TaggedObject } from '../src/types/index';
+import type { FileNode, FileChangeEvent, AppSettings, LLMConfig, LLMMessage, DaxAPI, SceneSnapshot, SaveSceneObject, AttributeRow, TaggedObject, WatcherInitPayload, WatcherErrorEvent } from '../src/types/index';
 
 const api: DaxAPI = {
   openFolder(): Promise<string | null> {
     return ipcRenderer.invoke('dialog:openFolder');
+  },
+
+  watchFolder(path: string): Promise<WatcherInitPayload> {
+    return ipcRenderer.invoke('fs:watchFolder', path);
   },
 
   readDirectory(path: string): Promise<FileNode[]> {
@@ -42,13 +46,23 @@ const api: DaxAPI = {
     return ipcRenderer.invoke('shell:openExternal', path);
   },
 
-  onFileChange(callback: (event: FileChangeEvent) => void): () => void {
-    const handler = (_event: Electron.IpcRendererEvent, data: FileChangeEvent): void => {
+  onFileChange(callback: (event: { sessionId: number; events: FileChangeEvent[] }) => void): () => void {
+    const handler = (_event: Electron.IpcRendererEvent, data: { sessionId: number; events: FileChangeEvent[] }): void => {
       callback(data);
     };
     ipcRenderer.on('fs:fileChange', handler);
     return () => {
       ipcRenderer.removeListener('fs:fileChange', handler);
+    };
+  },
+
+  onWatcherError(callback: (event: WatcherErrorEvent) => void): () => void {
+    const handler = (_event: Electron.IpcRendererEvent, data: WatcherErrorEvent): void => {
+      callback(data);
+    };
+    ipcRenderer.on('fs:watcherError', handler);
+    return () => {
+      ipcRenderer.removeListener('fs:watcherError', handler);
     };
   },
 

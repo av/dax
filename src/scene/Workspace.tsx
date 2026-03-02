@@ -6,6 +6,7 @@ import type { RapierRigidBody } from '@react-three/rapier';
 import type { FileNode } from '@/types';
 import { useFileTreeStore } from '@/stores/fileTreeStore';
 import { calculateLayout } from '@/scene/layout/spatialLayout';
+import { buildNestedTree } from '@/utils/treeUtils';
 import FileInstances from '@/scene/FileInstances';
 import DirectoryPlatform from '@/scene/DirectoryPlatform';
 import CameraController from '@/scene/CameraController';
@@ -55,17 +56,7 @@ function getDepth(dirPath: string, rootPath: string): number {
   return relative.split('/').filter(Boolean).length;
 }
 
-/**
- * Build tree from the flat store for layout calculation.
- */
-function buildRootTree(
-  rootChildren: string[],
-  nodes: Map<string, FileNode>,
-): FileNode[] {
-  return rootChildren
-    .map((id) => nodes.get(id))
-    .filter((n): n is FileNode => n !== undefined);
-}
+
 
 // ── Dynamic Camera Far Clip ──────────────
 
@@ -85,13 +76,14 @@ export default function Workspace() {
   const dropTargetDirId = useDragStore((s) => s.dropTargetDirId);
   const nodes = useFileTreeStore((s) => s.nodes);
   const rootChildren = useFileTreeStore((s) => s.rootChildren);
+  const childrenIndex = useFileTreeStore((s) => s.childrenIndex);
   const layoutGeneration = useFileTreeStore((s) => s.layoutGeneration);
 
   // Compute layout from the tree structure (layoutGeneration forces recompute on reset)
   const layoutResult = useMemo(() => {
-    const tree = buildRootTree(rootChildren, nodes);
+    const tree = buildNestedTree();
     return calculateLayout(tree, rootPath);
-  }, [nodes, rootChildren, rootPath, layoutGeneration]);
+  }, [nodes, rootChildren, childrenIndex, rootPath, layoutGeneration]);
 
   const layoutMap = layoutResult.entries;
   const workspaceBounds = layoutResult.bounds;

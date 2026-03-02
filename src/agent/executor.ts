@@ -36,7 +36,7 @@ export async function executeStep(
       if (layoutEntry) {
         store.moveTo(layoutEntry.position);
       } else {
-        store.moveTo(targetNode.position);
+        if (targetNode.position) store.moveTo(targetNode.position);
       }
     }
   }

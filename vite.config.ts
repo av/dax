@@ -17,7 +17,7 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
-              external: ['electron', 'electron-store', 'chokidar', 'ws'],
+              external: ['electron', 'electron-store', '@parcel/watcher', 'ws'],
             },
           },
         },

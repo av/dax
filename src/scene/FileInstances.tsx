@@ -495,6 +495,7 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef }: FileInstanceGroup
     // Mark initial pass complete after first full iteration
     if (processAll) {
       initialPassDoneRef.current = true;
+      mesh.computeBoundingSphere();
     }
 
     mesh.instanceMatrix.needsUpdate = true;

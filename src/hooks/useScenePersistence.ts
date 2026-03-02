@@ -74,6 +74,7 @@ export function useScenePersistence(): void {
     for (const node of nodes.values()) {
       if (node.type !== 'file') continue;
       const pos = positionOverrides.get(node.id) ?? physicsPositionsRef.current.get(node.id) ?? node.position;
+      if (!pos) continue;
       objects.push({
         fileNodeId: node.id,
         filePath: node.path,
