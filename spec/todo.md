@@ -14,6 +14,8 @@
 
 + There shouldn't be any height difference between floors of different directories, they should all be on the same level, and the directory fence should be the only thing separating them vertically, files should not be able to get "under" the directory fence
 
+- [Renderer] Uncaught Error: recursive use of an object detected which would lead to unsafe aliasing in rust (http://localhost:5173/node_modules/.vite/deps/chunk-JIJQ3IOI.js?v=6e8728b8:2632)
+
 ---
 
 

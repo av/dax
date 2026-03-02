@@ -72,6 +72,23 @@ function DynamicCamera({ farClip }: { farClip: number }) {
 // ── Component ────────────────────────────
 
 export default function Workspace() {
+  // ── Global safety net: suppress Rapier WASM aliasing panics ──
+  // The "recursive use of an object" error can be thrown inside
+  // @react-three/rapier's internal world.step() (a separate useFrame
+  // callback) which no user-level try/catch can reach. This handler
+  // prevents the uncaught error from crashing the app. The InstancedRigidBodies
+  // key-based remount is the primary fix; this is belt-and-suspenders.
+  useEffect(() => {
+    const handler = (event: ErrorEvent) => {
+      if (event.error instanceof Error &&
+          /recursive use.*unsafe aliasing/i.test(event.error.message)) {
+        event.preventDefault(); // suppress the crash
+      }
+    };
+    window.addEventListener('error', handler);
+    return () => window.removeEventListener('error', handler);
+  }, []);
+
   const rootPath = useFileTreeStore((s) => s.rootPath);
   const dropTargetDirId = useDragStore((s) => s.dropTargetDirId);
   const nodes = useFileTreeStore((s) => s.nodes);

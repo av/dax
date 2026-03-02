@@ -225,10 +225,14 @@ export default function AgentEntity() {
     // ── Position ──────────────────────────────────
 
     const rb = agentRigidBodyRef.current;
-    if (rb) {
-      const translation = rb.translation();
-      _currentVec.set(translation.x, translation.y, translation.z);
-    } else {
+    try {
+      if (rb) {
+        const translation = rb.translation();
+        _currentVec.set(translation.x, translation.y, translation.z);
+      } else {
+        _currentVec.set(0, 3, 0);
+      }
+    } catch {
       _currentVec.set(0, 3, 0);
     }
 
@@ -252,7 +256,7 @@ export default function AgentEntity() {
     _currentVec.y = Math.max(_currentVec.y, 1.0);
 
     // Sync kinematic rigid body to the final lerped position
-    rb?.setNextKinematicTranslation(_currentVec);
+    try { rb?.setNextKinematicTranslation(_currentVec); } catch { /* stale body handle */ }
 
     // Bob
     group.position.set(0, Math.sin(elapsed * BOB_SPEED) * BOB_AMPLITUDE, 0);

@@ -90,11 +90,13 @@ export default function SelectionBox({ layoutMap, rigidBodyRef, fileIdToIndex }:
    */
   const getFileWorldPos = useCallback(
     (id: string): [number, number, number] => {
-      const index = fileIdToIndex.get(id);
-      if (index !== undefined && rigidBodyRef.current?.[index]) {
-        const t = rigidBodyRef.current[index]!.translation();
-        return [t.x, t.y, t.z];
-      }
+      try {
+        const index = fileIdToIndex.get(id);
+        if (index !== undefined && rigidBodyRef.current?.[index]) {
+          const t = rigidBodyRef.current[index]!.translation();
+          return [t.x, t.y, t.z];
+        }
+      } catch { /* stale body handle — fall through to layout */ }
       return layoutMap.get(id)?.position ?? [0, 0, 0];
     },
     [fileIdToIndex, rigidBodyRef, layoutMap],

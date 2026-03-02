@@ -10,6 +10,7 @@ import { getDirAABB } from '@/scene/layout/directoryAABB';
 import type { RapierRigidBody } from '@react-three/rapier';
 import type { FileNode } from '@/types';
 import { useToastStore } from '@/ui/Toast';
+import { enqueueRestore, enqueueSnapBack } from '@/scene/physicsCommandQueue';
 
 // ── Drag state store ───────────────────────────────────
 // Read via getState() in animation loops for zero re-render overhead.
@@ -40,13 +41,9 @@ export const useDragStore = create<DragState>(() => ({
 /** Minimum pixel distance before a click becomes a drag. */
 const DRAG_THRESHOLD = 5;
 
-/** Physics constants matching InstancedRigidBodies config in FileInstances.tsx */
-const NORMAL_RESTITUTION = 0.15;
-const NORMAL_FRICTION = 3.0;
-
-/** Drag collider overrides: zero bounce, high friction for gentle pushing */
-const DRAG_RESTITUTION = 0.0;
-const DRAG_FRICTION = 5.0;
+// Note: collider property overrides (restitution/friction) during drag were removed
+// because the body.collider() → collider.set*() pattern triggers Rapier WASM
+// aliasing violations. The kinematic body-type switch is sufficient for drag control.
 
 // ── Reusable temp objects (avoid GC pressure) ──────────
 
@@ -226,11 +223,16 @@ export default function FileDragger({
 
       // Determine ground-plane Y from the file's actual physics body position
       const layout = layoutRef.current;
-      const clickedIndex = fileIdToIndexRef.current.get(fileId);
-      const clickedBody = clickedIndex !== undefined ? rigidBodyRef.current?.[clickedIndex] : undefined;
-      const filePos: [number, number, number] = clickedBody
-        ? [clickedBody.translation().x, clickedBody.translation().y, clickedBody.translation().z]
-        : layout.get(fileId)?.position ?? [0, 0, 0];
+      let filePos: [number, number, number];
+      try {
+        const clickedIndex = fileIdToIndexRef.current.get(fileId);
+        const clickedBody = clickedIndex !== undefined ? rigidBodyRef.current?.[clickedIndex] : undefined;
+        filePos = clickedBody
+          ? [clickedBody.translation().x, clickedBody.translation().y, clickedBody.translation().z]
+          : layout.get(fileId)?.position ?? [0, 0, 0];
+      } catch {
+        filePos = layout.get(fileId)?.position ?? [0, 0, 0];
+      }
       dragPlane.current.set(new THREE.Vector3(0, 1, 0), -filePos[1]);
 
       // Compute the ground-plane intersection at the click point
@@ -244,12 +246,17 @@ export default function FileDragger({
       // Record initial positions of ALL selected files from their physics bodies
       const initMap = new Map<string, [number, number, number]>();
       for (const id of selectedIds) {
-        const idx = fileIdToIndexRef.current.get(id);
-        const body = idx !== undefined ? rigidBodyRef.current?.[idx] : undefined;
-        if (body) {
-          const t = body.translation();
-          initMap.set(id, [t.x, t.y, t.z]);
-        } else {
+        let recorded = false;
+        try {
+          const idx = fileIdToIndexRef.current.get(id);
+          const body = idx !== undefined ? rigidBodyRef.current?.[idx] : undefined;
+          if (body) {
+            const t = body.translation();
+            initMap.set(id, [t.x, t.y, t.z]);
+            recorded = true;
+          }
+        } catch { /* stale body — fall through to layout */ }
+        if (!recorded) {
           const entry = layout.get(id);
           const p = entry?.position ?? [0, 0, 0];
           initMap.set(id, [p[0], p[1], p[2]]);
@@ -284,24 +291,18 @@ export default function FileDragger({
       dragActive.current = false;
       startMouse.current = { x: e.clientX, y: e.clientY };
 
-      // Switch bodies to kinematic and soften colliders (after potentialDrag is set
-      // so drag still works even if collider API throws)
+      // Switch bodies to kinematic (after potentialDrag is set so drag still
+      // works even if body access throws due to stale WASM handles)
       draggedIds.forEach(id => {
-        const index = fileIdToIndexRef.current.get(id);
-        const body = index !== undefined ? rigidBodyRef.current?.[index] : undefined;
-        if (body) {
-          body.setBodyType(2, true); // 2 = KinematicPositionBased, wake
-          const t = body.translation();
-          dragStartYRef.current.set(id, t.y);
-
-          try {
-            for (let c = 0; c < body.numColliders(); c++) {
-              const collider = body.collider(c);
-              collider.setRestitution(DRAG_RESTITUTION);
-              collider.setFriction(DRAG_FRICTION);
-            }
-          } catch { /* collider API unavailable — drag still works without softening */ }
-        }
+        try {
+          const index = fileIdToIndexRef.current.get(id);
+          const body = index !== undefined ? rigidBodyRef.current?.[index] : undefined;
+          if (body) {
+            body.setBodyType(2, true); // 2 = KinematicPositionBased, wake
+            const t = body.translation();
+            dragStartYRef.current.set(id, t.y);
+          }
+        } catch { /* stale body handle — drag will use layout positions */ }
       });
     };
 
@@ -364,19 +365,21 @@ export default function FileDragger({
       // Drive kinematic bodies to clamped positions at ground level
       if (draggedIdsRef.current) {
         draggedIdsRef.current.forEach(id => {
-          const index = fileIdToIndexRef.current.get(id);
-          const body = index !== undefined ? rigidBodyRef.current?.[index] : undefined;
-          if (body) {
-            const startY = dragStartYRef.current.get(id) ?? 0;
-            const pos = newPositions.get(id);
-            if (pos) {
-              body.setNextKinematicTranslation({
-                x: pos[0],
-                y: startY,
-                z: pos[2],
-              });
+          try {
+            const index = fileIdToIndexRef.current.get(id);
+            const body = index !== undefined ? rigidBodyRef.current?.[index] : undefined;
+            if (body) {
+              const startY = dragStartYRef.current.get(id) ?? 0;
+              const pos = newPositions.get(id);
+              if (pos) {
+                body.setNextKinematicTranslation({
+                  x: pos[0],
+                  y: startY,
+                  z: pos[2],
+                });
+              }
             }
-          }
+          } catch { /* stale body handle during drag — visual position maintained via dragPositions */ }
         });
       }
 
@@ -396,44 +399,18 @@ export default function FileDragger({
         const currentRootPath = rootPathRef.current;
         const srcDirPaths = sourceDirectoryPathsRef.current;
 
-        // Helper: restore a body to dynamic with zero velocity and normal collider props
-        const restoreBody = (id: string) => {
-          const index = fileIdToIndexRef.current.get(id);
-          const body = index !== undefined ? rigidBodyRef.current?.[index] : undefined;
-          if (body) {
-            body.setLinvel({ x: 0, y: 0, z: 0 }, true);
-            body.setAngvel({ x: 0, y: 0, z: 0 }, true);
-            body.setBodyType(0, true); // Dynamic
-            try {
-              for (let c = 0; c < body.numColliders(); c++) {
-                const collider = body.collider(c);
-                collider.setRestitution(NORMAL_RESTITUTION);
-                collider.setFriction(NORMAL_FRICTION);
-              }
-            } catch { /* collider API unavailable */ }
-          }
-        };
-
-        // Helper: snap a file back to its original position
-        const snapBack = (id: string) => {
-          const origPos = initialPositions.current.get(id);
-          if (origPos) {
-            store.setPositionOverride(id, origPos);
-            const index = fileIdToIndexRef.current.get(id);
-            const body = index !== undefined ? rigidBodyRef.current?.[index] : undefined;
-            if (body) {
-              body.setTranslation({ x: origPos[0], y: origPos[1], z: origPos[2] }, true);
-            }
-          }
-          restoreBody(id);
-        };
-
         const draggedIds = draggedIdsRef.current ?? [];
 
         if (dropTargetDirId === null) {
           // ── Drop on empty space → snap back, no-op ────────
           for (const id of draggedIds) {
-            snapBack(id);
+            const origPos = initialPositions.current.get(id);
+            if (origPos) {
+              store.setPositionOverride(id, origPos);
+              enqueueSnapBack(id, origPos);
+            } else {
+              enqueueRestore(id);
+            }
           }
         } else {
           // ── Determine the drop target directory path ──────
@@ -459,21 +436,28 @@ export default function FileDragger({
                 crossDirFiles.push({ id, node });
               } else {
                 // Node not found — snap back
-                snapBack(id);
+                const origPos = initialPositions.current.get(id);
+                if (origPos) {
+                  store.setPositionOverride(id, origPos);
+                  enqueueSnapBack(id, origPos);
+                } else {
+                  enqueueRestore(id);
+                }
               }
             }
           }
 
           // ── Same-directory drops → position override only ──
-          // Use actual body translation as the ground truth for where the card is
+          // Use drag positions as ground truth (body access deferred to frame loop)
           for (const id of sameDirIds) {
-            const idx = fileIdToIndexRef.current.get(id);
-            const body = idx !== undefined ? rigidBodyRef.current?.[idx] : undefined;
-            if (body) {
-              const t = body.translation();
-              store.setPositionOverride(id, [t.x, t.y, t.z]);
+            const dragPos = useDragStore.getState().dragPositions.get(id);
+            const initPos = initialPositions.current.get(id);
+            if (dragPos) {
+              store.setPositionOverride(id, dragPos);
+            } else if (initPos) {
+              store.setPositionOverride(id, initPos);
             }
-            restoreBody(id);
+            enqueueRestore(id);
           }
 
           // ── Cross-directory drops → filesystem move ────────
@@ -489,11 +473,17 @@ export default function FileDragger({
                 await window.electronAPI.moveFile(node.path, destPath);
                 // Success → clear position override so layout recompute places it
                 store.clearPositionOverride(id);
-                restoreBody(id);
+                enqueueRestore(id);
                 successCount++;
               } catch (err: unknown) {
                 // Failure → snap back and record error
-                snapBack(id);
+                const origPos = initialPositions.current.get(id);
+                if (origPos) {
+                  store.setPositionOverride(id, origPos);
+                  enqueueSnapBack(id, origPos);
+                } else {
+                  enqueueRestore(id);
+                }
                 failCount++;
                 errors.push(parseErrorMessage(err, node.name));
               }
@@ -537,20 +527,7 @@ export default function FileDragger({
         // Drag was cancelled before threshold — still restore any kinematic bodies
         if (draggedIdsRef.current) {
           draggedIdsRef.current.forEach(id => {
-            const index = fileIdToIndexRef.current.get(id);
-            const body = index !== undefined ? rigidBodyRef.current?.[index] : undefined;
-            if (body) {
-              body.setLinvel({ x: 0, y: 0, z: 0 }, true);
-              body.setAngvel({ x: 0, y: 0, z: 0 }, true);
-              body.setBodyType(0, true);
-              try {
-                for (let c = 0; c < body.numColliders(); c++) {
-                  const collider = body.collider(c);
-                  collider.setRestitution(NORMAL_RESTITUTION);
-                  collider.setFriction(NORMAL_FRICTION);
-                }
-              } catch { /* collider API unavailable */ }
-            }
+            enqueueRestore(id);
           });
           draggedIdsRef.current = null;
         }

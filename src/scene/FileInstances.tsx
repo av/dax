@@ -21,6 +21,7 @@ import { getDirAABB } from '@/scene/layout/directoryAABB';
 import { useDragStore } from '@/scene/FileDragger';
 import { theme } from '@/theme';
 import { physicsPositionsRef } from '@/stores/physicsPositionsRef';
+import { drainPhysicsCommands } from '@/scene/physicsCommandQueue';
 
 // ── Constants (non-LOD) ────────────────────────────────
 
@@ -118,7 +119,7 @@ function HoverLabel({ node, position }: { node: FileNode; position: [number, num
 const _tempObject = new THREE.Object3D();
 const _tempColor = new THREE.Color();
 
-function FileInstanceGroup({ files, layoutMap, rigidBodyRef }: FileInstanceGroupProps) {
+function FileInstanceGroup({ files, layoutMap, rigidBodyRef, fileIdToIndex }: FileInstanceGroupProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const { camera } = useThree();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -192,20 +193,22 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef }: FileInstanceGroup
   const layoutGeneration = useFileTreeStore((s) => s.layoutGeneration);
   useEffect(() => {
     if (layoutGeneration === 0 || !rigidBodyRef.current) return;
-    files.forEach((file, i) => {
-      const body = rigidBodyRef.current?.[i];
-      if (!body) return;
-      const entry = layoutMap.get(file.id);
-      if (!entry) return;
-      const [x, y, z] = entry.position;
-      body.setTranslation({ x, y, z }, true);
-      body.setLinvel({ x: 0, y: 0, z: 0 }, true);
-      body.setAngvel({ x: 0, y: 0, z: 0 }, true);
-      const rx = entry.rotationX ?? 0;
-      const ry = entry.rotationY ?? 0;
-      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, 0));
-      body.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
-    });
+    try {
+      files.forEach((file, i) => {
+        const body = rigidBodyRef.current?.[i];
+        if (!body) return;
+        const entry = layoutMap.get(file.id);
+        if (!entry) return;
+        const [x, y, z] = entry.position;
+        body.setTranslation({ x, y, z }, true);
+        body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+        const rx = entry.rotationX ?? 0;
+        const ry = entry.rotationY ?? 0;
+        const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, 0));
+        body.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
+      });
+    } catch { /* stale body handles during remount — bodies will be at layout positions anyway */ }
     // Clear LOD snapshots so stale positions don't override the reset
     lodBodySnapshotRef.current.clear();
   }, [layoutGeneration]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -255,6 +258,37 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef }: FileInstanceGroup
   useFrame(() => {
     const mesh = meshRef.current;
     if (!mesh) return;
+
+    // ── All Rapier body access is wrapped in a try/catch. ──
+    // When InstancedRigidBodies tears down / recreates bodies (e.g. after a
+    // cross-directory file move changes the files array), body handles can
+    // become stale pointers into freed WASM memory. Accessing them triggers
+    // Rust's aliasing check ("recursive use of an object"). Catching this
+    // gracefully skips one frame instead of crashing the app.
+    try { // eslint-disable-line no-useless-catch
+
+    // ── Drain deferred physics commands (from async drag/move callbacks) ──
+    // Must run before any other body access to avoid aliasing violations.
+    const pendingCmds = drainPhysicsCommands();
+    if (pendingCmds.length > 0 && rigidBodyRef.current) {
+      for (const cmd of pendingCmds) {
+        const index = fileIdToIndex.get(cmd.id);
+        const body = index !== undefined ? rigidBodyRef.current[index] : undefined;
+        if (!body) continue; // body destroyed by re-render — skip safely
+
+        if (cmd.type === 'snapBack') {
+          body.setTranslation(
+            { x: cmd.position[0], y: cmd.position[1], z: cmd.position[2] },
+            true,
+          );
+        }
+
+        // Restore body to dynamic with zero velocity
+        body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+        body.setBodyType(0, true); // Dynamic
+      }
+    }
 
     const { selectedIds: selIds } = useSelectionStore.getState();
 
@@ -502,6 +536,15 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef }: FileInstanceGroup
     if (mesh.instanceColor) {
       mesh.instanceColor.needsUpdate = true;
     }
+
+    } catch (e) {
+      // Rapier WASM aliasing violation — body handles are stale (bodies being
+      // torn down / recreated by InstancedRigidBodies after file tree change).
+      // Silently skip this frame; next frame will have fresh body refs.
+      if (!(e instanceof Error && /recursive use|unsafe aliasing/i.test(e.message))) {
+        throw e; // re-throw non-Rapier errors
+      }
+    }
   });
 
   const handlePointerMove = useCallback(
@@ -585,11 +628,13 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef }: FileInstanceGroup
   const hoveredFile = hoveredIndex !== null ? files[hoveredIndex] : null;
   const hoveredPos = useMemo((): [number, number, number] | null => {
     if (!hoveredFile) return null;
-    const body = rigidBodyRef.current?.[hoveredIndex!];
-    if (body) {
-      const t = body.translation();
-      return [t.x, t.y, t.z];
-    }
+    try {
+      const body = rigidBodyRef.current?.[hoveredIndex!];
+      if (body) {
+        const t = body.translation();
+        return [t.x, t.y, t.z];
+      }
+    } catch { /* stale body handle */ }
     return layoutMap.get(hoveredFile.id)?.position ?? null;
   }, [hoveredFile, hoveredIndex, rigidBodyRef, layoutMap]);
 
@@ -598,6 +643,22 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef }: FileInstanceGroup
     () => new THREE.MeshStandardMaterial({ roughness: 0.4, metalness: 0.1 }),
     [],
   );
+
+  // ── Key for InstancedRigidBodies: forces clean unmount/remount when file IDs change ──
+  // When a file moves between directories, its ID changes (SHA-256 of new path).
+  // Without a key, @react-three/rapier tries incremental body reconciliation which
+  // leaves stale references in rapier's broadphase, causing world.step() to trigger
+  // "recursive use of an object" WASM aliasing panics. A key change triggers clean
+  // unmount (all old bodies destroyed) + remount (all new bodies created).
+  const instancesKey = useMemo(() => {
+    let hash = 0;
+    for (const file of files) {
+      for (let i = 0; i < file.id.length; i++) {
+        hash = ((hash << 5) - hash + file.id.charCodeAt(i)) | 0;
+      }
+    }
+    return hash;
+  }, [files]);
 
   // Dispose instanced mesh GPU resources when the file count changes or on unmount
   useEffect(() => {
@@ -619,6 +680,7 @@ function FileInstanceGroup({ files, layoutMap, rigidBodyRef }: FileInstanceGroup
   return (
     <>
       <InstancedRigidBodies
+        key={instancesKey}
         ref={rigidBodyRef}
         instances={instances}
         colliders="cuboid"
@@ -679,11 +741,13 @@ function NearbyLabels({ files, layoutMap, rigidBodyRef, fileIdToIndex }: FileIns
   // Get position from physics body if available, fallback to layoutMap
   const getCardPos = useCallback(
     (file: FileNode, index: number): [number, number, number] => {
-      const body = rigidBodyRef.current?.[index];
-      if (body) {
-        const t = body.translation();
-        return [t.x, t.y + 0.7, t.z];
-      }
+      try {
+        const body = rigidBodyRef.current?.[index];
+        if (body) {
+          const t = body.translation();
+          return [t.x, t.y + 0.7, t.z];
+        }
+      } catch { /* stale body handle — fall through to layout */ }
       const layout = layoutMap.get(file.id);
       return layout?.position
         ? [layout.position[0], layout.position[1] + 0.7, layout.position[2]]
@@ -825,11 +889,16 @@ function BillboardPoints({ files, layoutMap, rigidBodyRef, lodThresholds }: Bill
 
       // Use physics body position if available, fallback to layout
       let pos: [number, number, number];
-      const body = rigidBodyRef.current?.[i];
-      if (body) {
-        const t = body.translation();
-        pos = [t.x, t.y, t.z];
-      } else {
+      try {
+        const body = rigidBodyRef.current?.[i];
+        if (body) {
+          const t = body.translation();
+          pos = [t.x, t.y, t.z];
+        } else {
+          const layout = layoutMap.get(file.id);
+          pos = layout?.position ?? [0, 0, 0];
+        }
+      } catch {
         const layout = layoutMap.get(file.id);
         pos = layout?.position ?? [0, 0, 0];
       }
