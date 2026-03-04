@@ -68,6 +68,9 @@ export function registerFilesystemHandlers(
   });
 
   ipcMain.handle('fs:moveFile', async (_event, src: string, dest: string) => {
+    // Ensure destination directory exists (prevents ENOENT when moving to a new path)
+    const destDir = path.dirname(dest);
+    await fs.mkdir(destDir, { recursive: true });
     await fs.rename(src, dest);
   });
 

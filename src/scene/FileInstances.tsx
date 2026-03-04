@@ -88,8 +88,8 @@ function HoverLabel({ node, position }: { node: FileNode; position: [number, num
   return (
     <Html
       position={[position[0], position[1] + 2, position[2]]}
-      distanceFactor={15}
       style={{ pointerEvents: 'none' }}
+      zIndexRange={[0, 0]}
     >
       <div
         style={{
@@ -808,8 +808,8 @@ function NearbyLabels({ files, layoutMap, rigidBodyRef, fileIdToIndex }: FileIns
         <Html
           key={label.id}
           position={[label.position[0], label.position[1] - 0.3, label.position[2]]}
-          distanceFactor={12}
           style={{ pointerEvents: 'none' }}
+          zIndexRange={[0, 0]}
           center
         >
           <div style={{

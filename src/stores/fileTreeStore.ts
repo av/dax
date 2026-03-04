@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { sha256Hex } from '@/utils/sha256';
 import type { FileNode, FileChangeEvent } from '@/types';
 import type { WorkspaceBounds, LayoutEntry } from '@/scene/layout/spatialLayout';
+import { useToastStore } from '@/ui/Toast';
 
 // ── Helpers ──────────────────────────────────────────
 
@@ -95,6 +96,11 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
       }
     });
 
+    // Listen for watcher errors (e.g. ENOSPC) and surface as toast
+    const unsubError = window.electronAPI.onWatcherError((event) => {
+      useToastStore.getState().addToast(event.error, 'error', 8000);
+    });
+
     const { sessionId, tree, gapEvents } = await window.electronAPI.watchFolder(folderPath);
 
     const nodes = new Map<string, FileNode>();
@@ -129,7 +135,7 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
       rootChildren,
       rootPath: folderPath,
       knownSessionId: sessionId,
-      unsubFileChange: unsub,
+      unsubFileChange: () => { unsub(); unsubError(); },
       isLoading: false,
     });
 

@@ -145,9 +145,9 @@ export default function FileObject({ node, position }: FileObjectProps) {
       />
       {hovered && (
         <Html
-          distanceFactor={15}
           position={[0, 1.2, 0]}
           style={{ pointerEvents: 'none' }}
+          zIndexRange={[0, 0]}
         >
           <div
             style={{
