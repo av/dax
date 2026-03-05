@@ -1,0 +1,146 @@
+/* Global styles for DAX */
+
+/* CSS Reset */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Color tokens — Dark theme (default) */
+  --color-bg: #1a1a2e;
+  --color-surface: #16213e;
+  --color-primary: #0f3460;
+  --color-accent: #e94560;
+  --color-text: #eaeaea;
+  --color-text-muted: #8a8a9a;
+
+  /* Semantic theme variables */
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-tertiary: #0f3460;
+  --text-primary: #eaeaea;
+  --text-secondary: #c0c0d0;
+  --text-muted: #8a8a9a;
+  --accent: #e94560;
+  --accent-hover: #d63850;
+  --border: rgba(255, 255, 255, 0.12);
+  --border-focus: #e94560;
+  --danger: #ff4444;
+  --danger-hover: #e63939;
+  --success: #4caf50;
+  --warning: #ff9800;
+  --surface-hover: rgba(255, 255, 255, 0.06);
+  --surface-active: rgba(255, 255, 255, 0.1);
+  --shadow: rgba(0, 0, 0, 0.3);
+  --overlay-bg: rgba(0, 0, 0, 0.6);
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --color-bg: #f5f5f5;
+  --color-surface: #ffffff;
+  --color-primary: #e8e8f0;
+  --color-accent: #e94560;
+  --color-text: #1a1a2e;
+  --color-text-muted: #6a6a7a;
+
+  --bg-primary: #f5f5f5;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e8e8f0;
+  --text-primary: #1a1a2e;
+  --text-secondary: #3a3a4e;
+  --text-muted: #6a6a7a;
+  --accent: #e94560;
+  --accent-hover: #d63850;
+  --border: rgba(0, 0, 0, 0.12);
+  --border-focus: #e94560;
+  --danger: #ff4444;
+  --danger-hover: #e63939;
+  --success: #4caf50;
+  --warning: #ff9800;
+  --surface-hover: rgba(0, 0, 0, 0.04);
+  --surface-active: rgba(0, 0, 0, 0.08);
+  --shadow: rgba(0, 0, 0, 0.12);
+  --overlay-bg: rgba(0, 0, 0, 0.3);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+  }
+}
+
+[data-reduced-motion="true"] *,
+[data-reduced-motion="true"] *::before,
+[data-reduced-motion="true"] *::after {
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Babylon.js canvas — fills the entire window, behind everything */
+#render-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  outline: none;
+  touch-action: none;
+}
+
+/* Solid.js overlay container — on top of canvas, pass-through by default */
+#app {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Animations */
+@keyframes dax-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes dax-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
