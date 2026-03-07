@@ -41,7 +41,16 @@ const aggregateMap = new Map<string, PhysicsAggregate>();
  * Must be called before creating any physics bodies.
  */
 export async function initPhysics(scene: Scene): Promise<HavokPlugin> {
-  const havokInstance = await HavokPhysics();
+  // Fetch the WASM binary explicitly to avoid Vite MIME type / 404 issues.
+  // The file is copied to public/ by the copy-havok-wasm Vite plugin and
+  // served at the root URL in both dev (Vite dev server) and production
+  // (Electron loadFile from build output).
+  const wasmBinary = await fetch('./HavokPhysics.wasm').then((r) => {
+    if (!r.ok) throw new Error(`Failed to fetch HavokPhysics.wasm: ${r.status}`);
+    return r.arrayBuffer();
+  });
+
+  const havokInstance = await HavokPhysics({ wasmBinary });
   havokPlugin = new HavokPlugin(true, havokInstance);
 
   scene.enablePhysics(new Vector3(0, PHYSICS_GRAVITY, 0), havokPlugin);
@@ -159,8 +168,10 @@ export function createBoundaryWalls(scene: Scene): void {
 }
 
 /**
- * Add a dynamic physics body to a file mesh.
- * File objects fall under gravity and interact with other objects.
+ * Add a physics body to a file mesh.
+ * Created as kinematic (ANIMATED) by default so layout positioning is not
+ * fought by the physics engine. Switch to DYNAMIC only when the user grabs
+ * and throws the object.
  */
 export function addFilePhysicsBody(
   mesh: AbstractMesh,
@@ -177,14 +188,38 @@ export function addFilePhysicsBody(
     scene,
   );
 
-  // Apply damping so objects settle faster
+  // Apply damping so objects settle faster when thrown
   if (aggregate.body) {
     aggregate.body.setLinearDamping(PHYSICS_LINEAR_DAMPING);
     aggregate.body.setAngularDamping(PHYSICS_ANGULAR_DAMPING);
+    // Start as kinematic — layout positions the object, not physics
+    aggregate.body.setMotionType(PhysicsMotionType.ANIMATED);
   }
 
   aggregateMap.set(mesh.name, aggregate);
   return aggregate;
+}
+
+/**
+ * Switch a file physics body to kinematic mode (layout-controlled).
+ */
+export function setBodyKinematic(meshName: string): void {
+  const agg = aggregateMap.get(meshName);
+  if (agg?.body) {
+    agg.body.setMotionType(PhysicsMotionType.ANIMATED);
+    agg.body.setLinearVelocity(Vector3.Zero());
+    agg.body.setAngularVelocity(Vector3.Zero());
+  }
+}
+
+/**
+ * Switch a file physics body to dynamic mode (physics-controlled).
+ */
+export function setBodyDynamic(meshName: string): void {
+  const agg = aggregateMap.get(meshName);
+  if (agg?.body) {
+    agg.body.setMotionType(PhysicsMotionType.DYNAMIC);
+  }
 }
 
 /**

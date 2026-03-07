@@ -15,7 +15,6 @@
  */
 import {
   Vector3,
-  PhysicsMotionType,
   type Scene,
   type AbstractMesh,
   type TransformNode,
@@ -23,9 +22,9 @@ import {
   PointerEventTypes,
 } from '@babylonjs/core';
 import { getScene } from './scene';
-import { getCamera } from './camera';
+import { getCamera, flyToPosition } from './camera';
 import { getMeshByPath } from './mesh-factory';
-import { getAggregate } from './physics';
+import { getAggregate, setBodyKinematic, setBodyDynamic } from './physics';
 import {
   addSelectionHighlight,
   removeSelectionHighlight,
@@ -357,12 +356,7 @@ function startDrag(mesh: AbstractMesh, scene: Scene, evt: PointerEvent): void {
   createGhostOutline(root, scene);
 
   // Switch physics to kinematic for smooth dragging
-  const agg = getAggregate(mesh.name);
-  if (agg?.body) {
-    agg.body.setMotionType(PhysicsMotionType.ANIMATED);
-    agg.body.setLinearVelocity(Vector3.Zero());
-    agg.body.setAngularVelocity(Vector3.Zero());
-  }
+  setBodyKinematic(mesh.name);
 
   // Initialize velocity tracking
   velocitySamples.length = 0;
@@ -477,8 +471,8 @@ function applyThrowVelocity(node: TransformNode): void {
   const agg = getAggregate(mainMesh.name);
   if (!agg?.body) return;
 
-  // Switch back to dynamic
-  agg.body.setMotionType(PhysicsMotionType.DYNAMIC);
+  // Switch to dynamic so physics drives the throw
+  setBodyDynamic(mainMesh.name);
 
   if (totalDt > 0) {
     // Convert to units/second (dt is in ms)
@@ -496,7 +490,30 @@ function applyThrowVelocity(node: TransformNode): void {
     agg.body.setLinearVelocity(new Vector3(vx, -2, vz));
   }
 
+  // After the object settles, switch back to kinematic so layout takes over
+  scheduleKinematicReturn(mainMesh.name);
+
   velocitySamples.length = 0;
+}
+
+/** Timers for returning thrown objects to kinematic mode */
+const kinematicReturnTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+/**
+ * After a throw, wait for the object to settle then switch back to kinematic.
+ * Uses a fixed delay — the damping constants ensure objects settle quickly.
+ */
+function scheduleKinematicReturn(meshName: string): void {
+  // Clear any existing timer for this mesh
+  const existing = kinematicReturnTimers.get(meshName);
+  if (existing) clearTimeout(existing);
+
+  const timer = setTimeout(() => {
+    setBodyKinematic(meshName);
+    kinematicReturnTimers.delete(meshName);
+  }, 2000); // 2 seconds — enough for the object to settle with damping
+
+  kinematicReturnTimers.set(meshName, timer);
 }
 
 // ── Drop Target Detection ──
@@ -570,15 +587,14 @@ function hideTooltip(): void {
 // ── Camera ──
 
 function flyToMesh(mesh: AbstractMesh): void {
-  const camera = getCamera();
-  if (!camera) return;
+  const scene = getScene();
+  if (!scene) return;
 
   const pos = mesh.parent
     ? (mesh.parent as TransformNode).position
     : mesh.position;
 
-  camera.target = pos.clone();
-  camera.radius = 15;
+  flyToPosition({ x: pos.x, y: pos.y, z: pos.z }, scene);
 }
 
 // ── Mesh Utilities ──

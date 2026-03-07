@@ -37,11 +37,23 @@ export function initAgentService(_db: TursoDB): void {
   chatRepo = new ChatRepo(_db);
 }
 
+/** Lazy DB initializer passed from ipc.ts */
+let ensureInitialized: (() => Promise<void>) | null = null;
+
+async function ensureReady(): Promise<void> {
+  if (db) return;
+  if (ensureInitialized) await ensureInitialized();
+  if (!db) throw new Error('Agent service not initialized');
+}
+
 /**
  * Register all agent-related IPC handlers.
  * These channels are defined in shared/ipc-api.ts under the agent section.
+ *
+ * @param lazyInit - callback that ensures the DB is initialized (calls ensureDB)
  */
-export function registerAgentIPCHandlers(): void {
+export function registerAgentIPCHandlers(lazyInit: () => Promise<void>): void {
+  ensureInitialized = lazyInit;
   // ── OpenCode SDK (stub) ──
 
   ipcMain.handle('agent:createSession', async () => {
@@ -64,64 +76,64 @@ export function registerAgentIPCHandlers(): void {
   // ── Agent State DB ──
 
   ipcMain.handle('db:agent:getState', async () => {
-    if (!agentRepo) throw new Error('Agent service not initialized');
-    return agentRepo.getState();
+    await ensureReady();
+    return agentRepo!.getState();
   });
 
   ipcMain.handle('db:agent:saveState', async (_event, state: AgentStateRow) => {
-    if (!agentRepo) throw new Error('Agent service not initialized');
-    await agentRepo.saveState(state);
+    await ensureReady();
+    await agentRepo!.saveState(state);
   });
 
   // ── Agent Instructions DB ──
 
   ipcMain.handle('db:agent:getInstructions', async () => {
-    if (!agentRepo) throw new Error('Agent service not initialized');
-    return agentRepo.getInstructions();
+    await ensureReady();
+    return agentRepo!.getInstructions();
   });
 
   ipcMain.handle('db:agent:saveInstruction', async (_event, inst: InstructionRow) => {
-    if (!agentRepo) throw new Error('Agent service not initialized');
-    await agentRepo.saveInstruction(inst);
+    await ensureReady();
+    await agentRepo!.saveInstruction(inst);
   });
 
   ipcMain.handle('db:agent:deleteInstruction', async (_event, id: string) => {
-    if (!agentRepo) throw new Error('Agent service not initialized');
-    await agentRepo.deleteInstruction(id);
+    await ensureReady();
+    await agentRepo!.deleteInstruction(id);
   });
 
   // ── Agent Action Log DB ──
 
   ipcMain.handle('db:agent:logAction', async (_event, log: ActionLogRow) => {
-    if (!agentRepo) throw new Error('Agent service not initialized');
+    await ensureReady();
     // Log write failures should not block agent execution
     try {
-      await agentRepo.logAction(log);
+      await agentRepo!.logAction(log);
     } catch (err) {
       console.error('[agent] Failed to log action:', err);
     }
   });
 
   ipcMain.handle('db:agent:getActionLog', async (_event, limit: number, offset: number) => {
-    if (!agentRepo) throw new Error('Agent service not initialized');
-    return agentRepo.getActionLog(limit, offset);
+    await ensureReady();
+    return agentRepo!.getActionLog(limit, offset);
   });
 
   ipcMain.handle('db:agent:pruneLog', async (_event, olderThanMs: number) => {
-    if (!agentRepo) throw new Error('Agent service not initialized');
-    return agentRepo.pruneLog(olderThanMs);
+    await ensureReady();
+    return agentRepo!.pruneLog(olderThanMs);
   });
 
   // ── Chat DB ──
 
   ipcMain.handle('db:chat:getMessages', async (_event, limit: number, beforeTimestamp?: number) => {
-    if (!chatRepo) throw new Error('Agent service not initialized');
-    return chatRepo.getMessages(limit, beforeTimestamp);
+    await ensureReady();
+    return chatRepo!.getMessages(limit, beforeTimestamp);
   });
 
   ipcMain.handle('db:chat:saveMessage', async (_event, msg: ChatMessageRow) => {
-    if (!chatRepo) throw new Error('Agent service not initialized');
-    await chatRepo.saveMessage(msg);
+    await ensureReady();
+    await chatRepo!.saveMessage(msg);
   });
 
   // ── Crypto ──
@@ -137,8 +149,8 @@ export function registerAgentIPCHandlers(): void {
   // ── Keyboard Shortcuts DB ──
 
   ipcMain.handle('db:shortcuts:getAll', async () => {
-    if (!db) throw new Error('Agent service not initialized');
-    const rows = await db
+    await ensureReady();
+    const rows = await db!
       .prepare('SELECT action, key_combo as keyCombo, is_default as isDefault FROM keyboard_shortcuts')
       .all() as Array<{ action: string; keyCombo: string; isDefault: number }>;
     return rows.map((r) => ({
@@ -149,8 +161,8 @@ export function registerAgentIPCHandlers(): void {
   });
 
   ipcMain.handle('db:shortcuts:save', async (_event, shortcut: ShortcutRow) => {
-    if (!db) throw new Error('Agent service not initialized');
-    await db
+    await ensureReady();
+    await db!
       .prepare(
         'INSERT OR REPLACE INTO keyboard_shortcuts (action, key_combo, is_default) VALUES (?, ?, ?)',
       )
@@ -158,16 +170,16 @@ export function registerAgentIPCHandlers(): void {
   });
 
   ipcMain.handle('db:shortcuts:reset', async (_event, action: string) => {
-    if (!db) throw new Error('Agent service not initialized');
+    await ensureReady();
     const defaultCombo = DEFAULT_SHORTCUTS[action];
     if (defaultCombo) {
-      await db
+      await db!
         .prepare(
           'INSERT OR REPLACE INTO keyboard_shortcuts (action, key_combo, is_default) VALUES (?, ?, 1)',
         )
         .run(action, defaultCombo);
     } else {
-      await db.prepare('DELETE FROM keyboard_shortcuts WHERE action = ?').run(action);
+      await db!.prepare('DELETE FROM keyboard_shortcuts WHERE action = ?').run(action);
     }
   });
 }

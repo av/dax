@@ -10,8 +10,8 @@
  * 7. Wire up watcher events to update the scene
  * 8. Persist camera state changes to DB
  */
-import { getScene, initScene } from '../engine/scene';
-import { onCameraStateChange } from '../engine/camera';
+import { getScene, initScene, sceneReady } from '../engine/scene';
+import { onCameraStateChange, restoreCameraState } from '../engine/camera';
 import { populateScene, handleFSEventBatch } from '../engine/scene-bridge';
 import type { SceneBridgeCallbacks } from '../engine/scene-bridge';
 import { initSelectionSystem } from '../engine/selection';
@@ -39,6 +39,9 @@ let watcherUnsubscribe: (() => void) | null = null;
  * This is the main initialization sequence for M3/M4.
  */
 export async function bootstrapWorkspace(dirPath: string): Promise<void> {
+  // Wait for the 3D scene (incl. Havok WASM) to finish initializing
+  await sceneReady;
+
   const scene = getScene();
   if (!scene) {
     throw new Error('Scene not initialized. Call initScene() before bootstrapWorkspace().');
@@ -141,6 +144,17 @@ export async function bootstrapWorkspace(dirPath: string): Promise<void> {
   onCameraStateChange((state: CameraState) => {
     ipcClient.configSet('camera_state', JSON.stringify(state)).catch(console.error);
   });
+
+  // 10b. Restore saved camera state from DB
+  try {
+    const savedCameraJson = await ipcClient.configGet('camera_state');
+    if (savedCameraJson) {
+      const parsed: CameraState = JSON.parse(savedCameraJson);
+      restoreCameraState(parsed);
+    }
+  } catch (err) {
+    console.error('[bootstrap] Failed to restore camera state (non-fatal):', err);
+  }
 
   // 11. Initialize the agent BDI engine
   try {

@@ -119,10 +119,10 @@ function runSimulation(request: LayoutRequest): void {
         .iterations(2),
     )
     // Center the layout around origin
-    .force('center', forceCenter(0, 0).strength(0.05))
-    // Gentle pull toward center to prevent extreme spread
-    .force('x', forceX<LayoutNode>(0).strength(0.02))
-    .force('y', forceY<LayoutNode>(0).strength(0.02));
+    .force('center', forceCenter(0, 0).strength(0.1))
+    // Pull toward center to prevent extreme spread
+    .force('x', forceX<LayoutNode>(0).strength(0.05))
+    .force('y', forceY<LayoutNode>(0).strength(0.05));
 
   // For incremental layout, run fewer ticks
   const maxTicks = request.type === 'incremental' ? 100 : 300;
@@ -154,6 +154,13 @@ function runSimulation(request: LayoutRequest): void {
   }
 
   const elapsed = performance.now() - startTime;
+
+  // Clamp positions to ±200 to stay within the 250-unit physics boundary
+  const POSITION_CLAMP = 200;
+  for (const n of nodes) {
+    if (n.x != null) n.x = Math.max(-POSITION_CLAMP, Math.min(POSITION_CLAMP, n.x));
+    if (n.y != null) n.y = Math.max(-POSITION_CLAMP, Math.min(POSITION_CLAMP, n.y));
+  }
 
   // Extract positions
   const result: LayoutResult = {

@@ -28,4 +28,7 @@ Thumbs.db
 .env.local
 
 # Runtime data
+
+# WASM binaries copied by Vite plugin (auto-generated from node_modules)
+src/renderer/public/HavokPhysics.wasm
 .dax/

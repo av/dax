@@ -8,10 +8,18 @@ import { initPhysics, createGroundBody, createBoundaryWalls } from './physics';
 import { createRTSCamera, restoreCameraState } from './camera';
 import { startPerformanceMonitor } from './performance-monitor';
 import { verifyFrustumCulling } from './lod';
+import { TARGET_RENDER_FPS } from '@shared/constants';
 import type { CameraState } from '../state/camera';
 
 let engine: Engine | null = null;
 let scene: Scene | null = null;
+
+let resolveSceneReady: () => void;
+
+/** Promise that resolves once initScene() has fully completed. */
+export const sceneReady: Promise<void> = new Promise((resolve) => {
+  resolveSceneReady = resolve;
+});
 
 /**
  * Initializes the Babylon.js engine and scene with full M4 features:
@@ -76,8 +84,16 @@ export async function initScene(
     }
   });
 
-  // ── Render loop ──
+  // ── Render loop (capped to TARGET_RENDER_FPS) ──
+  const frameTimeMs = 1000 / TARGET_RENDER_FPS;
+  let lastRenderTime = performance.now();
+
   engine.runRenderLoop(() => {
+    const now = performance.now();
+    const elapsed = now - lastRenderTime;
+    if (elapsed < frameTimeMs) return;
+    // Subtract leftover to keep cadence steady and avoid drift
+    lastRenderTime = now - (elapsed % frameTimeMs);
     scene!.render();
   });
 
@@ -85,6 +101,8 @@ export async function initScene(
   window.addEventListener('resize', () => {
     engine!.resize();
   });
+
+  resolveSceneReady();
 
   return { engine, scene };
 }

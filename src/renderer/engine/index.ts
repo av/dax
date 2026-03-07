@@ -1,4 +1,4 @@
-export { initScene, getEngine, getScene } from './scene';
+export { initScene, getEngine, getScene, sceneReady } from './scene';
 export {
   setupLighting,
   getShadowGenerator,

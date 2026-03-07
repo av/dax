@@ -12,7 +12,6 @@ import {
   MeshBuilder,
   type Scene,
   type Mesh,
-  type AbstractMesh,
   StandardMaterial,
   Color3,
 } from '@babylonjs/core';
@@ -20,14 +19,21 @@ import { LOD1_DISTANCE, LOD2_DISTANCE } from '@shared/constants';
 import { getCategoryColor3 } from './materials';
 import type { FileCategory } from '@shared/file-types';
 
-/** Cache for LOD1 simplified meshes per category */
-const lod1Cache = new Map<string, Mesh>();
+/** Cache for LOD1 materials per category */
+const lod1MatCache = new Map<string, StandardMaterial>();
 
-/** Cache for LOD2 billboard meshes per category */
-const lod2Cache = new Map<string, Mesh>();
+/** Cache for LOD2 materials per category */
+const lod2MatCache = new Map<string, StandardMaterial>();
+
+/** Counter for unique LOD mesh names */
+let lodIdCounter = 0;
 
 /**
  * Set up LOD levels for a mesh based on its file category.
+ *
+ * Creates unique LOD meshes per parent mesh (BabylonJS does not allow
+ * the same mesh instance to be used as an LOD level on multiple parents).
+ * Materials are cached and shared across meshes for efficiency.
  *
  * @param mesh - The full detail (LOD0) mesh
  * @param category - File category for material coloring
@@ -39,56 +45,80 @@ export function setupLOD(
   scene: Scene,
 ): void {
   // LOD1: Simplified box (fewer subdivisions, simpler material)
-  const lod1 = getOrCreateLOD1(category, scene);
+  const lod1 = createLOD1(category, scene);
+  lod1.parent = mesh.parent; // Inherit parent so LOD renders at the correct position
   mesh.addLODLevel(LOD1_DISTANCE, lod1);
 
   // LOD2: Billboard (null = disappear at distance, or use a simple plane)
-  const lod2 = getOrCreateLOD2(category, scene);
+  const lod2 = createLOD2(category, scene);
+  lod2.parent = mesh.parent; // Inherit parent so LOD renders at the correct position
   mesh.addLODLevel(LOD2_DISTANCE, lod2);
 }
 
 /**
- * Get or create a simplified LOD1 mesh for a category.
- * Uses a simple box with a basic material (not PBR — cheaper to render).
+ * Get or create a StandardMaterial for LOD1 meshes of a given category.
  */
-function getOrCreateLOD1(category: FileCategory | 'folder', scene: Scene): Mesh {
+function getLOD1Material(category: FileCategory | 'folder', scene: Scene): StandardMaterial {
   const key = `lod1_${category}`;
-  const cached = lod1Cache.get(key);
-  if (cached && !cached.isDisposed()) return cached;
+  const cached = lod1MatCache.get(key);
+  if (cached) return cached;
 
-  // Create a simpler box (no round edges, lower-quality material)
-  const lod1 = MeshBuilder.CreateBox(
-    key,
-    { width: 1.2, height: 0.8, depth: 0.8 },
-    scene,
-  );
-
-  // Use cheaper StandardMaterial instead of PBR
   const mat = new StandardMaterial(`${key}_mat`, scene);
   const color = getCategoryColor3(category);
   mat.diffuseColor = color;
   mat.specularColor = Color3.Black();
-  lod1.material = mat;
+
+  lod1MatCache.set(key, mat);
+  return mat;
+}
+
+/**
+ * Get or create a StandardMaterial for LOD2 meshes of a given category.
+ */
+function getLOD2Material(category: FileCategory | 'folder', scene: Scene): StandardMaterial {
+  const key = `lod2_${category}`;
+  const cached = lod2MatCache.get(key);
+  if (cached) return cached;
+
+  const mat = new StandardMaterial(`${key}_mat`, scene);
+  const color = getCategoryColor3(category);
+  mat.diffuseColor = color;
+  mat.specularColor = Color3.Black();
+  mat.backFaceCulling = false;
+
+  lod2MatCache.set(key, mat);
+  return mat;
+}
+
+/**
+ * Create a unique simplified LOD1 mesh for a parent mesh.
+ * Uses a simple box with a cached StandardMaterial (not PBR — cheaper to render).
+ */
+function createLOD1(category: FileCategory | 'folder', scene: Scene): Mesh {
+  const id = lodIdCounter++;
+  const lod1 = MeshBuilder.CreateBox(
+    `lod1_${category}_${id}`,
+    { width: 1.2, height: 0.8, depth: 0.8 },
+    scene,
+  );
+
+  lod1.material = getLOD1Material(category, scene);
 
   // Don't render this mesh directly — it's only used as LOD replacement
   lod1.setEnabled(false);
   lod1.isPickable = false;
 
-  lod1Cache.set(key, lod1);
   return lod1;
 }
 
 /**
- * Get or create a billboard LOD2 mesh for a category.
+ * Create a unique billboard LOD2 mesh for a parent mesh.
  * A simple colored plane that always faces the camera.
  */
-function getOrCreateLOD2(category: FileCategory | 'folder', scene: Scene): Mesh {
-  const key = `lod2_${category}`;
-  const cached = lod2Cache.get(key);
-  if (cached && !cached.isDisposed()) return cached;
-
+function createLOD2(category: FileCategory | 'folder', scene: Scene): Mesh {
+  const id = lodIdCounter++;
   const lod2 = MeshBuilder.CreatePlane(
-    key,
+    `lod2_${category}_${id}`,
     { width: 1.0, height: 1.0 },
     scene,
   );
@@ -96,17 +126,11 @@ function getOrCreateLOD2(category: FileCategory | 'folder', scene: Scene): Mesh 
   // Billboard mode: always face camera
   lod2.billboardMode = 7; // BILLBOARDMODE_ALL
 
-  const mat = new StandardMaterial(`${key}_mat`, scene);
-  const color = getCategoryColor3(category);
-  mat.diffuseColor = color;
-  mat.specularColor = Color3.Black();
-  mat.backFaceCulling = false;
-  lod2.material = mat;
+  lod2.material = getLOD2Material(category, scene);
 
   lod2.setEnabled(false);
   lod2.isPickable = false;
 
-  lod2Cache.set(key, lod2);
   return lod2;
 }
 
@@ -128,15 +152,17 @@ export function verifyFrustumCulling(scene: Scene): boolean {
 }
 
 /**
- * Clear LOD caches. Call on scene dispose.
+ * Clear LOD material caches. Call on scene dispose.
+ * Individual LOD meshes are disposed with their parent meshes.
  */
 export function clearLODCache(): void {
-  for (const [, mesh] of lod1Cache) {
-    if (!mesh.isDisposed()) mesh.dispose();
+  for (const [, mat] of lod1MatCache) {
+    mat.dispose();
   }
-  for (const [, mesh] of lod2Cache) {
-    if (!mesh.isDisposed()) mesh.dispose();
+  for (const [, mat] of lod2MatCache) {
+    mat.dispose();
   }
-  lod1Cache.clear();
-  lod2Cache.clear();
+  lod1MatCache.clear();
+  lod2MatCache.clear();
+  lodIdCounter = 0;
 }

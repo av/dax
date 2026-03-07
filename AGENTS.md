@@ -85,3 +85,51 @@ Good tests are integration-style: they exercise real code paths through public A
 
 ## Bad tests
 Bad tests are coupled to implementation. They mock internal collaborators, test private methods, or verify through external means (like querying a database directly instead of using the interface). The warning sign: your test breaks when you refactor, but behavior hasn't changed. If you rename an internal function and tests fail, those tests were testing implementation, not behavior.
+
+# Validation Principles
+
+These principles were learned the hard way — from three rounds of false "PASS" claims on an Electron + Babylon.js application that couldn't render its 3D scene.
+
+## "Tests pass" does not mean "app works"
+
+Passing tests, clean TypeScript compilation, and healthy process counts are necessary but nowhere near sufficient. They verify infrastructure, not user-visible behavior. An app can have 251 passing tests while the camera drifts off-screen from frame 1 and the user sees nothing.
+
+## Validate what the user sees, not what the system reports
+
+The only real validation is: **does the user see what they're supposed to see?** Launch the app. Look at the screen. Interact with it. If you're verifying a 3D scene, confirm objects are visible in the canvas — don't just check that a canvas element exists in the DOM.
+
+Infrastructure checks to run (necessary, not sufficient):
+- TypeScript compiles (`tsc --noEmit`)
+- Tests pass (`vitest run`)
+- Process starts without crashes
+- No unhandled exceptions in terminal output
+
+Behavioral checks to run (the ones that actually matter):
+- Does the UI render what the user expects to see?
+- Can you interact with visible elements and get expected results?
+- Does the app look correct after sitting idle for 10+ seconds? (catches drift, animation bugs, resource leaks)
+- Do end-to-end workflows complete? (not just "IPC call returns data" — does the *result* appear on screen?)
+
+## Never declare completion from a single signal
+
+A process running ≠ a working app. A canvas element existing ≠ a rendered scene. An IPC method returning data ≠ that data being displayed. Each of these was used as false evidence of "PASS" in the failed validation rounds. Every claim of "works" must be backed by observation of the **final user-visible output**, not an intermediate signal.
+
+## When fixing bugs, trace the full rendering pipeline
+
+Fixing a crash is not the same as fixing the app. After resolving an error, trace the complete path from data → processing → display:
+
+1. Does the data load correctly? (DB, filesystem, network)
+2. Does the processing layer transform it correctly? (layout engine, physics, state management)
+3. Does the rendering layer display it correctly? (camera position, mesh visibility, material settings, lighting)
+4. Does it stay correct over time? (no drift, no memory leaks, no animation bugs)
+
+A fix at layer 1 means nothing if layers 2-4 have their own independent bugs.
+
+## Dogfood before declaring done
+
+Before claiming an app is "fully functional," use it as a real user would. For GUI applications, this means:
+- Launch fresh (clean database, no cached state)
+- Complete the primary user flow end-to-end
+- Wait and observe (many bugs only manifest after a few seconds of idle time)
+- Interact with every major feature, not just the happy path
+- Check the console/logs for silent errors that don't crash but indicate broken functionality

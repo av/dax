@@ -111,9 +111,12 @@ export function registerIPCHandlers(): void {
 
   // ── Watcher ──
   ipcMain.handle('watcher:start', async (_event, dirPath: string) => {
-    const win = BrowserWindow.getFocusedWindow();
+    const win =
+      BrowserWindow.fromWebContents(_event.sender) ??
+      BrowserWindow.getFocusedWindow() ??
+      BrowserWindow.getAllWindows()[0];
     if (!win) {
-      throw new Error('No focused window to attach watcher');
+      throw new Error('No window available to attach watcher');
     }
     startWatcher(dirPath, win);
   });
@@ -212,5 +215,5 @@ export function registerIPCHandlers(): void {
   });
 
   // ── Agent ──
-  registerAgentIPCHandlers();
+  registerAgentIPCHandlers(async () => { await ensureDB(); });
 }

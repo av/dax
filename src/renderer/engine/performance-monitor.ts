@@ -14,8 +14,12 @@ import { PERF_FRAME_TIME_THRESHOLD_MS, PERF_CONSECUTIVE_SLOW_FRAMES } from '@sha
 /** Shadow quality levels (map resolution) */
 const SHADOW_QUALITY_LEVELS = [2048, 1024, 512, 256];
 
+/** Number of consecutive fast frames required to recover one shadow quality level (~2s at 60fps) */
+const RECOVERY_FRAME_THRESHOLD = 120;
+
 let currentShadowQualityIndex = 0;
 let consecutiveSlowFrames = 0;
+let consecutiveFastFrames = 0;
 let shadowGenerator: ShadowGenerator | null = null;
 let isMonitoring = false;
 let lastFrameTime = 0;
@@ -48,14 +52,21 @@ export function startPerformanceMonitor(
 
     if (frameTime > PERF_FRAME_TIME_THRESHOLD_MS) {
       consecutiveSlowFrames++;
+      consecutiveFastFrames = 0; // Reset fast streak
 
       if (consecutiveSlowFrames >= PERF_CONSECUTIVE_SLOW_FRAMES) {
         reduceShadowQuality();
         consecutiveSlowFrames = 0; // Reset counter after adjustment
       }
     } else {
-      // Reset streak if we have a good frame
+      // Reset slow streak if we have a good frame
       consecutiveSlowFrames = 0;
+      consecutiveFastFrames++;
+
+      if (consecutiveFastFrames >= RECOVERY_FRAME_THRESHOLD) {
+        increaseShadowQuality();
+        consecutiveFastFrames = 0; // Reset counter after adjustment
+      }
     }
   });
 }
@@ -90,6 +101,32 @@ function reduceShadowQuality(): void {
 }
 
 /**
+ * Increase shadow map quality by one level.
+ * Goes through: 256 → 512 → 1024 → 2048.
+ * Does nothing if already at maximum quality.
+ */
+function increaseShadowQuality(): void {
+  if (!shadowGenerator) return;
+
+  if (currentShadowQualityIndex <= 0) {
+    // Already at highest quality — nothing more to do
+    return;
+  }
+
+  currentShadowQualityIndex--;
+  const newSize = SHADOW_QUALITY_LEVELS[currentShadowQualityIndex];
+
+  const shadowMap = shadowGenerator.getShadowMap();
+  if (shadowMap) {
+    shadowMap.refreshRate = 1;
+  }
+
+  shadowGenerator.mapSize = newSize;
+
+  console.log(`[perf] Shadow quality increased to ${newSize}x${newSize}`);
+}
+
+/**
  * Get current performance stats.
  */
 export function getPerformanceStats(): {
@@ -113,4 +150,5 @@ export function stopPerformanceMonitor(): void {
   isMonitoring = false;
   shadowGenerator = null;
   consecutiveSlowFrames = 0;
+  consecutiveFastFrames = 0;
 }

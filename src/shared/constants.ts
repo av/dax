@@ -57,6 +57,9 @@ export const LOD2_DISTANCE = 200;
 export const PERF_FRAME_TIME_THRESHOLD_MS = 33;
 export const PERF_CONSECUTIVE_SLOW_FRAMES = 10;
 
+/** Target render FPS — caps the render loop to avoid wasting CPU/GPU */
+export const TARGET_RENDER_FPS = 60;
+
 /** Edge scroll configuration */
 export const EDGE_SCROLL_ZONE_PX = 30;
 export const EDGE_SCROLL_SPEED = 0.5;

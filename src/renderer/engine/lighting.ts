@@ -93,7 +93,7 @@ export function setupLighting(scene: Scene): { shadowGenerator: ShadowGenerator;
     { width: 2000, height: 2000 },
     scene,
   );
-  skyPlane.position.y = -0.1; // Just below ground so it's visible from above
+  skyPlane.position.y = -2; // Far below ground to prevent z-fighting at shallow angles
   skyPlane.isPickable = false;
 
   const skyMat = new PBRMaterial('skyGradientMat', scene);

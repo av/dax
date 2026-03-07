@@ -251,6 +251,14 @@ function setupKeyboardHandlers(scene: Scene): void {
     if (!camera) return;
     if (keysPressed.size === 0) return;
 
+    // Don't process camera keys when a text input is focused
+    const activeTag = document.activeElement?.tagName;
+    if (
+      activeTag === 'INPUT' ||
+      activeTag === 'TEXTAREA' ||
+      (document.activeElement as HTMLElement)?.contentEditable === 'true'
+    ) return;
+
     let moved = false;
     const panSpeed = CAMERA_PAN_SPEED * (camera.radius * 0.02);
     const cosAlpha = Math.cos(camera.alpha);
@@ -299,15 +307,22 @@ function setupKeyboardHandlers(scene: Scene): void {
 function setupEdgeScroll(scene: Scene): void {
   let mouseX = 0;
   let mouseY = 0;
+  let mouseHasMoved = false;
 
   canvas?.addEventListener('mousemove', (e) => {
     mouseX = e.clientX;
     mouseY = e.clientY;
+    mouseHasMoved = true;
+  });
+
+  canvas?.addEventListener('mouseleave', () => {
+    mouseHasMoved = false;
   });
 
   scene.onBeforeRenderObservable.add(() => {
     if (!camera || !canvas) return;
     if (!appConfig.edgeScrollEnabled) return;
+    if (!mouseHasMoved) return;
 
     const rect = canvas.getBoundingClientRect();
     const zone = EDGE_SCROLL_ZONE_PX;

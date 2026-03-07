@@ -138,7 +138,7 @@ export async function populateScene(
         }
 
         const mesh = createMeshForEntry(entry, scene, position);
-        fadeIn(mesh as unknown as import('@babylonjs/core').AbstractMesh, scene);
+        fadeIn(mesh, scene);
 
         const row = existing ?? entryToSceneObjectRow(entry, position, index);
         sceneObjects.push(row);
@@ -350,7 +350,7 @@ function handleFSEvent(
           renameMesh(event.renameFrom, event.path);
           updateMeshLabel(event.path, name, scene);
           renameFlash(
-            existingMesh as unknown as import('@babylonjs/core').AbstractMesh,
+            existingMesh,
             scene,
           );
           // Update DB: delete old, create new
@@ -367,7 +367,7 @@ function handleFSEvent(
       const currentEntries = getCurrentEntries();
       const pos = gridPosition(currentEntries.length);
       const mesh = createMeshForEntry(entry, scene, pos);
-      fadeIn(mesh as unknown as import('@babylonjs/core').AbstractMesh, scene);
+      fadeIn(mesh, scene);
 
       // Persist with grid position initially
       const row = entryToSceneObjectRow(entry, pos, currentEntries.length);
@@ -383,7 +383,7 @@ function handleFSEvent(
       const mesh = getMeshByPath(event.path);
       if (mesh) {
         dissolve(
-          mesh as unknown as import('@babylonjs/core').AbstractMesh,
+          mesh,
           scene,
           () => {
             disposeMeshByPath(event.path);
@@ -399,7 +399,7 @@ function handleFSEvent(
       const mesh = getMeshByPath(event.path);
       if (mesh) {
         pulse(
-          mesh as unknown as import('@babylonjs/core').AbstractMesh,
+          mesh,
           scene,
         );
       }

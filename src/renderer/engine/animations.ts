@@ -10,11 +10,12 @@
  */
 import {
   Animation,
-  type AbstractMesh,
+  AbstractMesh,
   type Scene,
   EasingFunction,
   CubicEase,
   BounceEase,
+  type TransformNode,
 } from '@babylonjs/core';
 
 /** Duration constants (in frames at 60fps) */
@@ -24,12 +25,25 @@ const PULSE_FRAMES = 30;
 const RENAME_FLASH_FRAMES = 20;
 
 /**
+ * Resolve the actual renderable mesh from a node.
+ * If the node is a TransformNode (not an AbstractMesh), returns the first child mesh.
+ * Visibility animations must target an AbstractMesh, not a TransformNode.
+ */
+function resolveRenderMesh(node: AbstractMesh | TransformNode): AbstractMesh | null {
+  if (node instanceof AbstractMesh) return node;
+  const children = node.getChildMeshes(false);
+  return children.length > 0 ? children[0] : null;
+}
+
+/**
  * Fade-in animation: mesh scales from 0 to 1 and becomes visible.
  * Used when new files appear.
+ * Accepts a TransformNode or AbstractMesh — visibility is applied to the child mesh.
  */
-export function fadeIn(mesh: AbstractMesh, scene: Scene, onComplete?: () => void): void {
+export function fadeIn(mesh: AbstractMesh | TransformNode, scene: Scene, onComplete?: () => void): void {
+  const renderTarget = resolveRenderMesh(mesh);
   mesh.scaling.setAll(0);
-  mesh.visibility = 0;
+  if (renderTarget) renderTarget.visibility = 0;
 
   const scaleAnim = new Animation(
     'fadeInScale',
@@ -67,23 +81,47 @@ export function fadeIn(mesh: AbstractMesh, scene: Scene, onComplete?: () => void
   const scaleZ = scaleAnim.clone();
   scaleZ.targetProperty = 'scaling.z';
 
+  // Scale animation targets the node (TransformNode or Mesh)
   scene.beginDirectAnimation(
     mesh,
-    [scaleAnim, scaleY, scaleZ, visAnim],
+    [scaleAnim, scaleY, scaleZ],
     0,
     FADE_IN_FRAMES,
     false,
-    1.0,
-    onComplete,
   );
+
+  // Visibility animation targets the actual renderable mesh
+  if (renderTarget && renderTarget !== mesh) {
+    scene.beginDirectAnimation(
+      renderTarget,
+      [visAnim],
+      0,
+      FADE_IN_FRAMES,
+      false,
+      1.0,
+      onComplete,
+    );
+  } else {
+    scene.beginDirectAnimation(
+      mesh,
+      [visAnim],
+      0,
+      FADE_IN_FRAMES,
+      false,
+      1.0,
+      onComplete,
+    );
+  }
 }
 
 /**
  * Dissolve animation: mesh scales to 0 and fades out.
  * Used when files are deleted.
  * Calls onComplete when done (caller should dispose the mesh).
+ * Accepts a TransformNode or AbstractMesh.
  */
-export function dissolve(mesh: AbstractMesh, scene: Scene, onComplete?: () => void): void {
+export function dissolve(mesh: AbstractMesh | TransformNode, scene: Scene, onComplete?: () => void): void {
+  const renderTarget = resolveRenderMesh(mesh);
   const ease = new CubicEase();
   ease.setEasingMode(EasingFunction.EASINGMODE_EASEIN);
 
@@ -118,22 +156,45 @@ export function dissolve(mesh: AbstractMesh, scene: Scene, onComplete?: () => vo
   const scaleZ = scaleAnim.clone();
   scaleZ.targetProperty = 'scaling.z';
 
+  // Scale animation on the node
   scene.beginDirectAnimation(
     mesh,
-    [scaleAnim, scaleY, scaleZ, visAnim],
+    [scaleAnim, scaleY, scaleZ],
     0,
     DISSOLVE_FRAMES,
     false,
-    1.0,
-    onComplete,
   );
+
+  // Visibility animation on the renderable mesh
+  if (renderTarget && renderTarget !== mesh) {
+    scene.beginDirectAnimation(
+      renderTarget,
+      [visAnim],
+      0,
+      DISSOLVE_FRAMES,
+      false,
+      1.0,
+      onComplete,
+    );
+  } else {
+    scene.beginDirectAnimation(
+      mesh,
+      [visAnim],
+      0,
+      DISSOLVE_FRAMES,
+      false,
+      1.0,
+      onComplete,
+    );
+  }
 }
 
 /**
  * Pulse animation: mesh briefly scales up and glows.
  * Used when files are modified.
+ * Accepts a TransformNode or AbstractMesh.
  */
-export function pulse(mesh: AbstractMesh, scene: Scene, onComplete?: () => void): void {
+export function pulse(mesh: AbstractMesh | TransformNode, scene: Scene, onComplete?: () => void): void {
   const ease = new BounceEase(1, 4);
   ease.setEasingMode(EasingFunction.EASINGMODE_EASEOUT);
 
@@ -172,8 +233,12 @@ export function pulse(mesh: AbstractMesh, scene: Scene, onComplete?: () => void)
 /**
  * Rename flash animation: brief visibility flicker.
  * Used when files are renamed (label update).
+ * Accepts a TransformNode or AbstractMesh — visibility targets the child mesh.
  */
-export function renameFlash(mesh: AbstractMesh, scene: Scene, onComplete?: () => void): void {
+export function renameFlash(mesh: AbstractMesh | TransformNode, scene: Scene, onComplete?: () => void): void {
+  const renderTarget = resolveRenderMesh(mesh);
+  const target = renderTarget ?? mesh;
+
   const visAnim = new Animation(
     'renameVis',
     'visibility',
@@ -190,7 +255,7 @@ export function renameFlash(mesh: AbstractMesh, scene: Scene, onComplete?: () =>
   ]);
 
   scene.beginDirectAnimation(
-    mesh,
+    target,
     [visAnim],
     0,
     RENAME_FLASH_FRAMES,

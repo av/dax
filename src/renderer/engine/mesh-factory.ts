@@ -20,7 +20,7 @@ import { AdvancedDynamicTexture, TextBlock, Rectangle } from '@babylonjs/gui';
 import { getMaterial, getCategoryColor3 } from './materials';
 import { addFilePhysicsBody, addFolderPhysicsBody } from './physics';
 import { enableShadows } from './lighting';
-import { setupLOD } from './lod';
+import { createPoolInstance } from './mesh-pool';
 import type { FileEntry, FileCategory } from '@shared/file-types';
 
 /** File box dimensions */
@@ -52,17 +52,10 @@ export function createFileMesh(
   // Root transform node
   const root = new TransformNode(`file_${entry.path}`, scene);
 
-  // File box mesh
-  const box = MeshBuilder.CreateBox(
-    `filebox_${entry.path}`,
-    { width: FILE_WIDTH, height: FILE_HEIGHT, depth: FILE_DEPTH },
-    scene,
-  );
+  // File box mesh — use instanced mesh from pool for draw-call efficiency
+  const box = createPoolInstance(entry.category, `filebox_${entry.path}`, scene);
   box.parent = root;
   box.position.y = FILE_HEIGHT / 2; // Sit on the ground
-
-  // Apply material based on file category
-  box.material = getMaterial(scene, entry.category);
 
   // Store path as metadata
   box.metadata = { path: entry.path, type: 'file', category: entry.category };
@@ -70,10 +63,10 @@ export function createFileMesh(
   // Enable shadow casting and receiving
   enableShadows(box);
 
-  // Setup LOD levels based on file category
-  setupLOD(box, entry.category, scene);
+  // Note: LOD is not needed for instanced meshes — instancing itself
+  // is the draw-call optimization that LOD was meant to provide.
 
-  // Add dynamic physics body (files fall under gravity)
+  // Add physics body (starts as kinematic; layout controls position)
   addFilePhysicsBody(box, scene);
 
   // Create label
